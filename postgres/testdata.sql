@@ -1,4 +1,6 @@
-INSERT INTO users (name) VALUES ('Alice'), ('Bob');
+INSERT INTO users (login, password_hash) VALUES
+('alice','$2a$10$mjbFCHMv1O8tXrIxTTju.euFex/plavfT875Rjsz5RWxjOunAG4QO'),
+('bob','$2a$10$mjbFCHMv1O8tXrIxTTju.euFex/plavfT875Rjsz5RWxjOunAG4QO');
 
 INSERT INTO products (name, volume, brand, category, description, creation_date) VALUES
 ('Tea','500ml','Brand1','Drink','Green tea','2023-01-01'),
