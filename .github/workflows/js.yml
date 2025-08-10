@@ -1,0 +1,26 @@
+name: Client checks
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        working-directory: clients
+        run: npm install
+      - name: Lint
+        working-directory: clients
+        run: npm run lint
+      - name: Build
+        working-directory: clients
+        run: npm run build
