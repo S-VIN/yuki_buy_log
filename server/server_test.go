@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -26,7 +27,7 @@ func newTestServer(t *testing.T) (*Server, sqlmock.Sqlmock, *mockValidator, func
 		t.Fatalf("error creating mock: %v", err)
 	}
 	v := &mockValidator{}
-	srv := NewServer(db, v)
+	srv := NewServer(db, v, NewAuthenticator([]byte("secret")))
 	return srv, mock, v, func() { db.Close() }
 }
 
@@ -86,10 +87,12 @@ func TestGetPurchases(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "product_id", "quantity", "price", "date", "store", "receipt_id"}).
 		AddRow(1, 1, 2, 100, fixed, "Store", 1)
 
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, product_id, quantity, price, date, store, receipt_id FROM purchases")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, product_id, quantity, price, date, store, receipt_id FROM purchases WHERE user_id=$1")).
+		WithArgs(int64(1)).
 		WillReturnRows(rows)
 
 	req := httptest.NewRequest(http.MethodGet, "/purchases", nil)
+	req = req.WithContext(context.WithValue(req.Context(), UserIDKey, int64(1)))
 	w := httptest.NewRecorder()
 	srv.purchasesHandler(w, req)
 
@@ -108,10 +111,11 @@ func TestCreatePurchase(t *testing.T) {
 	body := `{"product_id":1,"quantity":2,"price":100,"date":"2023-03-01","store":"Store","receipt_id":1}`
 
 	mock.ExpectQuery(regexp.QuoteMeta("INSERT INTO purchases (product_id, quantity, price, date, store, receipt_id, user_id) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id")).
-		WithArgs(int64(1), 2, 100, sqlmock.AnyArg(), "Store", int64(1), 1).
+		WithArgs(int64(1), 2, 100, sqlmock.AnyArg(), "Store", int64(1), int64(1)).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
 	req := httptest.NewRequest(http.MethodPost, "/purchases", strings.NewReader(body))
+	req = req.WithContext(context.WithValue(req.Context(), UserIDKey, int64(1)))
 	w := httptest.NewRecorder()
 	srv.purchasesHandler(w, req)
 

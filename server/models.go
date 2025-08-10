@@ -21,3 +21,10 @@ type Purchase struct {
 	Store     string `json:"store"`
 	ReceiptId int64  `json:"receipt_id"`
 }
+
+// User represents an application user.
+type User struct {
+	Id       int64  `json:"id"`
+	Login    string `json:"login"`
+	Password string `json:"password,omitempty"`
+}

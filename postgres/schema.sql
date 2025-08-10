@@ -1,6 +1,7 @@
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL
+    login VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(60) NOT NULL
 );
 
 CREATE TABLE products (
