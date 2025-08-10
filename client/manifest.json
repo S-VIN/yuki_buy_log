@@ -1,0 +1,20 @@
+{
+    "name": "YukiCheck",
+    "short_name": "YukiCheck",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#ffffff",
+    "icons": [
+      {
+        "src": "/icons/196.png",
+        "sizes": "196x196",
+        "type": "image/png"
+      },
+      {
+        "src": "/icons/512.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }
+    ]
+  }
