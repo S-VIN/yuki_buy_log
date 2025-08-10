@@ -21,11 +21,14 @@ func main() {
 	}
 	defer db.Close()
 
-	srv := NewServer(db, NewValidator())
+	auth := NewAuthenticator([]byte("secret"))
+	srv := NewServer(db, NewValidator(), auth)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/products", srv.productsHandler)
-	mux.HandleFunc("/purchases", srv.purchasesHandler)
+	mux.Handle("/products", auth.Middleware(http.HandlerFunc(srv.productsHandler)))
+	mux.Handle("/purchases", auth.Middleware(http.HandlerFunc(srv.purchasesHandler)))
+	mux.HandleFunc("/register", srv.registerHandler)
+	mux.HandleFunc("/login", srv.loginHandler)
 
 	log.Println("Server started on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))
