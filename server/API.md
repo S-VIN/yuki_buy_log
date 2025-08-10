@@ -1,5 +1,43 @@
 # YukiBuyLog API
 
+All requests (except registration and login) require an `Authorization` header with a bearer token.
+
+## POST /register
+Register a new user.
+
+**Request body**
+```json
+{
+  "login": "alice",
+  "password": "secret"
+}
+```
+
+**Response**
+```json
+{
+  "token": "..."
+}
+```
+
+## POST /login
+Authenticate an existing user.
+
+**Request body**
+```json
+{
+  "login": "alice",
+  "password": "secret"
+}
+```
+
+**Response**
+```json
+{
+  "token": "..."
+}
+```
+
 ## GET /products
 Returns list of products.
 
