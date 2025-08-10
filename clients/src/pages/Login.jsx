@@ -1,10 +1,44 @@
-import { Card, Tabs, Form, Input, Button } from 'antd';
+import { Card, Tabs, Form, Input, Button, message } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../stores/AuthContext.jsx';
+import API_URL from '../api.js';
 
 const Login = () => {
-  const [form] = Form.useForm();
+  const [loginForm] = Form.useForm();
+  const [registerForm] = Form.useForm();
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-  const onFinish = (values) => {
-    console.log('submit', values);
+  const handleLogin = async (values) => {
+    try {
+      const res = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+      if (!res.ok) throw new Error('login failed');
+      const data = await res.json();
+      login(data.token);
+      navigate('/');
+    } catch {
+      message.error('Login failed');
+    }
+  };
+
+  const handleRegister = async (values) => {
+    try {
+      const res = await fetch(`${API_URL}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+      if (!res.ok) throw new Error('register failed');
+      const data = await res.json();
+      login(data.token);
+      navigate('/');
+    } catch {
+      message.error('Registration failed');
+    }
   };
 
   const items = [
@@ -12,9 +46,9 @@ const Login = () => {
       key: 'login',
       label: 'Login',
       children: (
-        <Form form={form} layout="vertical" onFinish={onFinish}>
-          <Form.Item name="email" rules={[{ required: true, message: 'Email' }]}>
-            <Input placeholder="Email" />
+        <Form form={loginForm} layout="vertical" onFinish={handleLogin}>
+          <Form.Item name="login" rules={[{ required: true, message: 'Login' }]}>
+            <Input placeholder="Login" />
           </Form.Item>
           <Form.Item name="password" rules={[{ required: true, message: 'Password' }]}>
             <Input.Password placeholder="Password" />
@@ -31,9 +65,9 @@ const Login = () => {
       key: 'register',
       label: 'Register',
       children: (
-        <Form layout="vertical" onFinish={onFinish}>
-          <Form.Item name="email" rules={[{ required: true, message: 'Email' }]}>
-            <Input placeholder="Email" />
+        <Form form={registerForm} layout="vertical" onFinish={handleRegister}>
+          <Form.Item name="login" rules={[{ required: true, message: 'Login' }]}>
+            <Input placeholder="Login" />
           </Form.Item>
           <Form.Item name="password" rules={[{ required: true, message: 'Password' }]}>
             <Input.Password placeholder="Password" />
