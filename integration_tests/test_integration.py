@@ -12,8 +12,15 @@ COMPOSE_FILE = os.path.join(os.path.dirname(__file__), "..", "docker-compose.yml
 
 @pytest.fixture(scope="session", autouse=True)
 def start_system():
-    subprocess.run(["docker", "compose", "-f", COMPOSE_FILE, "pull"], check=True)
-    subprocess.run(["docker", "compose", "-f", COMPOSE_FILE, "up", "-d"], check=True)
+    subprocess.run([
+        "docker",
+        "compose",
+        "-f",
+        COMPOSE_FILE,
+        "up",
+        "--build",
+        "-d",
+    ], check=True)
     for _ in range(30):
         try:
             requests.get(BASE_URL, timeout=1)
