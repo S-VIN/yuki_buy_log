@@ -13,10 +13,11 @@ COMPOSE_FILE = os.path.join(os.path.dirname(__file__), "..", "docker-compose.yml
 def run_command(cmd):
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        print("Command failed:", " ".join(cmd))
-        print("stdout:\n", result.stdout)
-        print("stderr:\n", result.stderr)
-        raise RuntimeError(f"{' '.join(cmd)} failed with code {result.returncode}")
+        raise RuntimeError(
+            f"{' '.join(cmd)} failed with code {result.returncode}\n"
+            f"stdout:\n{result.stdout}\n"
+            f"stderr:\n{result.stderr}"
+        )
     return result
 
 
