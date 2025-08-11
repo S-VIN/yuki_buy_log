@@ -10,17 +10,26 @@ BASE_URL = "http://localhost:8080"
 COMPOSE_FILE = os.path.join(os.path.dirname(__file__), "..", "docker-compose.yml")
 
 
+def run_command(cmd):
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print("Command failed:", " ".join(cmd))
+        print("stdout:\n", result.stdout)
+        print("stderr:\n", result.stderr)
+        raise RuntimeError(f"{' '.join(cmd)} failed with code {result.returncode}")
+    return result
+
+
 @pytest.fixture(scope="session", autouse=True)
 def start_system():
-    subprocess.run([
-        "docker",
-        "compose",
+    run_command([
+        "docker-compose",
         "-f",
         COMPOSE_FILE,
         "up",
         "--build",
         "-d",
-    ], check=True)
+    ])
     for _ in range(30):
         try:
             requests.get(BASE_URL, timeout=1)
@@ -28,7 +37,7 @@ def start_system():
         except Exception:
             time.sleep(1)
     yield
-    subprocess.run(["docker", "compose", "-f", COMPOSE_FILE, "down", "-v"], check=True)
+    run_command(["docker-compose", "-f", COMPOSE_FILE, "down", "-v"])
 
 
 def register_and_login():
