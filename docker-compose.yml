@@ -2,7 +2,6 @@ version: '3.8'
 services:
   db:
     build: postgres
-    image: vinstp/yuki_buy_log:db
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
@@ -11,7 +10,6 @@ services:
       - "5432:5432"
   server:
     build: server
-    image: vinstp/yuki_buy_log:server
     environment:
       DATABASE_URL: postgres://user:pass@db:5432/yukibuylog?sslmode=disable
     depends_on:
@@ -20,7 +18,6 @@ services:
       - "8080:8080"
   client:
     build: clients
-    image: vinstp/yuki_buy_log:client
     depends_on:
       - server
     ports:
