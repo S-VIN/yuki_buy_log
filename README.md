@@ -1,1 +1,0 @@
-# yuki_buy_log

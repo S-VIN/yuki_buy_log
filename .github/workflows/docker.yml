@@ -1,0 +1,50 @@
+name: Build and push Docker images
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+      - name: Run unit tests
+        run: go test ./...
+        working-directory: server
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install client dependencies
+        working-directory: clients
+        run: npm install
+      - name: Lint client
+        working-directory: clients
+        run: npm run lint
+      - name: Build client
+        working-directory: clients
+        run: npm run build
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push server image
+        run: |
+          docker build -t vinstp/yuki_buy_log:server server
+          docker push vinstp/yuki_buy_log:server
+      - name: Build and push db image
+        run: |
+          docker build -t vinstp/yuki_buy_log:db postgres
+          docker push vinstp/yuki_buy_log:db
+      - name: Build and push client image
+        run: |
+          docker build -t vinstp/yuki_buy_log:client clients
+          docker push vinstp/yuki_buy_log:client
+
