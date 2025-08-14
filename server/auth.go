@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -13,8 +12,8 @@ import (
 // contextKey is used to store values in request context.
 type contextKey string
 
-// UserIDKey is the context key for the authenticated user's id.
-const UserIDKey contextKey = "userID"
+// UserLoginKey is the context key for the authenticated user's login.
+const UserLoginKey contextKey = "userLogin"
 
 // Authenticator handles token generation and verification.
 type Authenticator struct {
@@ -25,17 +24,17 @@ func NewAuthenticator(secret []byte) *Authenticator {
 	return &Authenticator{secret: secret}
 }
 
-// GenerateToken creates a signed JWT for the given user id.
-func (a *Authenticator) GenerateToken(userID int64) (string, error) {
+// GenerateToken creates a signed JWT for the given user login.
+func (a *Authenticator) GenerateToken(login string) (string, error) {
 	claims := jwt.RegisteredClaims{
-		Subject:   strconv.FormatInt(userID, 10),
+		Subject:   login,
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(a.secret)
 }
 
-// Middleware verifies the Authorization header and adds user id to the context.
+// Middleware verifies the Authorization header and adds user login to the context.
 func (a *Authenticator) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
@@ -56,23 +55,18 @@ func (a *Authenticator) Middleware(next http.Handler) http.Handler {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
-		sub, ok := claims["sub"].(string)
+		login, ok := claims["sub"].(string)
 		if !ok {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
-		id, err := strconv.ParseInt(sub, 10, 64)
-		if err != nil {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-		ctx := context.WithValue(r.Context(), UserIDKey, id)
+		ctx := context.WithValue(r.Context(), UserLoginKey, login)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-// userID retrieves the authenticated user id from the request context.
-func userID(r *http.Request) (int64, bool) {
-	id, ok := r.Context().Value(UserIDKey).(int64)
-	return id, ok
+// userLogin retrieves the authenticated user login from the request context.
+func userLogin(r *http.Request) (string, bool) {
+	login, ok := r.Context().Value(UserLoginKey).(string)
+	return login, ok
 }

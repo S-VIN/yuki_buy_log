@@ -37,6 +37,10 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/products", auth.Middleware(http.HandlerFunc(srv.productsHandler)))
 	mux.Handle("/purchases", auth.Middleware(http.HandlerFunc(srv.purchasesHandler)))
+	mux.Handle("/family/members", auth.Middleware(http.HandlerFunc(srv.familyMembersHandler)))
+	mux.Handle("/family/invite", auth.Middleware(http.HandlerFunc(srv.familyInviteHandler)))
+	mux.Handle("/family/respond", auth.Middleware(http.HandlerFunc(srv.familyRespondHandler)))
+	mux.Handle("/family/leave", auth.Middleware(http.HandlerFunc(srv.familyLeaveHandler)))
 	mux.HandleFunc("/register", srv.registerHandler)
 	mux.HandleFunc("/login", srv.loginHandler)
 

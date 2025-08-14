@@ -145,3 +145,61 @@ def test_method_not_allowed():
     r = requests.get(f"{BASE_URL}/login")
     assert r.status_code == 405
 
+
+def test_family_flow():
+    login_a, _, headers_a = register_and_login()
+    login_b, _, headers_b = register_and_login()
+
+    r = requests.get(f"{BASE_URL}/family/members", headers=headers_a)
+    assert r.status_code == 200
+    assert r.json()["members"] == []
+
+    r = requests.post(
+        f"{BASE_URL}/family/invite", json={"login": login_b}, headers=headers_a
+    )
+    assert r.status_code == 200
+
+    r = requests.post(
+        f"{BASE_URL}/family/respond",
+        json={"login": login_a, "accept": True},
+        headers=headers_b,
+    )
+    assert r.status_code == 200
+
+    r = requests.get(f"{BASE_URL}/family/members", headers=headers_a)
+    assert set(r.json()["members"]) == {login_a, login_b}
+    r = requests.get(f"{BASE_URL}/family/members", headers=headers_b)
+    assert set(r.json()["members"]) == {login_a, login_b}
+
+    product_payload = {
+        "name": "Tea",
+        "volume": "500ml",
+        "brand": "Brand1",
+        "category": "Drink",
+        "description": "Green tea",
+    }
+    r = requests.post(f"{BASE_URL}/products", json=product_payload, headers=headers_a)
+    product_id = r.json()["id"]
+    purchase_payload = {
+        "product_id": product_id,
+        "quantity": 1,
+        "price": 100,
+        "date": "2024-01-01",
+        "store": "Store",
+        "receipt_id": 1,
+    }
+    r = requests.post(
+        f"{BASE_URL}/purchases", json=purchase_payload, headers=headers_a
+    )
+    assert r.status_code == 200
+
+    r = requests.get(f"{BASE_URL}/purchases", headers=headers_b)
+    assert any(p["login"] == login_a for p in r.json()["purchases"])
+
+    r = requests.delete(f"{BASE_URL}/family/leave", headers=headers_b)
+    assert r.status_code == 200
+    r = requests.get(f"{BASE_URL}/family/members", headers=headers_b)
+    assert r.json()["members"] == []
+    r = requests.get(f"{BASE_URL}/family/members", headers=headers_a)
+    assert r.json()["members"] == []
+

@@ -21,3 +21,13 @@ func TestValidatePurchase(t *testing.T) {
 		t.Fatalf("expected error for missing date")
 	}
 }
+
+func TestValidateLogin(t *testing.T) {
+	v := NewValidator()
+	if err := v.ValidateLogin("alice"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := v.ValidateLogin("alice!"); err == nil {
+		t.Fatalf("expected error for invalid login")
+	}
+}

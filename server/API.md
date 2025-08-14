@@ -99,7 +99,8 @@ Returns list of purchases.
       "price": 100,
       "date": "2023-03-01",
       "store": "Store",
-      "receipt_id": 1
+      "receipt_id": 1,
+      "login": "alice"
     }
   ]
 }
@@ -120,16 +121,57 @@ Create a new purchase.
 }
 ```
 
+## GET /family/members
+Returns list of logins in the current user's family. If the user has no family, an empty list is returned.
+
 **Response**
 ```json
 {
-  "id": 1,
-  "product_id": 1,
-  "quantity": 2,
-  "price": 100,
-  "date": "2023-03-01",
-  "store": "Store",
-  "receipt_id": 1
+  "members": ["alice", "bob"]
 }
 ```
 
+## POST /family/invite
+Invite another user to your family by login. A family is created automatically if the inviter has none.
+
+**Request body**
+```json
+{
+  "login": "bob"
+}
+```
+
+**Response**
+```json
+{
+  "status": "invited"
+}
+```
+
+## POST /family/respond
+Accept or decline a family invitation.
+
+**Request body**
+```json
+{
+  "login": "alice",
+  "accept": true
+}
+```
+
+**Response**
+```json
+{
+  "status": "accepted"
+}
+```
+
+## DELETE /family/leave
+Leave the current family. If only one member remains afterwards, the family is disbanded.
+
+**Response**
+```json
+{
+  "status": "ok"
+}
+```
