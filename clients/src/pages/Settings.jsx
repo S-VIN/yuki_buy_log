@@ -19,7 +19,7 @@ const Settings = () => {
         const data = await iRes.json();
         setInvitations(data.invitations);
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
   };
