@@ -37,6 +37,7 @@ const ProductCardsWidget = ({ productListProp, onDelete }) => (
               <Tag color="green">{purchase.product.brand}</Tag>
               <Tag color="blue">{purchase.product.volume}</Tag>
               <Tag color="yellow">{purchase.product.category}</Tag>
+              {purchase.login && <Tag color="purple">{purchase.login}</Tag>}
               {purchase.tags && purchase.tags.map((tag, idx) => (
                 <Tag key={idx}>{tag}</Tag>
               ))}

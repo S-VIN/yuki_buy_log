@@ -18,7 +18,7 @@ const Login = () => {
       });
       if (!res.ok) throw new Error('login failed');
       const data = await res.json();
-      login(data.token);
+      login(data.token, values.login);
       navigate('/');
     } catch {
       message.error('Login failed');
@@ -34,7 +34,7 @@ const Login = () => {
       });
       if (!res.ok) throw new Error('register failed');
       const data = await res.json();
-      login(data.token);
+      login(data.token, values.login);
       navigate('/');
     } catch {
       message.error('Registration failed');

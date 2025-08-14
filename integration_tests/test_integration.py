@@ -159,6 +159,9 @@ def test_family_flow():
     )
     assert r.status_code == 200
 
+    r = requests.get(f"{BASE_URL}/family/invitations", headers=headers_b)
+    assert login_a in r.json()["invitations"]
+
     r = requests.post(
         f"{BASE_URL}/family/respond",
         json={"login": login_a, "accept": True},

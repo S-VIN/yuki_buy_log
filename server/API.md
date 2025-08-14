@@ -131,6 +131,16 @@ Returns list of logins in the current user's family. If the user has no family, 
 }
 ```
 
+## GET /family/invitations
+Returns list of pending invitations for the current user.
+
+**Response**
+```json
+{
+  "invitations": ["alice"]
+}
+```
+
 ## POST /family/invite
 Invite another user to your family by login. A family is created automatically if the inviter has none.
 
