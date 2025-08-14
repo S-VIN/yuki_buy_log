@@ -9,6 +9,11 @@ import requests
 BASE_URL = "http://localhost:8080"
 COMPOSE_FILE = os.path.join(os.path.dirname(__file__), "..", "docker-compose.yml")
 
+if subprocess.run(["docker", "compose", "version"], capture_output=True).returncode == 0:
+    COMPOSE_CMD = ["docker", "compose"]
+else:
+    COMPOSE_CMD = ["docker-compose"]
+
 
 def run_command(cmd):
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -23,14 +28,7 @@ def run_command(cmd):
 
 @pytest.fixture(scope="session", autouse=True)
 def start_system():
-    run_command([
-        "docker-compose",
-        "-f",
-        COMPOSE_FILE,
-        "up",
-        "--build",
-        "-d",
-    ])
+    run_command(COMPOSE_CMD + ["-f", COMPOSE_FILE, "up", "--build", "-d"])
     for _ in range(30):
         try:
             requests.get(BASE_URL, timeout=1)
@@ -38,7 +36,7 @@ def start_system():
         except Exception:
             time.sleep(1)
     yield
-    run_command(["docker-compose", "-f", COMPOSE_FILE, "down", "-v"])
+    run_command(COMPOSE_CMD + ["-f", COMPOSE_FILE, "down", "-v"])
 
 
 def register_and_login():
