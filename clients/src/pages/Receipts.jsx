@@ -1,55 +1,45 @@
 import { useEffect, useState } from 'react';
-import { List, Tag, Card, Row, Col, Typography } from 'antd';
+import { List, Tag } from 'antd';
 import dayjs from 'dayjs';
-import { useNavigate } from 'react-router-dom';
-
-const { Text } = Typography;
+import { authFetch } from '../api.js';
+import { useAuth } from '../stores/AuthContext.jsx';
 
 const Receipts = () => {
-  const [receipts, setReceipts] = useState([]);
-  const navigate = useNavigate();
+  const [purchases, setPurchases] = useState([]);
+  const { user } = useAuth();
 
   useEffect(() => {
-    const data = JSON.parse(localStorage.getItem('receipts') || '[]');
-    data.sort((a, b) => dayjs(b.date).diff(dayjs(a.date)));
-    setReceipts(data);
+    const load = async () => {
+      try {
+        const [prodRes, purRes] = await Promise.all([
+          authFetch('/products'),
+          authFetch('/purchases'),
+        ]);
+        const prodJson = await prodRes.json();
+        const products = Object.fromEntries(prodJson.products.map((p) => [p.id, p]));
+        const purJson = await purRes.json();
+        const list = purJson.purchases.map((p) => ({ ...p, product: products[p.product_id] }));
+        setPurchases(list);
+      } catch {
+        // ignore
+      }
+    };
+    load();
   }, []);
-
-  const getTags = (items) => {
-    const set = new Set();
-    items.forEach((i) => i.tags && i.tags.forEach((t) => set.add(t)));
-    return Array.from(set);
-  };
-
-  const getSum = (items) => items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
   return (
     <div style={{ padding: 8 }}>
       <List
-        dataSource={receipts}
+        dataSource={purchases}
         renderItem={(item) => (
-          <List.Item style={{ padding: 0 }} onClick={() => navigate(`/receipts/${item.id}`)}>
-            <Card style={{ width: '100%' }}>
-              <Row align="middle">
-                <Col span={6} style={{ textAlign: 'left' }}>
-                  <Text strong>{item.shop}</Text>
-                </Col>
-                <Col span={12}>
-                  <div>
-                    {getTags(item.items).map((tag) => (
-                      <Tag key={tag} color="orange">
-                        {tag}
-                      </Tag>
-                    ))}
-                  </div>
-                </Col>
-                <Col span={6} style={{ textAlign: 'right' }}>
-                  <Text>{dayjs(item.date).format('YYYY-MM-DD')}</Text>
-                  <br />
-                  <Text>{getSum(item.items)} ₽</Text>
-                </Col>
-              </Row>
-            </Card>
+          <List.Item>
+            <List.Item.Meta
+              title={item.product ? item.product.name : `Product ${item.product_id}`}
+              description={`${item.price}₽ x ${item.quantity} — ${item.store} — ${dayjs(item.date).format('YYYY-MM-DD')}`}
+            />
+            {item.login && item.login !== user && (
+              <Tag color="purple">{item.login}</Tag>
+            )}
           </List.Item>
         )}
       />

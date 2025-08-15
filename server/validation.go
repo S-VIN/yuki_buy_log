@@ -10,6 +10,7 @@ import (
 type Validator interface {
 	ValidateProduct(*Product) error
 	ValidatePurchase(*Purchase) error
+	ValidateLogin(string) error
 }
 
 type validator struct{}
@@ -59,6 +60,13 @@ func (validator) ValidatePurchase(p *Purchase) error {
 	}
 	if len(p.Store) == 0 || len(p.Store) > 30 || !reLetters.MatchString(p.Store) {
 		return errors.New("invalid store")
+	}
+	return nil
+}
+
+func (validator) ValidateLogin(l string) error {
+	if len(l) == 0 || len(l) > 50 || !reLettersDigits.MatchString(l) {
+		return errors.New("invalid login")
 	}
 	return nil
 }

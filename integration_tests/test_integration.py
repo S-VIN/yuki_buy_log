@@ -10,6 +10,19 @@ BASE_URL = "http://localhost:8080"
 COMPOSE_FILE = os.path.join(os.path.dirname(__file__), "..", "docker-compose.yml")
 
 
+def detect_compose():
+    for cmd in (["docker", "compose"], ["docker-compose"]):
+        try:
+            if subprocess.run(cmd + ["version"], capture_output=True).returncode == 0:
+                return cmd
+        except FileNotFoundError:
+            continue
+    return None
+
+
+COMPOSE_CMD = detect_compose()
+
+
 def run_command(cmd):
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
@@ -23,14 +36,12 @@ def run_command(cmd):
 
 @pytest.fixture(scope="session", autouse=True)
 def start_system():
-    run_command([
-        "docker-compose",
-        "-f",
-        COMPOSE_FILE,
-        "up",
-        "--build",
-        "-d",
-    ])
+    if COMPOSE_CMD is None:
+        pytest.skip("docker compose not available")
+    try:
+        run_command(COMPOSE_CMD + ["-f", COMPOSE_FILE, "up", "--build", "-d"])
+    except (FileNotFoundError, RuntimeError) as e:
+        pytest.skip(str(e))
     for _ in range(30):
         try:
             requests.get(BASE_URL, timeout=1)
@@ -38,7 +49,10 @@ def start_system():
         except Exception:
             time.sleep(1)
     yield
-    run_command(["docker-compose", "-f", COMPOSE_FILE, "down", "-v"])
+    try:
+        run_command(COMPOSE_CMD + ["-f", COMPOSE_FILE, "down", "-v"])
+    except Exception:
+        pass
 
 
 def register_and_login():
@@ -144,4 +158,65 @@ def test_method_not_allowed():
     assert r.status_code == 405
     r = requests.get(f"{BASE_URL}/login")
     assert r.status_code == 405
+
+
+def test_family_flow():
+    login_a, _, headers_a = register_and_login()
+    login_b, _, headers_b = register_and_login()
+
+    r = requests.get(f"{BASE_URL}/family/members", headers=headers_a)
+    assert r.status_code == 200
+    assert r.json()["members"] == []
+
+    r = requests.post(
+        f"{BASE_URL}/family/invite", json={"login": login_b}, headers=headers_a
+    )
+    assert r.status_code == 200
+
+    r = requests.get(f"{BASE_URL}/family/invitations", headers=headers_b)
+    assert login_a in r.json()["invitations"]
+
+    r = requests.post(
+        f"{BASE_URL}/family/respond",
+        json={"login": login_a, "accept": True},
+        headers=headers_b,
+    )
+    assert r.status_code == 200
+
+    r = requests.get(f"{BASE_URL}/family/members", headers=headers_a)
+    assert set(r.json()["members"]) == {login_a, login_b}
+    r = requests.get(f"{BASE_URL}/family/members", headers=headers_b)
+    assert set(r.json()["members"]) == {login_a, login_b}
+
+    product_payload = {
+        "name": "Tea",
+        "volume": "500ml",
+        "brand": "Brand1",
+        "category": "Drink",
+        "description": "Green tea",
+    }
+    r = requests.post(f"{BASE_URL}/products", json=product_payload, headers=headers_a)
+    product_id = r.json()["id"]
+    purchase_payload = {
+        "product_id": product_id,
+        "quantity": 1,
+        "price": 100,
+        "date": "2024-01-01",
+        "store": "Store",
+        "receipt_id": 1,
+    }
+    r = requests.post(
+        f"{BASE_URL}/purchases", json=purchase_payload, headers=headers_a
+    )
+    assert r.status_code == 200
+
+    r = requests.get(f"{BASE_URL}/purchases", headers=headers_b)
+    assert any(p["login"] == login_a for p in r.json()["purchases"])
+
+    r = requests.delete(f"{BASE_URL}/family/leave", headers=headers_b)
+    assert r.status_code == 200
+    r = requests.get(f"{BASE_URL}/family/members", headers=headers_b)
+    assert r.json()["members"] == []
+    r = requests.get(f"{BASE_URL}/family/members", headers=headers_a)
+    assert r.json()["members"] == []
 
