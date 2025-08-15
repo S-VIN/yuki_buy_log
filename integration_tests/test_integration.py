@@ -9,10 +9,18 @@ import requests
 BASE_URL = "http://localhost:8080"
 COMPOSE_FILE = os.path.join(os.path.dirname(__file__), "..", "docker-compose.yml")
 
-if subprocess.run(["docker", "compose", "version"], capture_output=True).returncode == 0:
-    COMPOSE_CMD = ["docker", "compose"]
-else:
-    COMPOSE_CMD = ["docker-compose"]
+
+def detect_compose():
+    for cmd in (["docker", "compose"], ["docker-compose"]):
+        try:
+            if subprocess.run(cmd + ["version"], capture_output=True).returncode == 0:
+                return cmd
+        except FileNotFoundError:
+            continue
+    return None
+
+
+COMPOSE_CMD = detect_compose()
 
 
 def run_command(cmd):
@@ -28,7 +36,12 @@ def run_command(cmd):
 
 @pytest.fixture(scope="session", autouse=True)
 def start_system():
-    run_command(COMPOSE_CMD + ["-f", COMPOSE_FILE, "up", "--build", "-d"])
+    if COMPOSE_CMD is None:
+        pytest.skip("docker compose not available")
+    try:
+        run_command(COMPOSE_CMD + ["-f", COMPOSE_FILE, "up", "--build", "-d"])
+    except (FileNotFoundError, RuntimeError) as e:
+        pytest.skip(str(e))
     for _ in range(30):
         try:
             requests.get(BASE_URL, timeout=1)
@@ -36,7 +49,10 @@ def start_system():
         except Exception:
             time.sleep(1)
     yield
-    run_command(COMPOSE_CMD + ["-f", COMPOSE_FILE, "down", "-v"])
+    try:
+        run_command(COMPOSE_CMD + ["-f", COMPOSE_FILE, "down", "-v"])
+    except Exception:
+        pass
 
 
 def register_and_login():
