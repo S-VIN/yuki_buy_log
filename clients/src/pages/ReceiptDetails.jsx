@@ -1,7 +1,10 @@
-import { Button } from 'antd';
+import { Button, Card, Typography } from 'antd';
+import { EditOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import ProductCardsWidget from '../widgets/ProductCardsWidget.jsx';
 import dayjs from 'dayjs';
+
+const { Title, Text } = Typography;
 
 const ReceiptDetails = () => {
   const { id } = useParams();
@@ -15,11 +18,21 @@ const ReceiptDetails = () => {
 
   return (
     <div style={{ padding: 8 }}>
-      <h3>{dayjs(receipt.date).format('YYYY-MM-DD')} — {receipt.shop}</h3>
+      <Card style={{ marginBottom: 16, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <Title level={3} style={{ margin: 0, marginBottom: 4 }}>{receipt.shop}</Title>
+            <Text type="secondary">{dayjs(receipt.date).format('DD-MM-YYYY')}</Text>
+          </div>
+          <Button 
+            type="text" 
+            icon={<EditOutlined />} 
+            size="large"
+            onClick={() => navigate(`/edit/${id}`)}
+          />
+        </div>
+      </Card>
       <ProductCardsWidget productListProp={receipt.items} />
-      <Button type="primary" block style={{ marginTop: 16 }} onClick={() => navigate(`/edit/${id}`)}>
-        Edit
-      </Button>
     </div>
   );
 };

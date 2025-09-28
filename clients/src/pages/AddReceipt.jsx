@@ -59,6 +59,18 @@ const AddReceipt = () => {
     setPurchaseList(purchaseList.filter((p) => p.product.id !== productId));
   };
 
+  const handleEditPurchase = (purchase) => {
+    setSelectedProduct(purchase.product);
+    setPrice(purchase.price);
+    setQuantity(purchase.quantity);
+    setSelectedTags(purchase.tags || []);
+    
+    tagSelectWidgetRef.current?.setTags(purchase.tags || []);
+    priceQuantitySelectWidgetRef.current?.setValues(purchase.price, purchase.quantity);
+    
+    setPurchaseList(purchaseList.filter((p) => p.product.id !== purchase.product.id));
+  };
+
   const handleCloseCheck = () => {
     if (purchaseList.length < 1) {
       return;
@@ -83,7 +95,7 @@ const AddReceipt = () => {
       {contextHolder}
       <Card style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <NativeDatePicker onChange={handleDateChange} value={date} />
             <ShopSelectWidget value={shop} onChange={setSelectedShop} />
           </div>
@@ -104,7 +116,7 @@ const AddReceipt = () => {
           </div>
         </div>
       </Card>
-      <ProductCardsWidget productListProp={purchaseList} onDelete={handleDeletePurchase} />
+      <ProductCardsWidget productListProp={purchaseList} onDelete={handleDeletePurchase} onEdit={handleEditPurchase} />
     </div>
   );
 };

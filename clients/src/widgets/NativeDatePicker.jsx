@@ -7,6 +7,7 @@ const NativeDatePicker = ({ onChange, value }) => (
     style={{ width: '100%' }}
     onChange={(d) => onChange(d)}
     value={value ? dayjs(value) : null}
+    format="DD-MM-YYYY"
     inputReadOnly
   />
 );

@@ -1,8 +1,8 @@
 /* eslint-disable react/prop-types */
 import { Card, Row, Col, Tag, Button } from 'antd';
-import { DeleteTwoTone } from '@ant-design/icons';
+import { DeleteTwoTone, EditTwoTone } from '@ant-design/icons';
 
-const ProductCardsWidget = ({ productListProp, onDelete }) => (
+const ProductCardsWidget = ({ productListProp, onDelete, onEdit }) => (
   <div
     style={{
       flex: 1,
@@ -21,13 +21,23 @@ const ProductCardsWidget = ({ productListProp, onDelete }) => (
             title={purchase.product.name}
             style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)', padding: 0, margin: '0 5px', textAlign: 'left' }}
             extra={
-              onDelete ? (
-                <Button
-                  type="text"
-                  icon={<DeleteTwoTone />}
-                  onClick={() => onDelete(purchase.product.id)}
-                />
-              ) : null
+              <div>
+                {onEdit && (
+                  <Button
+                    type="text"
+                    icon={<EditTwoTone />}
+                    onClick={() => onEdit(purchase)}
+                    style={{ marginRight: 4 }}
+                  />
+                )}
+                {onDelete && (
+                  <Button
+                    type="text"
+                    icon={<DeleteTwoTone />}
+                    onClick={() => onDelete(purchase.product.id)}
+                  />
+                )}
+              </div>
             }
           >
             <p style={{ margin: 0 }}>
