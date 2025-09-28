@@ -10,6 +10,7 @@ const TagSelectWidget = forwardRef(({ onTagChange, style }, ref) => {
 
   useImperativeHandle(ref, () => ({
     resetTags: () => setSelectedTags([]),
+    setTags: (tags) => setSelectedTags(tags),
   }));
 
   const handleTagSelect = (value) => {

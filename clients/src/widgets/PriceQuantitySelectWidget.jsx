@@ -15,6 +15,10 @@ const PriceQuantitySelectWidget = forwardRef(({ onPriceChanged, onQuantityChange
       setPrice(null);
       setQty(1);
     },
+    setValues: (newPrice, newQty) => {
+      setPrice(newPrice);
+      setQty(newQty);
+    },
   }));
 
   const handlePriceChange = (e) => {
