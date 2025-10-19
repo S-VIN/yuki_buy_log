@@ -1,0 +1,72 @@
+package validators
+
+import (
+	"errors"
+	"regexp"
+	
+	"yuki_buy_log/models"
+)
+
+// Validator validates incoming products and purchases.
+type Validator interface {
+	ValidateProduct(*models.Product) error
+	ValidatePurchase(*models.Purchase) error
+}
+
+type validator struct{}
+
+var (
+	reLetters       = regexp.MustCompile(`^[A-Za-z]+$`)
+	reLettersDigits = regexp.MustCompile(`^[A-Za-z0-9]+$`)
+)
+
+// NewValidator returns a Validator implementation.
+func NewValidator() Validator { return validator{} }
+
+func (validator) ValidateProduct(p *models.Product) error {
+	if len(p.Name) == 0 || len(p.Name) > 30 || !reLetters.MatchString(p.Name) {
+		return errors.New("invalid name")
+	}
+	if len(p.Volume) == 0 || len(p.Volume) > 10 {
+		return errors.New("invalid volume")
+	}
+	if len(p.Brand) == 0 || len(p.Brand) > 30 || !reLettersDigits.MatchString(p.Brand) {
+		return errors.New("invalid brand")
+	}
+	if len(p.DefaultTags) > 10 {
+		return errors.New("too many default tags")
+	}
+	for _, tag := range p.DefaultTags {
+		if len(tag) == 0 || len(tag) > 20 {
+			return errors.New("invalid default tag")
+		}
+	}
+	return nil
+}
+
+func (validator) ValidatePurchase(p *models.Purchase) error {
+	if p.ProductId <= 0 {
+		return errors.New("invalid product_id")
+	}
+	if p.Quantity < 1 || p.Quantity > 100000 {
+		return errors.New("invalid quantity")
+	}
+	if p.Price < 1 || p.Price > 100000000 {
+		return errors.New("invalid price")
+	}
+	if p.Date.IsZero() {
+		return errors.New("invalid date")
+	}
+	if len(p.Store) == 0 || len(p.Store) > 30 || !reLetters.MatchString(p.Store) {
+		return errors.New("invalid store")
+	}
+	if len(p.Tags) > 10 {
+		return errors.New("too many tags")
+	}
+	for _, tag := range p.Tags {
+		if len(tag) == 0 || len(tag) > 20 {
+			return errors.New("invalid tag")
+		}
+	}
+	return nil
+}

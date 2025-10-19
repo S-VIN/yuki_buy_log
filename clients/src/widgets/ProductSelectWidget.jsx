@@ -7,6 +7,7 @@ import ProductStore from '../stores/ProductStore.js';
 import VolumeSelectWidget from './VolumeSelectWidget.jsx';
 import BrandSelectWidget from './BrandSelectWidget.jsx';
 import CategorySelectWidget from './CategorySelectWidget.jsx';
+import DefaultTagsWidget from './DefaultTagsWidget.jsx';
 
 const ProductSelectWidget = ({ onSelect, selectedProductProp }) => {
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -125,8 +126,8 @@ const ProductSelectWidget = ({ onSelect, selectedProductProp }) => {
           <Form.Item label="brand" name="brand" rules={[{ required: true, message: 'brand required' }]}> 
             <BrandSelectWidget value={form.getFieldValue('brand')} onChange={(v) => form.setFieldsValue({ brand: v })} />
           </Form.Item>
-          <Form.Item label="category" name="category" rules={[{ required: true, message: 'category required' }]}> 
-            <CategorySelectWidget value={form.getFieldValue('category')} onChange={(v) => form.setFieldsValue({ category: v })} />
+          <Form.Item label="default tags" name="default_tags"> 
+            <DefaultTagsWidget value={form.getFieldValue('default_tags')} onChange={(v) => form.setFieldsValue({ default_tags: v })} />
           </Form.Item>
           <Form.Item>
             <Button type="primary" htmlType="submit" block>

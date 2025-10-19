@@ -41,6 +41,14 @@ const AddReceipt = () => {
   const handleSelectProduct = (productId) => {
     const selected = productId ? ProductStore.getProductById(productId) : null;
     setSelectedProduct(selected);
+    
+    if (selected && selected.default_tags && selected.default_tags.length > 0) {
+      setSelectedTags(selected.default_tags);
+      tagSelectWidgetRef.current?.setTags(selected.default_tags);
+    } else {
+      setSelectedTags([]);
+      tagSelectWidgetRef.current?.resetTags();
+    }
   };
 
   const handleAddPurchase = () => {

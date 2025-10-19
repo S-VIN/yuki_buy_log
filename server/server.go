@@ -1,13 +1,16 @@
 package main
 
-import "database/sql"
+import (
+	"database/sql"
+	"yuki_buy_log/validators"
+)
 
 type Server struct {
 	db        *sql.DB
-	validator Validator
+	validator validators.Validator
 	auth      *Authenticator
 }
 
-func NewServer(db *sql.DB, v Validator, a *Authenticator) *Server {
+func NewServer(db *sql.DB, v validators.Validator, a *Authenticator) *Server {
 	return &Server{db: db, validator: v, auth: a}
 }
