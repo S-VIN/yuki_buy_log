@@ -1,0 +1,116 @@
+package handlers
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"yuki_buy_log/models"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/lib/pq"
+)
+
+func TestPurchasesHandler_GET(t *testing.T) {
+	deps, mock := createTestDeps(t)
+	defer deps.DB.Close()
+
+	// Mock database query for purchases
+	rows := sqlmock.NewRows([]string{"id", "product_id", "quantity", "price", "date", "store", "tags", "receipt_id"}).
+		AddRow(1, 1, 2, 1000, time.Now(), "TestStore", pq.Array([]string{"tag1", "tag2"}), 123)
+	
+	mock.ExpectQuery("SELECT id, product_id, quantity, price, date, store, tags, receipt_id FROM purchases WHERE user_id=\\$1").
+		WithArgs(1).
+		WillReturnRows(rows)
+
+	handler := PurchasesHandler(deps)
+
+	req := httptest.NewRequest("GET", "/purchases", nil)
+	ctx := context.WithValue(req.Context(), "user_id", int64(1))
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("Database expectations were not met: %v", err)
+	}
+}
+
+func TestPurchasesHandler_POST(t *testing.T) {
+	deps, mock := createTestDeps(t)
+	defer deps.DB.Close()
+
+	// Mock successful purchase insertion
+	mock.ExpectQuery("INSERT INTO purchases").
+		WithArgs(1, 2, 1000, sqlmock.AnyArg(), "TestStore", pq.Array([]string{"test"}), int64(123), 1).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	handler := PurchasesHandler(deps)
+
+	purchase := models.Purchase{
+		ProductId: 1,
+		Quantity:  2,
+		Price:     1000,
+		Date:      time.Now(),
+		Store:     "TestStore",
+		Tags:      []string{"test"},
+		ReceiptId: 123,
+	}
+
+	body, _ := json.Marshal(purchase)
+	req := httptest.NewRequest("POST", "/purchases", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	
+	ctx := context.WithValue(req.Context(), "user_id", int64(1))
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("Database expectations were not met: %v", err)
+	}
+}
+
+func TestPurchasesHandler_InvalidMethod(t *testing.T) {
+	deps, _ := createTestDeps(t)
+	defer deps.DB.Close()
+
+	handler := PurchasesHandler(deps)
+
+	req := httptest.NewRequest("PUT", "/purchases", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Errorf("Expected status 405, got %d", w.Code)
+	}
+}
+
+func TestPurchasesHandler_Unauthorized(t *testing.T) {
+	deps, _ := createTestDeps(t)
+	defer deps.DB.Close()
+
+	handler := PurchasesHandler(deps)
+
+	req := httptest.NewRequest("GET", "/purchases", nil)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status 401, got %d", w.Code)
+	}
+}

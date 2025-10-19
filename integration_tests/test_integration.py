@@ -10,39 +10,9 @@ BASE_URL = "http://localhost:8080"
 COMPOSE_FILE = os.path.join(os.path.dirname(__file__), "..", "docker-compose.yml")
 
 
-def run_command(cmd):
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise RuntimeError(
-            f"{' '.join(cmd)} failed with code {result.returncode}\n"
-            f"stdout:\n{result.stdout}\n"
-            f"stderr:\n{result.stderr}"
-        )
-    return result
-
-
-@pytest.fixture(scope="session", autouse=True)
-def start_system():
-    run_command([
-        "docker-compose",
-        "-f",
-        COMPOSE_FILE,
-        "up",
-        "--build",
-        "-d",
-    ])
-    for _ in range(30):
-        try:
-            requests.get(BASE_URL, timeout=1)
-            break
-        except Exception:
-            time.sleep(1)
-    yield
-    run_command(["docker-compose", "-f", COMPOSE_FILE, "down", "-v"])
-
 
 def register_and_login():
-    login = f"user_{uuid.uuid4().hex[:8]}"
+    login = f"user"
     password = "password"
     r = requests.post(f"{BASE_URL}/register", json={"login": login, "password": password})
     assert r.status_code == 200
