@@ -11,11 +11,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// contextKey is used to store values in request context.
-type contextKey string
-
 // UserIDKey is the context key for the authenticated user's id.
-const UserIDKey contextKey = "userID"
+const UserIDKey = "userID"
 
 // Authenticator handles token generation and verification.
 type Authenticator struct {
