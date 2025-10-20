@@ -17,6 +17,8 @@ func PurchasesHandler(deps *Dependencies) http.HandlerFunc {
 		getPurchases(deps, w, r)
 	case http.MethodPost:
 		createPurchase(deps, w, r)
+	case http.MethodDelete:
+		deletePurchase(deps, w, r)
 	default:
 		log.Printf("Method not allowed for purchases: %s", r.Method)
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -88,4 +90,53 @@ func createPurchase(deps *Dependencies, w http.ResponseWriter, r *http.Request) 
 	log.Printf("Successfully created purchase with ID: %d", p.Id)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(p)
+}
+
+func deletePurchase(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
+	log.Println("Deleting purchase")
+	uid, ok := userID(r)
+	if !ok {
+		log.Println("Unauthorized access attempt to delete purchase")
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		Id int64 `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("Failed to decode delete request JSON: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.Id == 0 {
+		log.Println("Missing id in request body")
+		http.Error(w, "id is required", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Deleting purchase ID: %d for user ID: %d", req.Id, uid)
+	result, err := deps.DB.Exec(`DELETE FROM purchases WHERE id=$1 AND user_id=$2`, req.Id, uid)
+	if err != nil {
+		log.Printf("Failed to delete purchase: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Failed to check rows affected: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if rowsAffected == 0 {
+		log.Printf("Purchase with ID %d not found for user %d", req.Id, uid)
+		http.Error(w, "purchase not found", http.StatusNotFound)
+		return
+	}
+
+	log.Printf("Successfully deleted purchase with ID: %d", req.Id)
+	w.WriteHeader(http.StatusNoContent)
 }
