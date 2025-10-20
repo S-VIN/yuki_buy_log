@@ -20,16 +20,16 @@ type Dependencies struct {
 	Auth      Authenticator
 }
 
-// contextKey is used to store values in request context.
-type contextKey string
-
 // UserIDKey is the context key for the authenticated user's id.
-const UserIDKey contextKey = "userID"
+const UserIDKey = "userID"
 
 // Вспомогательная функция для получения ID пользователя из контекста
 func userID(r *http.Request) (int64, bool) {
-	// Эта функция должна извлекать user ID из контекста запроса
-	// Предполагаем, что middleware аутентификации добавляет это в контекст
-	id, ok := r.Context().Value(UserIDKey).(int64)
-	return id, ok
+	// Используем простую строку как ключ контекста
+	if userID := r.Context().Value(UserIDKey); userID != nil {
+		if id, ok := userID.(int64); ok {
+			return id, true
+		}
+	}
+	return 0, false
 }
