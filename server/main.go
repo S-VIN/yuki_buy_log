@@ -8,6 +8,8 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	"yuki_buy_log/handlers"
+	"yuki_buy_log/validators"
 )
 
 func main() {
@@ -38,16 +40,23 @@ func main() {
 	}
 	defer db.Close()
 
-	log.Println("Initializing authenticator and server...")
+	log.Println("Initializing authenticator...")
 	auth := NewAuthenticator([]byte("secret"))
-	srv := NewServer(db, NewValidator(), auth)
 
 	log.Println("Setting up HTTP routes...")
+	
+	// Создаем зависимости для handlers
+	deps := &handlers.Dependencies{
+		DB:        db,
+		Validator: validators.NewValidator(),
+		Auth:      auth,
+	}
+	
 	mux := http.NewServeMux()
-	mux.Handle("/products", auth.Middleware(http.HandlerFunc(srv.productsHandler)))
-	mux.Handle("/purchases", auth.Middleware(http.HandlerFunc(srv.purchasesHandler)))
-	mux.HandleFunc("/register", srv.registerHandler)
-	mux.HandleFunc("/login", srv.loginHandler)
+	mux.Handle("/products", auth.Middleware(handlers.ProductsHandler(deps)))
+	mux.Handle("/purchases", auth.Middleware(handlers.PurchasesHandler(deps)))
+	mux.HandleFunc("/register", handlers.RegisterHandler(deps))
+	mux.HandleFunc("/login", handlers.LoginHandler(deps))
 
 	log.Println("Server started on :8080")
 	log.Fatal(http.ListenAndServe(":8080", enableCORS(mux)))
