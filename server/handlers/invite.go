@@ -94,15 +94,32 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if users are already in the same group
+	// Check if users are already in groups
 	var currentUserGroupID, targetUserGroupID sql.NullInt64
 	deps.DB.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, uid).Scan(&currentUserGroupID)
 	deps.DB.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, targetUserID).Scan(&targetUserGroupID)
 
-	if currentUserGroupID.Valid && targetUserGroupID.Valid && currentUserGroupID.Int64 == targetUserGroupID.Int64 {
-		log.Printf("Users %d and %d are already in the same group", uid, targetUserID)
-		http.Error(w, "users are already in the same group", http.StatusBadRequest)
+	// Cannot send invite if target user is already in any group
+	if targetUserGroupID.Valid {
+		log.Printf("Target user %d is already in a group", targetUserID)
+		http.Error(w, "target user is already in a group", http.StatusBadRequest)
 		return
+	}
+
+	// If current user is in a group, check if the group size limit would be exceeded
+	if currentUserGroupID.Valid {
+		var groupSize int
+		err := deps.DB.QueryRow(`SELECT COUNT(*) FROM groups WHERE id = $1`, currentUserGroupID.Int64).Scan(&groupSize)
+		if err != nil {
+			log.Printf("Failed to count group members: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if groupSize >= 5 {
+			log.Printf("Group %d has reached maximum size of 5 members", currentUserGroupID.Int64)
+			http.Error(w, "group has reached maximum size of 5 members", http.StatusBadRequest)
+			return
+		}
 	}
 
 	// Start transaction
@@ -130,9 +147,23 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Create or merge into group
+		// Handle group creation based on current group status
 		if currentUserGroupID.Valid {
 			// Current user already has a group, add target user to it
+			// Check group size limit again within transaction
+			var groupSize int
+			err = tx.QueryRow(`SELECT COUNT(*) FROM groups WHERE id = $1`, currentUserGroupID.Int64).Scan(&groupSize)
+			if err != nil {
+				log.Printf("Failed to count group members: %v", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if groupSize >= 5 {
+				log.Printf("Group %d has reached maximum size", currentUserGroupID.Int64)
+				http.Error(w, "group has reached maximum size of 5 members", http.StatusBadRequest)
+				return
+			}
+
 			_, err = tx.Exec(`INSERT INTO groups (id, user_id) VALUES ($1, $2)`, currentUserGroupID.Int64, targetUserID)
 			if err != nil {
 				log.Printf("Failed to add user to existing group: %v", err)
@@ -142,6 +173,20 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 			log.Printf("Added user %d to existing group %d", targetUserID, currentUserGroupID.Int64)
 		} else if targetUserGroupID.Valid {
 			// Target user already has a group, add current user to it
+			// This shouldn't happen due to earlier checks, but handle it anyway
+			var groupSize int
+			err = tx.QueryRow(`SELECT COUNT(*) FROM groups WHERE id = $1`, targetUserGroupID.Int64).Scan(&groupSize)
+			if err != nil {
+				log.Printf("Failed to count group members: %v", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if groupSize >= 5 {
+				log.Printf("Group %d has reached maximum size", targetUserGroupID.Int64)
+				http.Error(w, "group has reached maximum size of 5 members", http.StatusBadRequest)
+				return
+			}
+
 			_, err = tx.Exec(`INSERT INTO groups (id, user_id) VALUES ($1, $2)`, targetUserGroupID.Int64, uid)
 			if err != nil {
 				log.Printf("Failed to add user to existing group: %v", err)
