@@ -28,3 +28,18 @@ type User struct {
 	Login    string `json:"login"`
 	Password string `json:"password,omitempty"`
 }
+
+type GroupMember struct {
+	GroupId int64  `json:"group_id"`
+	UserId  int64  `json:"user_id"`
+	Login   string `json:"login"`
+}
+
+type Invite struct {
+	Id         int64     `json:"id"`
+	FromUserId int64     `json:"from_user_id"`
+	ToUserId   int64     `json:"to_user_id"`
+	FromLogin  string    `json:"from_login"`
+	ToLogin    string    `json:"to_login"`
+	CreatedAt  time.Time `json:"created_at"`
+}

@@ -55,6 +55,8 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/products", auth.Middleware(handlers.ProductsHandler(deps)))
 	mux.Handle("/purchases", auth.Middleware(handlers.PurchasesHandler(deps)))
+	mux.Handle("/group", auth.Middleware(handlers.GroupHandler(deps)))
+	mux.Handle("/invite", auth.Middleware(handlers.InviteHandler(deps)))
 	mux.HandleFunc("/register", handlers.RegisterHandler(deps))
 	mux.HandleFunc("/login", handlers.LoginHandler(deps))
 

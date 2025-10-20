@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS invites CASCADE;
+DROP TABLE IF EXISTS groups CASCADE;
 DROP TABLE IF EXISTS purchases CASCADE;
 DROP TABLE IF EXISTS products CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
@@ -28,5 +30,21 @@ CREATE TABLE purchases (
     tags TEXT[],
     receipt_id INTEGER,
     user_id INTEGER REFERENCES users(id)
+);
+
+CREATE TABLE groups (
+    id SERIAL,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    PRIMARY KEY (id, user_id),
+    UNIQUE (user_id)
+);
+
+CREATE TABLE invites (
+    id SERIAL PRIMARY KEY,
+    from_user_id INTEGER NOT NULL REFERENCES users(id),
+    to_user_id INTEGER NOT NULL REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (from_user_id, to_user_id),
+    CHECK (from_user_id != to_user_id)
 );
 
