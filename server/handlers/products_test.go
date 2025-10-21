@@ -17,18 +17,25 @@ func TestProductsHandler_GET(t *testing.T) {
 	deps, mock := createTestDeps(t)
 	defer deps.DB.Close()
 
+	userID := int64(1)
+
+	// Mock group query (user not in a group)
+	mock.ExpectQuery("SELECT DISTINCT user_id FROM groups WHERE id =").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"user_id"}))
+
 	// Mock database query for products
 	rows := sqlmock.NewRows([]string{"id", "name", "volume", "brand", "default_tags", "user_id"}).
 		AddRow(1, "TestProduct", "500ml", "TestBrand", "tag1,tag2", 1)
-	
+
 	mock.ExpectQuery("SELECT id, name, volume, brand, default_tags, user_id FROM products WHERE user_id=\\$1").
-		WithArgs(1).
+		WithArgs(userID).
 		WillReturnRows(rows)
 
 	handler := ProductsHandler(deps)
 
 	req := httptest.NewRequest("GET", "/products", nil)
-	ctx := context.WithValue(req.Context(), "user_id", int64(1))
+	ctx := context.WithValue(req.Context(), UserIDKey, userID)
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
@@ -64,8 +71,8 @@ func TestProductsHandler_POST(t *testing.T) {
 	body, _ := json.Marshal(product)
 	req := httptest.NewRequest("POST", "/products", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	
-	ctx := context.WithValue(req.Context(), "user_id", int64(1))
+
+	ctx := context.WithValue(req.Context(), UserIDKey, int64(1))
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
