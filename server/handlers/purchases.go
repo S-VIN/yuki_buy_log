@@ -34,24 +34,68 @@ func getPurchases(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	log.Printf("Fetching purchases for user ID: %d", uid)
-	rows, err := deps.DB.Query(`SELECT id, product_id, quantity, price, date, store, tags, receipt_id FROM purchases WHERE user_id=$1`, uid)
+	log.Printf("Fetching purchases for user ID: %d and their group", uid)
+
+	// Get all user IDs in the same group (including current user)
+	// If user is not in a group, just return their own purchases
+	var query string
+	var args []interface{}
+
+	// Try to get group members
+	rows, err := deps.DB.Query(`
+		SELECT DISTINCT user_id
+		FROM groups
+		WHERE id = (SELECT id FROM groups WHERE user_id = $1 LIMIT 1)
+	`, uid)
+
+	if err != nil {
+		// User might not be in a group, just query their own purchases
+		log.Printf("User %d is not in a group or error getting group members, fetching only their purchases", uid)
+		query = `SELECT id, product_id, quantity, price, date, store, tags, receipt_id, user_id FROM purchases WHERE user_id=$1`
+		args = []interface{}{uid}
+	} else {
+		defer rows.Close()
+
+		userIDs := []int64{}
+		for rows.Next() {
+			var userIDInGroup int64
+			if err := rows.Scan(&userIDInGroup); err != nil {
+				log.Printf("Failed to scan user ID: %v", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			userIDs = append(userIDs, userIDInGroup)
+		}
+
+		if len(userIDs) == 0 {
+			// User is not in a group, fetch only their purchases
+			log.Printf("User %d is not in a group, fetching only their purchases", uid)
+			query = `SELECT id, product_id, quantity, price, date, store, tags, receipt_id, user_id FROM purchases WHERE user_id=$1`
+			args = []interface{}{uid}
+		} else {
+			// Build query with IN clause for all group members
+			log.Printf("User %d is in a group with %d members, fetching purchases for all", uid, len(userIDs))
+			query = `SELECT id, product_id, quantity, price, date, store, tags, receipt_id, user_id FROM purchases WHERE user_id = ANY($1)`
+			args = []interface{}{pq.Array(userIDs)}
+		}
+	}
+
+	purchaseRows, err := deps.DB.Query(query, args...)
 	if err != nil {
 		log.Printf("Failed to query purchases: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
+	defer purchaseRows.Close()
 
 	purchases := []models.Purchase{}
-	for rows.Next() {
+	for purchaseRows.Next() {
 		var p models.Purchase
-		if err := rows.Scan(&p.Id, &p.ProductId, &p.Quantity, &p.Price, &p.Date, &p.Store, pq.Array(&p.Tags), &p.ReceiptId); err != nil {
+		if err := purchaseRows.Scan(&p.Id, &p.ProductId, &p.Quantity, &p.Price, &p.Date, &p.Store, pq.Array(&p.Tags), &p.ReceiptId, &p.UserId); err != nil {
 			log.Printf("Failed to scan purchase row: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		p.UserId = uid
 		purchases = append(purchases, p)
 	}
 	log.Printf("Successfully fetched %d purchases for user %d", len(purchases), uid)

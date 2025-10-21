@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/lib/pq"
 	"yuki_buy_log/models"
 )
 
@@ -32,20 +33,65 @@ func getProducts(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	log.Printf("Fetching products for user ID: %d", uid)
-	rows, err := deps.DB.Query(`SELECT id, name, volume, brand, default_tags, user_id FROM products WHERE user_id=$1`, uid)
+	log.Printf("Fetching products for user ID: %d and their group", uid)
+
+	// Get all user IDs in the same group (including current user)
+	// If user is not in a group, just return their own products
+	var query string
+	var args []interface{}
+
+	// Try to get group members
+	rows, err := deps.DB.Query(`
+		SELECT DISTINCT user_id
+		FROM groups
+		WHERE id = (SELECT id FROM groups WHERE user_id = $1 LIMIT 1)
+	`, uid)
+
+	if err != nil {
+		// User might not be in a group, just query their own products
+		log.Printf("User %d is not in a group or error getting group members, fetching only their products", uid)
+		query = `SELECT id, name, volume, brand, default_tags, user_id FROM products WHERE user_id=$1`
+		args = []interface{}{uid}
+	} else {
+		defer rows.Close()
+
+		userIDs := []int64{}
+		for rows.Next() {
+			var userIDInGroup int64
+			if err := rows.Scan(&userIDInGroup); err != nil {
+				log.Printf("Failed to scan user ID: %v", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			userIDs = append(userIDs, userIDInGroup)
+		}
+
+		if len(userIDs) == 0 {
+			// User is not in a group, fetch only their products
+			log.Printf("User %d is not in a group, fetching only their products", uid)
+			query = `SELECT id, name, volume, brand, default_tags, user_id FROM products WHERE user_id=$1`
+			args = []interface{}{uid}
+		} else {
+			// Build query with IN clause for all group members
+			log.Printf("User %d is in a group with %d members, fetching products for all", uid, len(userIDs))
+			query = `SELECT id, name, volume, brand, default_tags, user_id FROM products WHERE user_id = ANY($1)`
+			args = []interface{}{pq.Array(userIDs)}
+		}
+	}
+
+	productRows, err := deps.DB.Query(query, args...)
 	if err != nil {
 		log.Printf("Failed to query products: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
+	defer productRows.Close()
 
 	products := []models.Product{}
-	for rows.Next() {
+	for productRows.Next() {
 		var p models.Product
 		var defaultTagsStr string
-		if err := rows.Scan(&p.Id, &p.Name, &p.Volume, &p.Brand, &defaultTagsStr, &p.UserId); err != nil {
+		if err := productRows.Scan(&p.Id, &p.Name, &p.Volume, &p.Brand, &defaultTagsStr, &p.UserId); err != nil {
 			log.Printf("Failed to scan product row: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
