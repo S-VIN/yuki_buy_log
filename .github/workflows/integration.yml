@@ -10,21 +10,71 @@ on:
 jobs:
   integration:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: yuki_buy_log
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.x'
-      - name: Ensure Docker is running
-        run: |
-          sudo systemctl start docker || sudo service docker start
-          docker ps
-      - name: Install Docker Compose
+
+      - name: Install PostgreSQL client
         run: |
           sudo apt-get update
-          sudo apt-get install -y docker-compose
-          docker-compose version
-      - name: Install dependencies
+          sudo apt-get install -y postgresql-client
+
+      - name: Apply database migrations
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d yuki_buy_log -f postgres/init.sql
+
+      - name: Install Go dependencies
+        run: |
+          cd server
+          go mod download
+
+      - name: Start server in background
+        run: |
+          cd server
+          go run . &
+          echo $! > /tmp/server.pid
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/yuki_buy_log?sslmode=disable
+
+      - name: Wait for server to be ready
+        run: |
+          timeout 30 bash -c 'until curl -s http://localhost:8080/products > /dev/null; do sleep 1; done'
+          echo "Server is ready!"
+
+      - name: Install Python test dependencies
         run: pip install -r integration_tests/requirements.txt
+
       - name: Run integration tests
-        run: pytest integration_tests
+        run: pytest integration_tests/ -v --tb=short
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f /tmp/server.pid ]; then
+            kill $(cat /tmp/server.pid) || true
+          fi
