@@ -19,18 +19,25 @@ func TestPurchasesHandler_GET(t *testing.T) {
 	deps, mock := createTestDeps(t)
 	defer deps.DB.Close()
 
-	// Mock database query for purchases
-	rows := sqlmock.NewRows([]string{"id", "product_id", "quantity", "price", "date", "store", "tags", "receipt_id"}).
-		AddRow(1, 1, 2, 1000, time.Now(), "TestStore", pq.Array([]string{"tag1", "tag2"}), 123)
-	
-	mock.ExpectQuery("SELECT id, product_id, quantity, price, date, store, tags, receipt_id FROM purchases WHERE user_id=\\$1").
-		WithArgs(1).
+	userID := int64(1)
+
+	// Mock group query (user not in a group)
+	mock.ExpectQuery("SELECT DISTINCT user_id FROM groups WHERE id =").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"user_id"}))
+
+	// Mock database query for purchases (now includes user_id)
+	rows := sqlmock.NewRows([]string{"id", "product_id", "quantity", "price", "date", "store", "tags", "receipt_id", "user_id"}).
+		AddRow(1, 1, 2, 1000, time.Now(), "TestStore", pq.Array([]string{"tag1", "tag2"}), 123, userID)
+
+	mock.ExpectQuery("SELECT id, product_id, quantity, price, date, store, tags, receipt_id, user_id FROM purchases WHERE user_id=\\$1").
+		WithArgs(userID).
 		WillReturnRows(rows)
 
 	handler := PurchasesHandler(deps)
 
 	req := httptest.NewRequest("GET", "/purchases", nil)
-	ctx := context.WithValue(req.Context(), "user_id", int64(1))
+	ctx := context.WithValue(req.Context(), UserIDKey, userID)
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
@@ -69,8 +76,8 @@ func TestPurchasesHandler_POST(t *testing.T) {
 	body, _ := json.Marshal(purchase)
 	req := httptest.NewRequest("POST", "/purchases", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	
-	ctx := context.WithValue(req.Context(), "user_id", int64(1))
+
+	ctx := context.WithValue(req.Context(), UserIDKey, int64(1))
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
@@ -104,8 +111,8 @@ func TestPurchasesHandler_DELETE_Success(t *testing.T) {
 	body, _ := json.Marshal(deleteReq)
 	req := httptest.NewRequest("DELETE", "/purchases", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	
-	ctx := context.WithValue(req.Context(), "user_id", int64(1))
+
+	ctx := context.WithValue(req.Context(), UserIDKey, int64(1))
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
@@ -139,8 +146,8 @@ func TestPurchasesHandler_DELETE_NotFound(t *testing.T) {
 	body, _ := json.Marshal(deleteReq)
 	req := httptest.NewRequest("DELETE", "/purchases", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	
-	ctx := context.WithValue(req.Context(), "user_id", int64(1))
+
+	ctx := context.WithValue(req.Context(), UserIDKey, int64(1))
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
@@ -185,8 +192,8 @@ func TestPurchasesHandler_DELETE_InvalidJSON(t *testing.T) {
 
 	req := httptest.NewRequest("DELETE", "/purchases", bytes.NewBuffer([]byte("invalid json")))
 	req.Header.Set("Content-Type", "application/json")
-	
-	ctx := context.WithValue(req.Context(), "user_id", int64(1))
+
+	ctx := context.WithValue(req.Context(), UserIDKey, int64(1))
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
@@ -210,8 +217,8 @@ func TestPurchasesHandler_DELETE_MissingID(t *testing.T) {
 	body, _ := json.Marshal(deleteReq)
 	req := httptest.NewRequest("DELETE", "/purchases", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	
-	ctx := context.WithValue(req.Context(), "user_id", int64(1))
+
+	ctx := context.WithValue(req.Context(), UserIDKey, int64(1))
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
