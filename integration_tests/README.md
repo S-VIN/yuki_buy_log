@@ -185,7 +185,7 @@ The test suite is organized into the following test classes:
 
 Current test coverage includes:
 
-- **47 test cases** covering all major functionality
+- **27 test cases** covering all major functionality
 - Authentication and authorization
 - Product and purchase CRUD operations
 - Group formation and management

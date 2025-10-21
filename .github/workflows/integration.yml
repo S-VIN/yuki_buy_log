@@ -46,7 +46,7 @@ jobs:
 
       - name: Apply database migrations
         run: |
-          PGPASSWORD=postgres psql -h localhost -U postgres -d yuki_buy_log -f postgres/init.sql
+          PGPASSWORD=postgres psql -h localhost -U postgres -d yuki_buy_log -f postgres/schema.sql
 
       - name: Install Go dependencies
         run: |
