@@ -11,7 +11,6 @@ import (
 
 	_ "github.com/lib/pq"
 	"yuki_buy_log/handlers"
-	"yuki_buy_log/scheduler"
 	"yuki_buy_log/tasks"
 	"yuki_buy_log/validators"
 )
@@ -66,8 +65,8 @@ func main() {
 
 	// Setup and start scheduler
 	log.Println("Setting up scheduler...")
-	sched := scheduler.New()
-	sched.AddTask(scheduler.Task{
+	sched := tasks.NewScheduler()
+	sched.AddTask(tasks.Task{
 		Name:     "cleanup_old_invites",
 		Interval: 5 * time.Minute,
 		Run:      tasks.CleanupOldInvites(db),

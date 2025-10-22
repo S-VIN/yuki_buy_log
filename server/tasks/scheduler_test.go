@@ -1,4 +1,4 @@
-package scheduler
+package tasks
 
 import (
 	"sync/atomic"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestScheduler_AddTask(t *testing.T) {
-	s := New()
+	s := NewScheduler()
 	task := Task{
 		Name:     "test_task",
 		Interval: 1 * time.Second,
@@ -26,7 +26,7 @@ func TestScheduler_AddTask(t *testing.T) {
 }
 
 func TestScheduler_StartStop(t *testing.T) {
-	s := New()
+	s := NewScheduler()
 	var counter atomic.Int32
 
 	task := Task{
@@ -61,7 +61,7 @@ func TestScheduler_StartStop(t *testing.T) {
 }
 
 func TestScheduler_MultipleTasks(t *testing.T) {
-	s := New()
+	s := NewScheduler()
 	var counter1 atomic.Int32
 	var counter2 atomic.Int32
 
@@ -108,7 +108,7 @@ func TestScheduler_MultipleTasks(t *testing.T) {
 }
 
 func TestScheduler_EmptyScheduler(t *testing.T) {
-	s := New()
+	s := NewScheduler()
 	s.Start()
 	time.Sleep(100 * time.Millisecond)
 	s.Stop()
