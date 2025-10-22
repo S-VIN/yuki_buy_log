@@ -1,4 +1,4 @@
-package scheduler
+package tasks
 
 import (
 	"log"
@@ -20,8 +20,8 @@ type Scheduler struct {
 	wg     sync.WaitGroup
 }
 
-// New creates a new Scheduler instance
-func New() *Scheduler {
+// NewScheduler creates a new Scheduler instance
+func NewScheduler() *Scheduler {
 	return &Scheduler{
 		tasks:  make([]Task, 0),
 		stopCh: make(chan struct{}),
