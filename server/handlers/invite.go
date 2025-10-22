@@ -99,24 +99,38 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 	deps.DB.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, uid).Scan(&currentUserGroupID)
 	deps.DB.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, targetUserID).Scan(&targetUserGroupID)
 
-	// Cannot send invite if target user is already in any group
-	if targetUserGroupID.Valid {
-		log.Printf("Target user %d is already in a group", targetUserID)
-		http.Error(w, "target user is already in a group", http.StatusBadRequest)
+	// Cannot send invite if both users are already in groups
+	if currentUserGroupID.Valid && targetUserGroupID.Valid {
+		// Check if they are in the same group
+		if currentUserGroupID.Int64 == targetUserGroupID.Int64 {
+			log.Printf("Both users %d and %d are already in the same group %d", uid, targetUserID, currentUserGroupID.Int64)
+			http.Error(w, "users are already in the same group", http.StatusBadRequest)
+			return
+		}
+		// Both users in different groups - cannot invite
+		log.Printf("Cannot invite: user %d in group %d, user %d in group %d", uid, currentUserGroupID.Int64, targetUserID, targetUserGroupID.Int64)
+		http.Error(w, "cannot invite users who are in different groups", http.StatusBadRequest)
 		return
 	}
 
-	// If current user is in a group, check if the group size limit would be exceeded
+	// Check group size limit for the group that will receive the new member
+	var groupToCheck sql.NullInt64
 	if currentUserGroupID.Valid {
+		groupToCheck = currentUserGroupID
+	} else if targetUserGroupID.Valid {
+		groupToCheck = targetUserGroupID
+	}
+
+	if groupToCheck.Valid {
 		var groupSize int
-		err := deps.DB.QueryRow(`SELECT COUNT(*) FROM groups WHERE id = $1`, currentUserGroupID.Int64).Scan(&groupSize)
+		err := deps.DB.QueryRow(`SELECT COUNT(*) FROM groups WHERE id = $1`, groupToCheck.Int64).Scan(&groupSize)
 		if err != nil {
 			log.Printf("Failed to count group members: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		if groupSize >= 5 {
-			log.Printf("Group %d has reached maximum size of 5 members", currentUserGroupID.Int64)
+			log.Printf("Group %d has reached maximum size of 5 members", groupToCheck.Int64)
 			http.Error(w, "group has reached maximum size of 5 members", http.StatusBadRequest)
 			return
 		}
@@ -148,52 +162,61 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Handle group creation based on current group status
-		if currentUserGroupID.Valid {
+		// We need to refresh group IDs within the transaction to ensure consistency
+		var txCurrentUserGroupID, txTargetUserGroupID sql.NullInt64
+		tx.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, uid).Scan(&txCurrentUserGroupID)
+		tx.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, targetUserID).Scan(&txTargetUserGroupID)
+
+		if txCurrentUserGroupID.Valid && txTargetUserGroupID.Valid {
+			// Both users already in groups - this shouldn't happen due to earlier checks
+			log.Printf("Error: Both users already in groups during mutual invite")
+			http.Error(w, "both users are already in groups", http.StatusBadRequest)
+			return
+		} else if txCurrentUserGroupID.Valid {
 			// Current user already has a group, add target user to it
 			// Check group size limit again within transaction
 			var groupSize int
-			err = tx.QueryRow(`SELECT COUNT(*) FROM groups WHERE id = $1`, currentUserGroupID.Int64).Scan(&groupSize)
+			err = tx.QueryRow(`SELECT COUNT(*) FROM groups WHERE id = $1`, txCurrentUserGroupID.Int64).Scan(&groupSize)
 			if err != nil {
 				log.Printf("Failed to count group members: %v", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 			if groupSize >= 5 {
-				log.Printf("Group %d has reached maximum size", currentUserGroupID.Int64)
+				log.Printf("Group %d has reached maximum size", txCurrentUserGroupID.Int64)
 				http.Error(w, "group has reached maximum size of 5 members", http.StatusBadRequest)
 				return
 			}
 
-			_, err = tx.Exec(`INSERT INTO groups (id, user_id) VALUES ($1, $2)`, currentUserGroupID.Int64, targetUserID)
+			_, err = tx.Exec(`INSERT INTO groups (id, user_id) VALUES ($1, $2)`, txCurrentUserGroupID.Int64, targetUserID)
 			if err != nil {
 				log.Printf("Failed to add user to existing group: %v", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			log.Printf("Added user %d to existing group %d", targetUserID, currentUserGroupID.Int64)
-		} else if targetUserGroupID.Valid {
+			log.Printf("Added user %d to existing group %d", targetUserID, txCurrentUserGroupID.Int64)
+		} else if txTargetUserGroupID.Valid {
 			// Target user already has a group, add current user to it
-			// This shouldn't happen due to earlier checks, but handle it anyway
 			var groupSize int
-			err = tx.QueryRow(`SELECT COUNT(*) FROM groups WHERE id = $1`, targetUserGroupID.Int64).Scan(&groupSize)
+			err = tx.QueryRow(`SELECT COUNT(*) FROM groups WHERE id = $1`, txTargetUserGroupID.Int64).Scan(&groupSize)
 			if err != nil {
 				log.Printf("Failed to count group members: %v", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 			if groupSize >= 5 {
-				log.Printf("Group %d has reached maximum size", targetUserGroupID.Int64)
+				log.Printf("Group %d has reached maximum size", txTargetUserGroupID.Int64)
 				http.Error(w, "group has reached maximum size of 5 members", http.StatusBadRequest)
 				return
 			}
 
-			_, err = tx.Exec(`INSERT INTO groups (id, user_id) VALUES ($1, $2)`, targetUserGroupID.Int64, uid)
+			_, err = tx.Exec(`INSERT INTO groups (id, user_id) VALUES ($1, $2)`, txTargetUserGroupID.Int64, uid)
 			if err != nil {
 				log.Printf("Failed to add user to existing group: %v", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			log.Printf("Added user %d to existing group %d", uid, targetUserGroupID.Int64)
+			log.Printf("Added user %d to existing group %d", uid, txTargetUserGroupID.Int64)
 		} else {
 			// Neither user has a group, create a new one
 			var newGroupID int64

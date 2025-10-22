@@ -215,8 +215,9 @@ Groups allow users to share access to purchases and products. Users in a group c
 4. Both invites are deleted from the system
 
 **Group Expansion:**
-- Users already in a group can invite **free users** (users not in any group)
-- Cannot invite users who are already in another group
+- Users can send invites as long as at least one of the two users is **not in a group**
+- **Cannot** send invites if both users are already in different groups
+- Users in the **same group** cannot invite each other (already in group together)
 - Group size cannot exceed 5 members
 
 #### GET /group
@@ -277,11 +278,14 @@ Invites allow users to form groups by sending and accepting invitations.
 
 **Key Rules:**
 - Cannot invite yourself
-- Cannot invite a user who is already in a group (unless you're inviting them to join your group)
-- Free users (not in a group) can only send invites to other free users
-- Users in a group can send invites to free users to expand their group
+- Can send invites if **at least one user is not in a group**:
+  - Free user → Free user ✓
+  - Free user → User in group ✓
+  - User in group → Free user ✓
+  - User in group A → User in group B ✗ (both in different groups)
+  - User in group A → Another user in group A ✗ (already in same group)
 - Duplicate invites are prevented by database constraints
-- **Mutual invites** automatically create a group and delete both invites
+- **Mutual invites** automatically create or expand a group and delete both invites
 
 **Invitation Flow Example 1 (New Group):**
 1. Free User A sends invite to Free User B
@@ -290,11 +294,18 @@ Invites allow users to form groups by sending and accepting invitations.
 4. Creates new group with both users
 5. Deletes both invites
 
-**Invitation Flow Example 2 (Expanding Existing Group):**
+**Invitation Flow Example 2 (Expanding Existing Group - Scenario A):**
 1. User A (in group with 3 members) sends invite to Free User B
 2. Free User B sends invite to User A
 3. System detects mutual invites
 4. Adds User B to User A's existing group (now 4 members)
+5. Deletes both invites
+
+**Invitation Flow Example 3 (Expanding Existing Group - Scenario B):**
+1. Free User A sends invite to User B (in group with 3 members)
+2. User B sends invite to Free User A
+3. System detects mutual invites
+4. Adds User A to User B's existing group (now 4 members)
 5. Deletes both invites
 
 #### GET /invite
@@ -351,8 +362,9 @@ Send an invite to another user. If mutual invites are detected, a group is creat
 }
 ```
 - **400 Bad Request**: Various validation errors
-  - Target user is already in a group
-  - Current user's group has reached maximum size (5 members)
+  - Both users are already in different groups
+  - Both users are already in the same group
+  - Group has reached maximum size (5 members)
   - Invite already exists
 - **404 Not Found**: Target user not found
 - **401 Unauthorized**: Invalid or missing token

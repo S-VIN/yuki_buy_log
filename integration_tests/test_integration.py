@@ -560,8 +560,8 @@ class TestGroupManagement:
 class TestGroupExpansion:
     """Test group expansion restrictions"""
 
-    def test_cannot_invite_user_in_group(self, three_users):
-        """Users cannot invite someone who is already in a group"""
+    def test_can_invite_to_expand_group(self, three_users):
+        """Free user can invite user in group and vice versa to expand the group"""
         user1, user2, user3 = three_users
         login1, password1, token1, headers1 = user1
         login2, password2, token2, headers2 = user2
@@ -571,17 +571,72 @@ class TestGroupExpansion:
         requests.post(f"{BASE_URL}/invite", json={"login": login2}, headers=headers1)
         requests.post(f"{BASE_URL}/invite", json={"login": login1}, headers=headers2)
 
-        # User3 tries to invite User1 who is already in a group
-        r = requests.post(f"{BASE_URL}/invite", json={"login": login1}, headers=headers3)
-        assert r.status_code == 400
+        # Verify initial group has 2 members
+        r = requests.get(f"{BASE_URL}/group", headers=headers1)
+        assert len(r.json()["members"]) == 2
 
-        # User1 can send invite to User3 (who is not in a group)
+        # User3 (free user) can send invite to User1 (in group)
+        r = requests.post(f"{BASE_URL}/invite", json={"login": login1}, headers=headers3)
+        assert r.status_code == 200
+        assert "invite_id" in r.json()
+
+        # User1 (in group) can send invite to User3 (free user)
+        # This creates mutual invites and should expand the group
         r = requests.post(f"{BASE_URL}/invite", json={"login": login3}, headers=headers1)
         assert r.status_code == 200
+        data = r.json()
+        assert "mutual_invite" in data or "group" in data.get("message", "").lower()
 
-        # But User3 cannot accept by sending mutual invite (User1 is in group)
+        # Verify group now has 3 members
+        r = requests.get(f"{BASE_URL}/group", headers=headers1)
+        members = r.json()["members"]
+        assert len(members) == 3
+        member_logins = [m["login"] for m in members]
+        assert login1 in member_logins
+        assert login2 in member_logins
+        assert login3 in member_logins
+
+        # User3 should also see the group
+        r = requests.get(f"{BASE_URL}/group", headers=headers3)
+        assert len(r.json()["members"]) == 3
+
+    def test_cannot_invite_users_in_different_groups(self):
+        """Users in different groups cannot invite each other"""
+        # Create 4 users
+        user1 = TestHelper.register_user()
+        user2 = TestHelper.register_user()
+        user3 = TestHelper.register_user()
+        user4 = TestHelper.register_user()
+
+        login1, password1, token1, headers1 = user1
+        login2, password2, token2, headers2 = user2
+        login3, password3, token3, headers3 = user3
+        login4, password4, token4, headers4 = user4
+
+        # Create Group 1: User1 and User2
+        requests.post(f"{BASE_URL}/invite", json={"login": login2}, headers=headers1)
+        requests.post(f"{BASE_URL}/invite", json={"login": login1}, headers=headers2)
+
+        # Create Group 2: User3 and User4
+        requests.post(f"{BASE_URL}/invite", json={"login": login4}, headers=headers3)
+        requests.post(f"{BASE_URL}/invite", json={"login": login3}, headers=headers4)
+
+        # Verify groups were created
+        r = requests.get(f"{BASE_URL}/group", headers=headers1)
+        assert len(r.json()["members"]) == 2
+
+        r = requests.get(f"{BASE_URL}/group", headers=headers3)
+        assert len(r.json()["members"]) == 2
+
+        # User1 (in Group 1) tries to invite User3 (in Group 2)
+        r = requests.post(f"{BASE_URL}/invite", json={"login": login3}, headers=headers1)
+        assert r.status_code == 400
+        assert "different groups" in r.text.lower()
+
+        # User3 (in Group 2) tries to invite User1 (in Group 1)
         r = requests.post(f"{BASE_URL}/invite", json={"login": login1}, headers=headers3)
         assert r.status_code == 400
+        assert "different groups" in r.text.lower()
 
 
 class TestFullFlow:
