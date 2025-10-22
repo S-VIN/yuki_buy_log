@@ -6,7 +6,6 @@ import { PlusOutlined } from '@ant-design/icons';
 import ProductStore from '../stores/ProductStore.js';
 import VolumeSelectWidget from './VolumeSelectWidget.jsx';
 import BrandSelectWidget from './BrandSelectWidget.jsx';
-import CategorySelectWidget from './CategorySelectWidget.jsx';
 import DefaultTagsWidget from './DefaultTagsWidget.jsx';
 
 const ProductSelectWidget = ({ onSelect, selectedProductProp }) => {
