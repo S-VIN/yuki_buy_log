@@ -15,16 +15,8 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push server image
-        run: |
-          docker build -t vinstp/yuki_buy_log:server server
-          docker push vinstp/yuki_buy_log:server
-      - name: Build and push db image
-        run: |
-          docker build -t vinstp/yuki_buy_log:db postgres
-          docker push vinstp/yuki_buy_log:db
-      - name: Build and push client image
-        run: |
-          docker build -t vinstp/yuki_buy_log:client clients
-          docker push vinstp/yuki_buy_log:client
+      - name: Build all images with docker-compose
+        run: docker compose build
+      - name: Push all images to DockerHub
+        run: docker compose push
 
