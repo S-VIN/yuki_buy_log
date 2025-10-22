@@ -5,10 +5,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	_ "github.com/lib/pq"
 	"yuki_buy_log/handlers"
+	"yuki_buy_log/tasks"
 	"yuki_buy_log/validators"
 )
 
@@ -44,14 +47,14 @@ func main() {
 	auth := NewAuthenticator([]byte("secret"))
 
 	log.Println("Setting up HTTP routes...")
-	
+
 	// Создаем зависимости для handlers
 	deps := &handlers.Dependencies{
 		DB:        db,
 		Validator: validators.NewValidator(),
 		Auth:      auth,
 	}
-	
+
 	mux := http.NewServeMux()
 	mux.Handle("/products", auth.Middleware(handlers.ProductsHandler(deps)))
 	mux.Handle("/purchases", auth.Middleware(handlers.PurchasesHandler(deps)))
@@ -60,8 +63,38 @@ func main() {
 	mux.HandleFunc("/register", handlers.RegisterHandler(deps))
 	mux.HandleFunc("/login", handlers.LoginHandler(deps))
 
-	log.Println("Server started on :8080")
-	log.Fatal(http.ListenAndServe(":8080", enableCORS(mux)))
+	// Setup and start scheduler
+	log.Println("Setting up scheduler...")
+	sched := tasks.NewScheduler()
+	sched.AddTask(tasks.Task{
+		Name:     "cleanup_old_invites",
+		Interval: 5 * time.Minute,
+		Run:      tasks.CleanupOldInvites(db),
+	})
+	sched.Start()
+	defer sched.Stop()
+
+	// Setup graceful shutdown
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: enableCORS(mux),
+	}
+
+	// Channel to listen for interrupt signals
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	// Start server in goroutine
+	go func() {
+		log.Println("Server started on :8080")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server error: %v", err)
+		}
+	}()
+
+	// Wait for interrupt signal
+	<-stop
+	log.Println("Shutting down gracefully...")
 }
 
 func enableCORS(next http.Handler) http.Handler {
