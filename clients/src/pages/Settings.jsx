@@ -39,7 +39,7 @@ const Settings = () => {
 
   const sendInvite = async () => {
     if (!inviteLogin.trim()) {
-      message.warning('Введите логин пользователя');
+      message.warning('Please enter a username');
       return;
     }
 
@@ -54,19 +54,19 @@ const Settings = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.mutual_invite) {
-          message.success('Группа создана!');
+          message.success('Group created!');
           await fetchGroupData();
           await fetchInvites();
         } else {
-          message.success('Инвайт отправлен!');
+          message.success('Invite sent!');
         }
         setInviteLogin('');
       } else {
         const error = await response.text();
-        message.error(error || 'Ошибка при отправке инвайта');
+        message.error(error || 'Failed to send invite');
       }
     } catch (error) {
-      message.error('Ошибка при отправке инвайта');
+      message.error('Failed to send invite');
     } finally {
       setLoading(false);
     }
@@ -82,15 +82,15 @@ const Settings = () => {
       });
 
       if (response.ok) {
-        message.success('Инвайт принят! Группа создана/обновлена');
+        message.success('Invite accepted! Group created/updated');
         await fetchGroupData();
         await fetchInvites();
       } else {
         const error = await response.text();
-        message.error(error || 'Ошибка при принятии инвайта');
+        message.error(error || 'Failed to accept invite');
       }
     } catch (error) {
-      message.error('Ошибка при принятии инвайта');
+      message.error('Failed to accept invite');
     } finally {
       setLoading(false);
     }
@@ -105,10 +105,10 @@ const Settings = () => {
 
       <Divider />
 
-      <Card title="Группа и инвайты" style={{ marginTop: 16 }}>
+      <Card title="Groups and Invites" style={{ marginTop: 16 }}>
         {groupMembers.length > 0 ? (
           <div style={{ marginBottom: 16 }}>
-            <div style={{ marginBottom: 8, fontWeight: 'bold' }}>Участники группы:</div>
+            <div style={{ marginBottom: 8, fontWeight: 'bold' }}>Group Members:</div>
             <Space wrap>
               {groupMembers.map((member) => (
                 <Tag color="blue" key={member.user_id}>
@@ -119,17 +119,17 @@ const Settings = () => {
           </div>
         ) : (
           <div style={{ marginBottom: 16, color: '#888' }}>
-            Вы не состоите в группе
+            You are not in a group
           </div>
         )}
 
         {incomingInvites.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <div style={{ marginBottom: 8, fontWeight: 'bold' }}>Входящие инвайты:</div>
+            <div style={{ marginBottom: 8, fontWeight: 'bold' }}>Incoming Invites:</div>
             {incomingInvites.map((invite) => (
               <div key={invite.id} style={{ marginBottom: 8 }}>
                 <Space>
-                  <span>От пользователя: <Tag color="green">{invite.from_login}</Tag></span>
+                  <span>From: <Tag color="green">{invite.from_login}</Tag></span>
                   <Button
                     type="primary"
                     size="small"
@@ -145,16 +145,16 @@ const Settings = () => {
         )}
 
         <div>
-          <div style={{ marginBottom: 8, fontWeight: 'bold' }}>Отправить инвайт:</div>
+          <div style={{ marginBottom: 8, fontWeight: 'bold' }}>Send Invite:</div>
           <Space.Compact style={{ width: '100%' }}>
             <Input
-              placeholder="Введите логин пользователя"
+              placeholder="Enter username"
               value={inviteLogin}
               onChange={(e) => setInviteLogin(e.target.value)}
               onPressEnter={sendInvite}
             />
             <Button type="primary" onClick={sendInvite} loading={loading}>
-              Отправить
+              Send
             </Button>
           </Space.Compact>
         </div>
