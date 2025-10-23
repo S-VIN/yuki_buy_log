@@ -40,4 +40,19 @@ export const sendInvite = async (login) => {
   return response.json();
 };
 
+// Purchase API functions
+export const deletePurchase = async (purchaseId) => {
+  const response = await authFetch('/purchases', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: purchaseId }),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || 'Failed to delete purchase');
+  }
+  // DELETE returns 204 No Content, so no body to parse
+  return true;
+};
+
 export default API_URL;

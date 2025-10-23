@@ -248,6 +248,150 @@ class TestPurchases:
         r = requests.post(f"{BASE_URL}/purchases", json=purchase, headers=headers)
         assert r.status_code == 400
 
+    def test_delete_purchase_success(self, user):
+        """User should be able to delete their own purchase"""
+        login, password, token, headers = user
+
+        # Create a product
+        product = {
+            "name": "Sugar",
+            "volume": "1kg",
+            "brand": "SweetCo",
+        }
+        r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
+        product_id = r.json()["id"]
+
+        # Create a purchase
+        purchase = {
+            "product_id": product_id,
+            "quantity": 1,
+            "price": 100,
+            "date": "2024-01-25T00:00:00Z",
+            "store": "Supermarket",
+            "receipt_id": 500,
+        }
+        r = requests.post(f"{BASE_URL}/purchases", json=purchase, headers=headers)
+        assert r.status_code == 200
+        purchase_id = r.json()["id"]
+
+        # Delete the purchase
+        r = requests.delete(f"{BASE_URL}/purchases", json={"id": purchase_id}, headers=headers)
+        assert r.status_code == 204
+
+        # Verify purchase is deleted
+        r = requests.get(f"{BASE_URL}/purchases", headers=headers)
+        assert r.status_code == 200
+        purchases = r.json()["purchases"]
+        assert not any(p["id"] == purchase_id for p in purchases)
+
+    def test_delete_purchase_not_found(self, user):
+        """Deleting non-existent purchase should return 404"""
+        login, password, token, headers = user
+
+        # Try to delete a purchase that doesn't exist
+        r = requests.delete(f"{BASE_URL}/purchases", json={"id": 999999}, headers=headers)
+        assert r.status_code == 404
+
+    def test_delete_purchase_unauthorized(self):
+        """Deleting purchase without authentication should fail"""
+        r = requests.delete(f"{BASE_URL}/purchases", json={"id": 1})
+        assert r.status_code == 401
+
+    def test_delete_purchase_different_user(self, two_users):
+        """User should not be able to delete another user's purchase"""
+        user1, user2 = two_users
+        login1, password1, token1, headers1 = user1
+        login2, password2, token2, headers2 = user2
+
+        # User1 creates a product and purchase
+        product = {
+            "name": "Salt",
+            "volume": "500g",
+            "brand": "SeaSalt",
+        }
+        r = requests.post(f"{BASE_URL}/products", json=product, headers=headers1)
+        product_id = r.json()["id"]
+
+        purchase = {
+            "product_id": product_id,
+            "quantity": 1,
+            "price": 50,
+            "date": "2024-01-26T00:00:00Z",
+            "store": "Store",
+            "receipt_id": 600,
+        }
+        r = requests.post(f"{BASE_URL}/purchases", json=purchase, headers=headers1)
+        assert r.status_code == 200
+        purchase_id = r.json()["id"]
+
+        # User2 tries to delete User1's purchase
+        r = requests.delete(f"{BASE_URL}/purchases", json={"id": purchase_id}, headers=headers2)
+        assert r.status_code == 404  # Should not find it (security: user_id check)
+
+        # Verify User1's purchase still exists
+        r = requests.get(f"{BASE_URL}/purchases", headers=headers1)
+        assert r.status_code == 200
+        purchases = r.json()["purchases"]
+        assert any(p["id"] == purchase_id for p in purchases)
+
+    def test_delete_purchase_invalid_json(self, user):
+        """Deleting purchase with invalid JSON should return 400"""
+        login, password, token, headers = user
+
+        r = requests.delete(f"{BASE_URL}/purchases", data="invalid json", headers=headers)
+        assert r.status_code == 400
+
+    def test_delete_purchase_missing_id(self, user):
+        """Deleting purchase without ID should return 400"""
+        login, password, token, headers = user
+
+        r = requests.delete(f"{BASE_URL}/purchases", json={}, headers=headers)
+        assert r.status_code == 400
+
+        r = requests.delete(f"{BASE_URL}/purchases", json={"id": 0}, headers=headers)
+        assert r.status_code == 400
+
+    def test_delete_multiple_purchases(self, user):
+        """User should be able to delete multiple purchases sequentially"""
+        login, password, token, headers = user
+
+        # Create a product
+        product = {
+            "name": "Flour",
+            "volume": "2kg",
+            "brand": "BakerCo",
+        }
+        r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
+        product_id = r.json()["id"]
+
+        # Create multiple purchases
+        purchase_ids = []
+        stores = ["StoreOne", "StoreTwo", "StoreThree"]
+        for i in range(3):
+            purchase = {
+                "product_id": product_id,
+                "quantity": i + 1,
+                "price": 200 + (i * 50),
+                "date": f"2024-01-{27 + i:02d}T00:00:00Z",
+                "store": stores[i],
+                "receipt_id": 700 + i,
+            }
+            r = requests.post(f"{BASE_URL}/purchases", json=purchase, headers=headers)
+            assert r.status_code == 200
+            purchase_ids.append(r.json()["id"])
+
+        # Delete all purchases
+        for purchase_id in purchase_ids:
+            r = requests.delete(f"{BASE_URL}/purchases", json={"id": purchase_id}, headers=headers)
+            assert r.status_code == 204
+
+        # Verify all purchases are deleted
+        r = requests.get(f"{BASE_URL}/purchases", headers=headers)
+        assert r.status_code == 200
+        purchases = r.json()["purchases"]
+        for purchase_id in purchase_ids:
+            assert not any(p["id"] == purchase_id for p in purchases)
+
 
 class TestGroupInvites:
     """Test group and invite functionality"""

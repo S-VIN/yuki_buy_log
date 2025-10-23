@@ -259,6 +259,137 @@ func TestPurchasesHandler_Unauthorized(t *testing.T) {
 	}
 }
 
+func TestPurchasesHandler_DELETE_DatabaseError(t *testing.T) {
+	deps, mock := createTestDeps(t)
+	defer deps.DB.Close()
+
+	// Mock database error during deletion
+	mock.ExpectExec("DELETE FROM purchases WHERE id=\\$1 AND user_id=\\$2").
+		WithArgs(123, 1).
+		WillReturnError(sqlmock.ErrCancelled)
+
+	handler := PurchasesHandler(deps)
+
+	deleteReq := struct {
+		Id int64 `json:"id"`
+	}{Id: 123}
+
+	body, _ := json.Marshal(deleteReq)
+	req := httptest.NewRequest("DELETE", "/purchases", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	ctx := context.WithValue(req.Context(), UserIDKey, int64(1))
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status 500, got %d", w.Code)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("Database expectations were not met: %v", err)
+	}
+}
+
+func TestPurchasesHandler_DELETE_DifferentUserPurchase(t *testing.T) {
+	deps, mock := createTestDeps(t)
+	defer deps.DB.Close()
+
+	// User 1 tries to delete purchase owned by user 2
+	// The query includes user_id check, so no rows will be affected
+	result := sqlmock.NewResult(0, 0) // 0 rows affected
+	mock.ExpectExec("DELETE FROM purchases WHERE id=\\$1 AND user_id=\\$2").
+		WithArgs(456, 1).
+		WillReturnResult(result)
+
+	handler := PurchasesHandler(deps)
+
+	deleteReq := struct {
+		Id int64 `json:"id"`
+	}{Id: 456}
+
+	body, _ := json.Marshal(deleteReq)
+	req := httptest.NewRequest("DELETE", "/purchases", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	ctx := context.WithValue(req.Context(), UserIDKey, int64(1))
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("Expected status 404 (purchase not found for this user), got %d", w.Code)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("Database expectations were not met: %v", err)
+	}
+}
+
+func TestPurchasesHandler_DELETE_MultipleSuccessful(t *testing.T) {
+	deps, mock := createTestDeps(t)
+	defer deps.DB.Close()
+
+	userID := int64(1)
+
+	// First deletion
+	result1 := sqlmock.NewResult(0, 1)
+	mock.ExpectExec("DELETE FROM purchases WHERE id=\\$1 AND user_id=\\$2").
+		WithArgs(100, userID).
+		WillReturnResult(result1)
+
+	// Second deletion
+	result2 := sqlmock.NewResult(0, 1)
+	mock.ExpectExec("DELETE FROM purchases WHERE id=\\$1 AND user_id=\\$2").
+		WithArgs(200, userID).
+		WillReturnResult(result2)
+
+	handler := PurchasesHandler(deps)
+
+	// Delete first purchase
+	deleteReq1 := struct {
+		Id int64 `json:"id"`
+	}{Id: 100}
+
+	body1, _ := json.Marshal(deleteReq1)
+	req1 := httptest.NewRequest("DELETE", "/purchases", bytes.NewBuffer(body1))
+	req1.Header.Set("Content-Type", "application/json")
+	ctx1 := context.WithValue(req1.Context(), UserIDKey, userID)
+	req1 = req1.WithContext(ctx1)
+
+	w1 := httptest.NewRecorder()
+	handler.ServeHTTP(w1, req1)
+
+	if w1.Code != http.StatusNoContent {
+		t.Errorf("First deletion: Expected status 204, got %d", w1.Code)
+	}
+
+	// Delete second purchase
+	deleteReq2 := struct {
+		Id int64 `json:"id"`
+	}{Id: 200}
+
+	body2, _ := json.Marshal(deleteReq2)
+	req2 := httptest.NewRequest("DELETE", "/purchases", bytes.NewBuffer(body2))
+	req2.Header.Set("Content-Type", "application/json")
+	ctx2 := context.WithValue(req2.Context(), UserIDKey, userID)
+	req2 = req2.WithContext(ctx2)
+
+	w2 := httptest.NewRecorder()
+	handler.ServeHTTP(w2, req2)
+
+	if w2.Code != http.StatusNoContent {
+		t.Errorf("Second deletion: Expected status 204, got %d", w2.Code)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("Database expectations were not met: %v", err)
+	}
+}
+
 func TestPurchasesHandler_GET_WithGroup(t *testing.T) {
 	deps, mock := createTestDeps(t)
 	defer deps.DB.Close()
