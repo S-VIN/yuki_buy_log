@@ -366,13 +366,14 @@ class TestPurchases:
 
         # Create multiple purchases
         purchase_ids = []
+        stores = ["StoreOne", "StoreTwo", "StoreThree"]
         for i in range(3):
             purchase = {
                 "product_id": product_id,
                 "quantity": i + 1,
                 "price": 200 + (i * 50),
                 "date": f"2024-01-{27 + i:02d}T00:00:00Z",
-                "store": f"Store{i}",
+                "store": stores[i],
                 "receipt_id": 700 + i,
             }
             r = requests.post(f"{BASE_URL}/purchases", json=purchase, headers=headers)
