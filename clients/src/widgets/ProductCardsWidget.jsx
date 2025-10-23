@@ -34,7 +34,7 @@ const ProductCardsWidget = ({ productListProp, onDelete, onEdit }) => (
                   <Button
                     type="text"
                     icon={<DeleteTwoTone />}
-                    onClick={() => onDelete(purchase.product.id)}
+                    onClick={() => onDelete(purchase)}
                   />
                 )}
               </div>

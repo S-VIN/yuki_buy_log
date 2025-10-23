@@ -11,6 +11,7 @@ import ShopSelectWidget from '../widgets/ShopSelectWidget.jsx';
 import PriceQuantitySelectWidget from '../widgets/PriceQuantitySelectWidget.jsx';
 import TagSelectWidget from '../widgets/TagSelectWidget.jsx';
 import ProductCardsWidget from '../widgets/ProductCardsWidget.jsx';
+import { deletePurchase } from '../api.js';
 
 const AddReceipt = () => {
   const [purchaseList, setPurchaseList] = useState([]);
@@ -63,8 +64,19 @@ const AddReceipt = () => {
     setSelectedTags([]);
   };
 
-  const handleDeletePurchase = (productId) => {
-    setPurchaseList(purchaseList.filter((p) => p.product.id !== productId));
+  const handleDeletePurchase = async (purchase) => {
+    try {
+      // If purchase has uuid (server ID), delete from server
+      if (purchase.uuid) {
+        await deletePurchase(purchase.uuid);
+        messageApi.success('Purchase deleted from server!');
+      }
+      // Remove from local state
+      setPurchaseList(purchaseList.filter((p) => p.product.id !== purchase.product.id));
+    } catch (error) {
+      messageApi.error(`Failed to delete purchase: ${error.message}`);
+      console.error('Delete purchase error:', error);
+    }
   };
 
   const handleEditPurchase = (purchase) => {
