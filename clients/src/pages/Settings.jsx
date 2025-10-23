@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { List, Switch, Input, Button, Tag, message, Space, Card, Divider } from 'antd';
-import { authFetch } from '../api';
+import { fetchGroupMembers, fetchInvites, sendInvite as sendInviteAPI } from '../api';
 
 const Settings = () => {
   const [inviteLogin, setInviteLogin] = useState('');
@@ -9,35 +9,29 @@ const Settings = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchGroupData();
-    fetchInvites();
+    loadGroupData();
+    loadInvites();
   }, []);
 
-  const fetchGroupData = async () => {
+  const loadGroupData = async () => {
     try {
-      const response = await authFetch('/group');
-      if (response.ok) {
-        const data = await response.json();
-        setGroupMembers(data.members || []);
-      }
+      const data = await fetchGroupMembers();
+      setGroupMembers(data.members || []);
     } catch (error) {
       console.error('Failed to fetch group data:', error);
     }
   };
 
-  const fetchInvites = async () => {
+  const loadInvites = async () => {
     try {
-      const response = await authFetch('/invite');
-      if (response.ok) {
-        const data = await response.json();
-        setIncomingInvites(data.invites || []);
-      }
+      const data = await fetchInvites();
+      setIncomingInvites(data.invites || []);
     } catch (error) {
       console.error('Failed to fetch invites:', error);
     }
   };
 
-  const sendInvite = async () => {
+  const handleSendInvite = async () => {
     if (!inviteLogin.trim()) {
       message.warning('Please enter a username');
       return;
@@ -45,52 +39,31 @@ const Settings = () => {
 
     setLoading(true);
     try {
-      const response = await authFetch('/invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ login: inviteLogin }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.mutual_invite) {
-          message.success('Group created!');
-          await fetchGroupData();
-          await fetchInvites();
-        } else {
-          message.success('Invite sent!');
-        }
-        setInviteLogin('');
+      const data = await sendInviteAPI(inviteLogin);
+      if (data.mutual_invite) {
+        message.success('Group created!');
+        await loadGroupData();
+        await loadInvites();
       } else {
-        const error = await response.text();
-        message.error(error || 'Failed to send invite');
+        message.success('Invite sent!');
       }
+      setInviteLogin('');
     } catch (error) {
-      message.error('Failed to send invite');
+      message.error(error.message || 'Failed to send invite');
     } finally {
       setLoading(false);
     }
   };
 
-  const acceptInvite = async (fromLogin) => {
+  const handleAcceptInvite = async (fromLogin) => {
     setLoading(true);
     try {
-      const response = await authFetch('/invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ login: fromLogin }),
-      });
-
-      if (response.ok) {
-        message.success('Invite accepted! Group created/updated');
-        await fetchGroupData();
-        await fetchInvites();
-      } else {
-        const error = await response.text();
-        message.error(error || 'Failed to accept invite');
-      }
+      await sendInviteAPI(fromLogin);
+      message.success('Invite accepted! Group created/updated');
+      await loadGroupData();
+      await loadInvites();
     } catch (error) {
-      message.error('Failed to accept invite');
+      message.error(error.message || 'Failed to accept invite');
     } finally {
       setLoading(false);
     }
@@ -133,7 +106,7 @@ const Settings = () => {
                   <Button
                     type="primary"
                     size="small"
-                    onClick={() => acceptInvite(invite.from_login)}
+                    onClick={() => handleAcceptInvite(invite.from_login)}
                     loading={loading}
                   >
                     Accept
@@ -151,9 +124,9 @@ const Settings = () => {
               placeholder="Enter username"
               value={inviteLogin}
               onChange={(e) => setInviteLogin(e.target.value)}
-              onPressEnter={sendInvite}
+              onPressEnter={handleSendInvite}
             />
-            <Button type="primary" onClick={sendInvite} loading={loading}>
+            <Button type="primary" onClick={handleSendInvite} loading={loading}>
               Send
             </Button>
           </Space.Compact>
