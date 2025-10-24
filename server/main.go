@@ -74,9 +74,15 @@ func main() {
 	sched.Start()
 	defer sched.Stop()
 
+	// Get server port from environment
+	port := os.Getenv("SERVER_PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	// Setup graceful shutdown
 	srv := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":" + port,
 		Handler: enableCORS(mux),
 	}
 
@@ -86,7 +92,7 @@ func main() {
 
 	// Start server in goroutine
 	go func() {
-		log.Println("Server started on :8080")
+		log.Printf("Server started on :%s", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server error: %v", err)
 		}
@@ -99,8 +105,12 @@ func main() {
 
 func enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		corsOrigin := os.Getenv("CORS_ORIGIN")
+		if corsOrigin == "" {
+			corsOrigin = "http://localhost:5173"
+		}
 		log.Printf("CORS middleware processing request: %s %s from %s", r.Method, r.URL.Path, r.Header.Get("Origin"))
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Origin", corsOrigin)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		if r.Method == http.MethodOptions {
