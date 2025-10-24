@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { List, Switch, Input, Button, Tag, message, Space, Card, Divider } from 'antd';
+import { Input, Button, Tag, message, Space, Card } from 'antd';
 import { fetchGroupMembers, fetchInvites, sendInvite as sendInviteAPI } from '../api';
 
 const Settings = () => {
@@ -71,14 +71,7 @@ const Settings = () => {
 
   return (
     <div style={{ padding: 16 }}>
-      <List>
-        <List.Item actions={[<Switch key="notify" />]}>Notifications</List.Item>
-        <List.Item actions={[<Switch key="dark" />]}>Dark mode</List.Item>
-      </List>
-
-      <Divider />
-
-      <Card title="Groups and Invites" style={{ marginTop: 16 }}>
+      <Card style={{ marginTop: 16 }}>
         {groupMembers.length > 0 ? (
           <div style={{ marginBottom: 16 }}>
             <div style={{ marginBottom: 8, fontWeight: 'bold' }}>Group Members:</div>
