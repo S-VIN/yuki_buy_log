@@ -53,5 +53,5 @@ services:
     depends_on:
       - server
     ports:
-      - "3000:3000"
+      - "8000:8000"
     restart: unless-stopped
