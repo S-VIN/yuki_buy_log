@@ -1,14 +1,36 @@
 # Build stage
 FROM golang:1.24.3-alpine AS builder
 WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates
+
 COPY go.mod go.sum ./
 RUN go mod download
+
 COPY . .
-RUN go build -o server .
+
+# Build with optimizations for production
+# -ldflags="-s -w" removes debug info and symbol table to reduce binary size
+# CGO_ENABLED=0 for static binary
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags="-s -w" \
+    -trimpath \
+    -o server .
 
 # Final stage
 FROM alpine:3.18
 WORKDIR /root/
+
+# Add ca-certificates for HTTPS requests
+RUN apk --no-cache add ca-certificates tzdata
+
+# Copy binary from builder
 COPY --from=builder /app/server .
+
+# Use non-root user for security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
 EXPOSE 8080
 CMD ["./server"]
