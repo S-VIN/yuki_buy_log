@@ -24,15 +24,10 @@ FROM node:21-alpine3.20
 WORKDIR /app
 
 # Install serve for serving static files
-RUN npm install -g serve@14.2.3 --omit=dev
+RUN npm install -g serve@14.2.3
 
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
-
-# Use non-root user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
-    chown -R appuser:appgroup /app
-USER appuser
 
 EXPOSE 8080
 
