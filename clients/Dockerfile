@@ -1,17 +1,40 @@
-FROM node:21-alpine3.20
+FROM node:21-alpine3.20 AS builder
 LABEL Maintainer="stepan-vinokurov"
 
-
 WORKDIR /app
-COPY package.json ./
-RUN npm install
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install dependencies with production optimizations
+RUN npm ci --prefer-offline --no-audit
+
+# Copy source code
 COPY . .
+
+# Build argument for API URL (can be overridden at build time)
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
+
+# Build the application with production optimizations
 RUN npm run build
 
-# Install serve to serve static files
-RUN npm install -g serve
+# Production stage
+FROM node:21-alpine3.20
+WORKDIR /app
+
+# Install only serve for serving static files
+RUN npm install -g serve@14.2.3 --omit=dev
+
+# Copy built files from builder
+COPY --from=builder /app/dist ./dist
+
+# Use non-root user for security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
+    chown -R appuser:appgroup /app
+USER appuser
+
+EXPOSE 8080
 
 # Start the server
 CMD ["serve", "-s", "dist", "-l", "8080"]
-
-EXPOSE 8080

@@ -1,0 +1,81 @@
+version: '3.8'
+
+networks:
+  yuki_network:
+    driver: bridge
+
+services:
+  db:
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    image: vinstp/yuki_buy_log:db
+    container_name: yuki_db
+    networks:
+      - yuki_network
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: yukibuylog
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d yukibuylog"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: vinstp/yuki_buy_log:server
+    container_name: yuki_server
+    networks:
+      - yuki_network
+    environment:
+      # Database connection
+      DATABASE_URL: postgres://user:pass@db:5432/yukibuylog?sslmode=disable
+      # Server port (internal container port)
+      SERVER_PORT: "8080"
+      # CORS origin - client domain
+      CORS_ORIGIN: https://yuki.stepan-vinokurov-moscow.ru
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/products"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  client:
+    build:
+      context: ./clients
+      dockerfile: Dockerfile
+      args:
+        # API URL - server endpoint accessible from browser
+        # For Dokploy, this will be proxied through /api path
+        VITE_API_URL: https://yuki.stepan-vinokurov-moscow.ru/api
+    image: vinstp/yuki_buy_log:client
+    container_name: yuki_client
+    networks:
+      - yuki_network
+    depends_on:
+      - server
+    ports:
+      - "5173:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  db_data:
+    driver: local
