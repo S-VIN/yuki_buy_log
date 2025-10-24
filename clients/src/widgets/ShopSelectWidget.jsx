@@ -1,9 +1,17 @@
 /* eslint-disable react/prop-types */
 import { AutoComplete } from 'antd';
-
-const shops = ['Supermarket', 'ElectroMart', 'Cafe'];
+import { useMemo } from 'react';
+import { useData } from '../stores/DataContext.jsx';
 
 const ShopSelectWidget = ({ value, onChange }) => {
+  const { purchases } = useData();
+
+  const shops = useMemo(() => {
+    const shopSet = new Set();
+    purchases.forEach((p) => p.store && shopSet.add(p.store));
+    return Array.from(shopSet).sort();
+  }, [purchases]);
+
   return (
     <AutoComplete
       style={{ width: '100%' }}

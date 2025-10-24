@@ -1,12 +1,14 @@
 import { Card, Tabs, Form, Input, Button, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../stores/AuthContext.jsx';
+import { useData } from '../stores/DataContext.jsx';
 import API_URL from '../api.js';
 
 const Login = () => {
   const [loginForm] = Form.useForm();
   const [registerForm] = Form.useForm();
   const { login } = useAuth();
+  const { loadData } = useData();
   const navigate = useNavigate();
 
   const handleLogin = async (values) => {
@@ -19,6 +21,7 @@ const Login = () => {
       if (!res.ok) throw new Error('login failed');
       const data = await res.json();
       login(data.token);
+      await loadData();
       navigate('/');
     } catch {
       message.error('Login failed');
@@ -35,6 +38,7 @@ const Login = () => {
       if (!res.ok) throw new Error('register failed');
       const data = await res.json();
       login(data.token);
+      await loadData();
       navigate('/');
     } catch {
       message.error('Registration failed');
