@@ -40,7 +40,50 @@ export const sendInvite = async (login) => {
   return response.json();
 };
 
+// Product API functions
+export const fetchProducts = async () => {
+  const response = await authFetch('/products');
+  if (!response.ok) {
+    throw new Error('Failed to fetch products');
+  }
+  return response.json();
+};
+
+export const createProduct = async (product) => {
+  const response = await authFetch('/products', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(product),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || 'Failed to create product');
+  }
+  return response.json();
+};
+
 // Purchase API functions
+export const fetchPurchases = async () => {
+  const response = await authFetch('/purchases');
+  if (!response.ok) {
+    throw new Error('Failed to fetch purchases');
+  }
+  return response.json();
+};
+
+export const createPurchase = async (purchase) => {
+  const response = await authFetch('/purchases', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(purchase),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || 'Failed to create purchase');
+  }
+  return response.json();
+};
+
 export const deletePurchase = async (purchaseId) => {
   const response = await authFetch('/purchases', {
     method: 'DELETE',

@@ -1,19 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { Tag, Card, Row, Col, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
+import { useData } from '../stores/DataContext.jsx';
 
 const { Text } = Typography;
 
 const Receipts = () => {
-  const [receipts, setReceipts] = useState([]);
+  const { purchases, products } = useData();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const data = JSON.parse(localStorage.getItem('receipts') || '[]');
-    data.sort((a, b) => dayjs(b.date).diff(dayjs(a.date)));
-    setReceipts(data);
-  }, []);
+  const receipts = useMemo(() => {
+    const receiptMap = {};
+
+    purchases.forEach((purchase) => {
+      const receiptId = purchase.receipt_id;
+      if (!receiptMap[receiptId]) {
+        receiptMap[receiptId] = {
+          id: receiptId,
+          date: purchase.date,
+          store: purchase.store,
+          items: [],
+        };
+      }
+      receiptMap[receiptId].items.push(purchase);
+    });
+
+    return Object.values(receiptMap).sort((a, b) => dayjs(b.date).diff(dayjs(a.date)));
+  }, [purchases]);
 
   const getTags = (items) => {
     const set = new Set();
@@ -26,7 +40,7 @@ const Receipts = () => {
   const groupReceiptsByDate = (receipts) => {
     const groups = {};
     receipts.forEach((receipt) => {
-      const date = receipt.date;
+      const date = dayjs(receipt.date).format('YYYY-MM-DD');
       if (!groups[date]) {
         groups[date] = [];
       }
