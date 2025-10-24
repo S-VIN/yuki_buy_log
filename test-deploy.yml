@@ -17,8 +17,6 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
       POSTGRES_DB: yukibuylog
-    volumes:
-      - db_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d yukibuylog"]
@@ -75,7 +73,3 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-volumes:
-  db_data:
-    driver: local
