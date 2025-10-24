@@ -4,10 +4,10 @@ LABEL Maintainer="stepan-vinokurov"
 WORKDIR /app
 
 # Copy package files
-COPY package.json ./
+COPY package.json package-lock.json ./
 
 # Install dependencies with production optimizations
-RUN npm install --production=false --no-audit
+RUN npm ci --no-audit
 
 # Copy source code
 COPY . .
