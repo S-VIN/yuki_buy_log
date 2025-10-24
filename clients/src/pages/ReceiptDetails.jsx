@@ -1,18 +1,20 @@
 import { Card, Typography } from 'antd';
 import { useParams } from 'react-router-dom';
 import { useMemo } from 'react';
+import { observer } from 'mobx-react-lite';
 import ProductCardsWidget from '../widgets/ProductCardsWidget.jsx';
 import dayjs from 'dayjs';
-import { useData } from '../stores/DataContext.jsx';
+import { useProductStore, usePurchaseStore } from '../stores/DataContext.jsx';
 
 const { Title, Text } = Typography;
 
-const ReceiptDetails = () => {
+const ReceiptDetails = observer(() => {
   const { id } = useParams();
-  const { purchases, products } = useData();
+  const productStore = useProductStore();
+  const purchaseStore = usePurchaseStore();
 
   const receipt = useMemo(() => {
-    const receiptPurchases = purchases.filter((p) => String(p.receipt_id) === id);
+    const receiptPurchases = purchaseStore.getPurchasesByReceiptId(id);
     if (receiptPurchases.length === 0) return null;
 
     return {
@@ -20,14 +22,14 @@ const ReceiptDetails = () => {
       date: receiptPurchases[0].date,
       store: receiptPurchases[0].store,
       items: receiptPurchases.map((p) => {
-        const product = products.find((prod) => prod.id === String(p.product_id));
+        const product = productStore.getProductById(String(p.product_id));
         return {
           ...p,
           product: product || { id: p.product_id, name: 'Unknown Product' },
         };
       }),
     };
-  }, [id, purchases, products]);
+  }, [id, productStore.products, purchaseStore.purchases]);
 
   if (!receipt) {
     return <div style={{ padding: 16 }}>Receipt not found</div>;
@@ -46,6 +48,6 @@ const ReceiptDetails = () => {
       <ProductCardsWidget productListProp={receipt.items} />
     </div>
   );
-};
+});
 
 export default ReceiptDetails;
