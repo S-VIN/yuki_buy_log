@@ -1,14 +1,14 @@
-/* eslint-disable react/prop-types */
 import { useEffect, useState } from 'react';
 import { AutoComplete, Button, Form, Input, Modal, Tag, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+import { observer } from 'mobx-react-lite';
 
-import ProductStore from '../stores/ProductStore.js';
+import productStore from '../stores/ProductStore.jsx';
 import VolumeSelectWidget from './VolumeSelectWidget.jsx';
 import BrandSelectWidget from './BrandSelectWidget.jsx';
 import DefaultTagsWidget from './DefaultTagsWidget.jsx';
 
-const ProductSelectWidget = ({ onSelect, selectedProductProp }) => {
+const ProductSelectWidget = observer(({ onSelect, selectedProductProp }) => {
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(selectedProductProp || null);
   const [inputLabel, setInputLabel] = useState('');
@@ -17,22 +17,21 @@ const ProductSelectWidget = ({ onSelect, selectedProductProp }) => {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const products = ProductStore.getProducts();
-    setFilteredProducts(products);
+    setFilteredProducts(productStore.products);
     setSelectedProduct(selectedProductProp || null);
     setInputLabel(selectedProductProp ? selectedProductProp.name : '');
   }, [selectedProductProp]);
 
   const handleSearch = (value) => {
     setInputLabel(value);
-    const filtered = ProductStore.getProducts().filter((p) =>
+    const filtered = productStore.products.filter((p) =>
       p.name.toLowerCase().includes(value.toLowerCase())
     );
     setFilteredProducts(filtered);
   };
 
   const handleSelect = (value) => {
-    const product = ProductStore.getProductById(value);
+    const product = productStore.getProductById(value);
     if (product) {
       setInputLabel(product.name);
       setSelectedProduct(product);
@@ -48,13 +47,13 @@ const ProductSelectWidget = ({ onSelect, selectedProductProp }) => {
   };
 
   const handleAddProduct = async (values) => {
-    const product = await ProductStore.addProduct(values);
-    if (product) {
+    try {
+      const product = await productStore.addProduct(values);
       message.success('Product added successfully!');
       setIsModalOpen(false);
       form.resetFields();
       handleSelect(product.id);
-    } else {
+    } catch {
       message.error('Failed to add product.');
     }
   };
@@ -137,6 +136,6 @@ const ProductSelectWidget = ({ onSelect, selectedProductProp }) => {
       </Modal>
     </div>
   );
-};
+});
 
 export default ProductSelectWidget;

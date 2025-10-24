@@ -1,15 +1,17 @@
-/* eslint-disable react/prop-types */
 import { AutoComplete } from 'antd';
+import { observer } from 'mobx-react-lite';
+import productStore from '../stores/ProductStore.jsx';
 
-const brands = ['BrandA', 'BrandB', 'BrandC'];
+const BrandSelectWidget = observer(({ value, onChange }) => {
 
-const BrandSelectWidget = ({ value, onChange }) => (
-  <AutoComplete
-    placeholder="brand"
-    options={brands.map((b) => ({ value: b }))}
-    value={value}
-    onChange={onChange}
-  />
-);
+  return (
+    <AutoComplete
+      placeholder="brand"
+      options={productStore.brands.map((b) => ({ value: b }))}
+      value={value}
+      onChange={onChange}
+    />
+  );
+});
 
 export default BrandSelectWidget;

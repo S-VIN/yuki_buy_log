@@ -1,18 +1,18 @@
-/* eslint-disable react/prop-types */
 import { AutoComplete } from 'antd';
+import { observer } from 'mobx-react-lite';
+import purchaseStore from '../stores/PurchaseStore.jsx';
 
-const shops = ['Supermarket', 'ElectroMart', 'Cafe'];
+const ShopSelectWidget = observer(({ value, onChange }) => {
 
-const ShopSelectWidget = ({ value, onChange }) => {
   return (
     <AutoComplete
       style={{ width: '100%' }}
       value={value}
-      options={shops.map((s) => ({ value: s }))}
+      options={purchaseStore.shops.map((s) => ({ value: s }))}
       onChange={onChange}
       placeholder="shop"
     />
   );
-};
+});
 
 export default ShopSelectWidget;
