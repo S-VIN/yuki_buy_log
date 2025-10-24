@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { AutoComplete } from 'antd';
 import { observer } from 'mobx-react-lite';
 import { useProductStore } from '../stores/DataContext.jsx';

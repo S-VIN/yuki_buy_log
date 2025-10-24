@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { useEffect, useState } from 'react';
 import { AutoComplete, Button, Form, Input, Modal, Tag, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
@@ -55,7 +54,7 @@ const ProductSelectWidget = observer(({ onSelect, selectedProductProp }) => {
       setIsModalOpen(false);
       form.resetFields();
       handleSelect(product.id);
-    } catch (error) {
+    } catch {
       message.error('Failed to add product.');
     }
   };

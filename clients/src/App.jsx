@@ -20,7 +20,7 @@ const App = () => {
     if (token) {
       loadData();
     }
-  }, [token]);
+  }, [token, loadData]);
 
   return (
     <Layout style={{ minHeight: '100vh', background: '#fff' }}>
