@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Input, Button, Tag, message, Space, Card } from 'antd';
+import { useNavigate } from 'react-router-dom';
 import { fetchGroupMembers, fetchInvites, sendInvite as sendInviteAPI } from '../api';
+import { useAuth } from '../stores/AuthContext';
 
 const Settings = () => {
   const [inviteLogin, setInviteLogin] = useState('');
   const [groupMembers, setGroupMembers] = useState([]);
   const [incomingInvites, setIncomingInvites] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadGroupData();
@@ -69,6 +73,11 @@ const Settings = () => {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
     <div style={{ padding: 16 }}>
       <Card style={{ marginTop: 16 }}>
@@ -125,6 +134,16 @@ const Settings = () => {
           </Space.Compact>
         </div>
       </Card>
+
+      <Button
+        danger
+        block
+        size="large"
+        onClick={handleLogout}
+        style={{ marginTop: 16 }}
+      >
+        Logout
+      </Button>
     </div>
   );
 };
