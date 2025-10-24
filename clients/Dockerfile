@@ -23,8 +23,9 @@ RUN npm run build
 FROM node:21-alpine3.20
 WORKDIR /app
 
-# Install only serve for serving static files
-RUN npm install -g serve@14.2.3 --omit=dev
+# Install wget for healthcheck and serve for serving static files
+RUN apk add --no-cache wget && \
+    npm install -g serve@14.2.3 --omit=dev
 
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
