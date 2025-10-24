@@ -1,33 +1,16 @@
-import { useMemo } from 'react';
 import { Tag, Card, Row, Col, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
-import { useData } from '../stores/DataContext.jsx';
+import { observer } from 'mobx-react-lite';
+import { usePurchaseStore } from '../stores/DataContext.jsx';
 
 const { Text } = Typography;
 
-const Receipts = () => {
-  const { purchases, products } = useData();
+const Receipts = observer(() => {
+  const purchaseStore = usePurchaseStore();
   const navigate = useNavigate();
 
-  const receipts = useMemo(() => {
-    const receiptMap = {};
-
-    purchases.forEach((purchase) => {
-      const receiptId = purchase.receipt_id;
-      if (!receiptMap[receiptId]) {
-        receiptMap[receiptId] = {
-          id: receiptId,
-          date: purchase.date,
-          store: purchase.store,
-          items: [],
-        };
-      }
-      receiptMap[receiptId].items.push(purchase);
-    });
-
-    return Object.values(receiptMap).sort((a, b) => dayjs(b.date).diff(dayjs(a.date)));
-  }, [purchases]);
+  const receipts = purchaseStore.receipts.sort((a, b) => dayjs(b.date).diff(dayjs(a.date)));
 
   const getTags = (items) => {
     const set = new Set();
@@ -103,6 +86,6 @@ const Receipts = () => {
       ))}
     </div>
   );
-};
+});
 
 export default Receipts;

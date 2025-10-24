@@ -2,19 +2,20 @@ import { useRef, useState, useMemo } from 'react';
 import { Button, Card, message } from 'antd';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
+import { observer } from 'mobx-react-lite';
 
 import NativeDatePicker from '../widgets/NativeDatePicker.jsx';
 import ProductSelectWidget from '../widgets/ProductSelectWidget.jsx';
-import { useData } from '../stores/DataContext.jsx';
+import { useProductStore, usePurchaseStore } from '../stores/DataContext.jsx';
 import Purchase from '../models/Purchase.js';
 import ShopSelectWidget from '../widgets/ShopSelectWidget.jsx';
 import PriceQuantitySelectWidget from '../widgets/PriceQuantitySelectWidget.jsx';
 import TagSelectWidget from '../widgets/TagSelectWidget.jsx';
 import ProductCardsWidget from '../widgets/ProductCardsWidget.jsx';
-import { deletePurchase } from '../api.js';
 
-const AddReceipt = () => {
-  const { products, addPurchase, refreshPurchases } = useData();
+const AddReceipt = observer(() => {
+  const productStore = useProductStore();
+  const purchaseStore = usePurchaseStore();
   const [purchaseList, setPurchaseList] = useState([]);
   const [product, setSelectedProduct] = useState(null);
   const [shop, setSelectedShop] = useState(null);
@@ -30,7 +31,7 @@ const AddReceipt = () => {
   const receiptId = useMemo(() => Date.now(), []);
 
   const handleSelectProduct = (productId) => {
-    const selected = productId ? products.find((p) => p.id === productId) : null;
+    const selected = productId ? productStore.getProductById(productId) : null;
     setSelectedProduct(selected);
     
     if (selected && selected.default_tags && selected.default_tags.length > 0) {
@@ -59,7 +60,7 @@ const AddReceipt = () => {
         receipt_id: receiptId,
       };
 
-      const serverPurchase = await addPurchase(purchaseData);
+      const serverPurchase = await purchaseStore.addPurchase(purchaseData);
 
       const newPurchase = new Purchase(serverPurchase.id, product, price, quantity, tags, receiptId);
       setPurchaseList([...purchaseList, newPurchase]);
@@ -79,7 +80,7 @@ const AddReceipt = () => {
   const handleDeletePurchase = async (purchase) => {
     try {
       if (purchase.uuid) {
-        await deletePurchase(purchase.uuid);
+        await purchaseStore.removePurchase(purchase.uuid);
         messageApi.success('Purchase deleted!');
       }
       setPurchaseList(purchaseList.filter((p) => p.uuid !== purchase.uuid));
@@ -107,7 +108,7 @@ const AddReceipt = () => {
       return;
     }
 
-    await refreshPurchases();
+    await purchaseStore.loadPurchases();
     messageApi.success('Receipt saved!');
     setPurchaseList([]);
     navigate('/receipts');
@@ -146,6 +147,6 @@ const AddReceipt = () => {
       <ProductCardsWidget productListProp={purchaseList} onDelete={handleDeletePurchase} onEdit={handleEditPurchase} />
     </div>
   );
-};
+});
 
 export default AddReceipt;
