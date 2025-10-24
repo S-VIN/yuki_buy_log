@@ -56,6 +56,13 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
+
+	// Health check endpoint (no auth required)
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+
 	mux.Handle("/products", auth.Middleware(handlers.ProductsHandler(deps)))
 	mux.Handle("/purchases", auth.Middleware(handlers.PurchasesHandler(deps)))
 	mux.Handle("/group", auth.Middleware(handlers.GroupHandler(deps)))
