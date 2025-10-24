@@ -31,5 +31,5 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 8000
 
-# Start the server
-CMD ["serve", "-s", "dist", "-l", "8000"]
+# Start the server - listen on 0.0.0.0 to accept external connections
+CMD ["serve", "-s", "dist", "-l", "tcp://0.0.0.0:8000"]
