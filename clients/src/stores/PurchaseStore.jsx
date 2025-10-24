@@ -78,7 +78,7 @@ class PurchaseStore {
         receiptMap[receiptId] = {
           id: receiptId,
           date: purchase.date,
-          store: purchase.store,
+          shop: purchase.store,
           items: [],
         };
       }
@@ -88,10 +88,10 @@ class PurchaseStore {
     return Object.values(receiptMap);
   }
 
-  get stores() {
-    const storeSet = new Set();
-    this.purchases.forEach((p) => p.store && storeSet.add(p.store));
-    return Array.from(storeSet).sort();
+  get shops() {
+    const shopSet = new Set();
+    this.purchases.forEach((p) => p.store && shopSet.add(p.store));
+    return Array.from(shopSet).sort();
   }
 }
 

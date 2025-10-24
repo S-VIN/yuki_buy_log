@@ -1,7 +1,7 @@
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Button, Card, message } from 'antd';
 import dayjs from 'dayjs';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 
 import NativeDatePicker from '../widgets/NativeDatePicker.jsx';
@@ -16,6 +16,7 @@ import ProductCardsWidget from '../widgets/ProductCardsWidget.jsx';
 const AddReceipt = observer(() => {
   const productStore = useProductStore();
   const purchaseStore = usePurchaseStore();
+  const location = useLocation();
   const [purchaseList, setPurchaseList] = useState([]);
   const [product, setSelectedProduct] = useState(null);
   const [shop, setSelectedShop] = useState(null);
@@ -27,8 +28,21 @@ const AddReceipt = observer(() => {
   const [tags, setSelectedTags] = useState([]);
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
+  const [receiptId] = useState(() => location.state?.receipt?.id || Date.now());
 
-  const receiptId = useMemo(() => Date.now(), []);
+  useEffect(() => {
+    if (location.state?.receipt) {
+      const { receipt } = location.state;
+      setSelectedDate(dayjs(receipt.date).format('YYYY-MM-DD'));
+      setSelectedShop(receipt.shop);
+
+      const purchases = receipt.items.map((item) => {
+        const product = productStore.getProductById(String(item.product_id));
+        return new Purchase(item.id, product, item.price, item.quantity, item.tags || [], receipt.id);
+      });
+      setPurchaseList(purchases);
+    }
+  }, [location.state, productStore]);
 
   const handleSelectProduct = (productId) => {
     const selected = productId ? productStore.getProductById(productId) : null;
