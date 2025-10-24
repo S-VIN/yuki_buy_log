@@ -1,19 +1,15 @@
-import { useEffect, useState } from 'react';
 import { Tag, Card, Row, Col, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
+import { observer } from 'mobx-react-lite';
+import purchaseStore from '../stores/PurchaseStore.jsx';
 
 const { Text } = Typography;
 
-const Receipts = () => {
-  const [receipts, setReceipts] = useState([]);
+const Receipts = observer(() => {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const data = JSON.parse(localStorage.getItem('receipts') || '[]');
-    data.sort((a, b) => dayjs(b.date).diff(dayjs(a.date)));
-    setReceipts(data);
-  }, []);
+  const receipts = purchaseStore.receipts.sort((a, b) => dayjs(b.date).diff(dayjs(a.date)));
 
   const getTags = (items) => {
     const set = new Set();
@@ -26,7 +22,7 @@ const Receipts = () => {
   const groupReceiptsByDate = (receipts) => {
     const groups = {};
     receipts.forEach((receipt) => {
-      const date = receipt.date;
+      const date = dayjs(receipt.date).format('YYYY-MM-DD');
       if (!groups[date]) {
         groups[date] = [];
       }
@@ -89,6 +85,6 @@ const Receipts = () => {
       ))}
     </div>
   );
-};
+});
 
 export default Receipts;

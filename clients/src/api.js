@@ -1,58 +1,78 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
-export const authFetch = (path, options = {}) => {
+const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
-  const headers = { ...options.headers };
+  const headers = { 'Content-Type': 'application/json' };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
-  return fetch(`${API_URL}${path}`, { ...options, headers });
+  return headers;
 };
 
-// Group API functions
-export const fetchGroupMembers = async () => {
-  const response = await authFetch('/group');
+// Base HTTP methods
+const doGet = async (path) => {
+  const response = await fetch(`${API_URL}${path}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
   if (!response.ok) {
-    throw new Error('Failed to fetch group members');
+    const error = await response.text();
+    throw new Error(error || `GET ${path} failed`);
   }
+
   return response.json();
 };
 
-// Invite API functions
-export const fetchInvites = async () => {
-  const response = await authFetch('/invite');
-  if (!response.ok) {
-    throw new Error('Failed to fetch invites');
-  }
-  return response.json();
-};
-
-export const sendInvite = async (login) => {
-  const response = await authFetch('/invite', {
+const doPost = async (path, data) => {
+  const response = await fetch(`${API_URL}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ login }),
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
   });
+
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(error || 'Failed to send invite');
+    throw new Error(error || `POST ${path} failed`);
   }
+
   return response.json();
 };
 
-// Purchase API functions
-export const deletePurchase = async (purchaseId) => {
-  const response = await authFetch('/purchases', {
+const doDelete = async (path, data) => {
+  const response = await fetch(`${API_URL}${path}`, {
     method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: purchaseId }),
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
   });
+
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(error || 'Failed to delete purchase');
+    throw new Error(error || `DELETE ${path} failed`);
   }
-  // DELETE returns 204 No Content, so no body to parse
-  return true;
+
+  // DELETE may return 204 No Content
+  if (response.status === 204) {
+    return true;
+  }
+
+  return response.json();
 };
+
+// Group API
+export const fetchGroupMembers = () => doGet('/group');
+
+// Invite API
+export const fetchInvites = () => doGet('/invite');
+export const sendInvite = (login) => doPost('/invite', { login });
+
+// Product API
+export const fetchProducts = () => doGet('/products');
+export const createProduct = (product) => doPost('/products', product);
+
+// Purchase API
+export const fetchPurchases = () => doGet('/purchases');
+export const createPurchase = (purchase) => doPost('/purchases', purchase);
+export const deletePurchase = (purchaseId) => doDelete('/purchases', { id: purchaseId });
 
 export default API_URL;
