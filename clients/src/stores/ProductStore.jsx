@@ -67,6 +67,22 @@ class ProductStore {
     this.products.forEach((p) => p.brand && brandSet.add(p.brand));
     return Array.from(brandSet).sort();
   }
+
+  get volumes() {
+    const volumeSet = new Set();
+    this.products.forEach((p) => p.volume && volumeSet.add(p.volume));
+    return Array.from(volumeSet).sort();
+  }
+
+  get tags() {
+    const tagSet = new Set();
+    this.products.forEach((p) => {
+      if (Array.isArray(p.default_tags)) {
+        p.default_tags.forEach((tag) => tagSet.add(tag));
+      }
+    });
+    return Array.from(tagSet).sort();
+  }
 }
 
 export default new ProductStore();

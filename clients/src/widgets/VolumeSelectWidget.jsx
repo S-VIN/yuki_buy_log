@@ -1,9 +1,7 @@
 /* eslint-disable react/prop-types */
 import { AutoComplete } from 'antd';
 
-const volumes = ['1L', '500g', '250g'];
-
-const VolumeSelectWidget = ({ value, onChange }) => (
+const VolumeSelectWidget = ({ value, onChange, volumes = [] }) => (
   <AutoComplete
     placeholder="volume"
     options={volumes.map((v) => ({ value: v }))}

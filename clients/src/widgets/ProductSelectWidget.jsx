@@ -118,14 +118,14 @@ const ProductSelectWidget = observer(({ onSelect, selectedProductProp }) => {
           <Form.Item label="name" name="name" rules={[{ required: true, message: 'name required' }]}> 
             <Input placeholder="name" />
           </Form.Item>
-          <Form.Item label="volume" name="volume" rules={[{ required: true, message: 'volume required' }]}> 
-            <VolumeSelectWidget value={form.getFieldValue('volume')} onChange={(v) => form.setFieldsValue({ volume: v })} />
+          <Form.Item label="volume" name="volume" rules={[{ required: true, message: 'volume required' }]}>
+            <VolumeSelectWidget value={form.getFieldValue('volume')} onChange={(v) => form.setFieldsValue({ volume: v })} volumes={productStore.volumes} />
           </Form.Item>
-          <Form.Item label="brand" name="brand" rules={[{ required: true, message: 'brand required' }]}> 
+          <Form.Item label="brand" name="brand" rules={[{ required: true, message: 'brand required' }]}>
             <BrandSelectWidget value={form.getFieldValue('brand')} onChange={(v) => form.setFieldsValue({ brand: v })} />
           </Form.Item>
-          <Form.Item label="default tags" name="default_tags"> 
-            <DefaultTagsWidget value={form.getFieldValue('default_tags')} onChange={(v) => form.setFieldsValue({ default_tags: v })} />
+          <Form.Item label="default tags" name="default_tags">
+            <DefaultTagsWidget value={form.getFieldValue('default_tags')} onChange={(v) => form.setFieldsValue({ default_tags: v })} options={productStore.tags} />
           </Form.Item>
           <Form.Item>
             <Button type="primary" htmlType="submit" block>
