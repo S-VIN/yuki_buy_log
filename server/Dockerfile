@@ -20,16 +20,18 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 
 # Final stage
 FROM alpine:3.18
-WORKDIR /root/
+WORKDIR /app
 
-# Add ca-certificates for HTTPS requests
-RUN apk --no-cache add ca-certificates tzdata
-
-# Copy binary from builder
-COPY --from=builder /app/server .
+# Add ca-certificates for HTTPS requests and wget for healthcheck
+RUN apk --no-cache add ca-certificates tzdata wget
 
 # Use non-root user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
+    chown -R appuser:appgroup /app
+
+# Copy binary from builder
+COPY --from=builder --chown=appuser:appgroup /app/server .
+
 USER appuser
 
 EXPOSE 8080
