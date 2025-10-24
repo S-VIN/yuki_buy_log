@@ -2,12 +2,11 @@ import { Tag, Card, Row, Col, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
-import { usePurchaseStore } from '../stores/DataContext.jsx';
+import purchaseStore from '../stores/PurchaseStore.jsx';
 
 const { Text } = Typography;
 
 const Receipts = observer(() => {
-  const purchaseStore = usePurchaseStore();
   const navigate = useNavigate();
 
   const receipts = purchaseStore.receipts.sort((a, b) => dayjs(b.date).diff(dayjs(a.date)));

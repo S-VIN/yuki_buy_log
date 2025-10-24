@@ -3,13 +3,12 @@ import { AutoComplete, Button, Form, Input, Modal, Tag, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { observer } from 'mobx-react-lite';
 
-import { useProductStore } from '../stores/DataContext.jsx';
+import productStore from '../stores/ProductStore.jsx';
 import VolumeSelectWidget from './VolumeSelectWidget.jsx';
 import BrandSelectWidget from './BrandSelectWidget.jsx';
 import DefaultTagsWidget from './DefaultTagsWidget.jsx';
 
 const ProductSelectWidget = observer(({ onSelect, selectedProductProp }) => {
-  const productStore = useProductStore();
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(selectedProductProp || null);
   const [inputLabel, setInputLabel] = useState('');
@@ -21,7 +20,7 @@ const ProductSelectWidget = observer(({ onSelect, selectedProductProp }) => {
     setFilteredProducts(productStore.products);
     setSelectedProduct(selectedProductProp || null);
     setInputLabel(selectedProductProp ? selectedProductProp.name : '');
-  }, [selectedProductProp, productStore.products]);
+  }, [selectedProductProp]);
 
   const handleSearch = (value) => {
     setInputLabel(value);

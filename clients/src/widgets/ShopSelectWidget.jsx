@@ -1,9 +1,8 @@
 import { AutoComplete } from 'antd';
 import { observer } from 'mobx-react-lite';
-import { usePurchaseStore } from '../stores/DataContext.jsx';
+import purchaseStore from '../stores/PurchaseStore.jsx';
 
 const ShopSelectWidget = observer(({ value, onChange }) => {
-  const purchaseStore = usePurchaseStore();
 
   return (
     <AutoComplete

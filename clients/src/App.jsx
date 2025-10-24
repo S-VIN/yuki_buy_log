@@ -8,19 +8,24 @@ import Receipts from './pages/Receipts.jsx';
 import ReceiptDetails from './pages/ReceiptDetails.jsx';
 import Settings from './pages/Settings.jsx';
 import { useAuth } from './stores/AuthContext.jsx';
-import { useData } from './stores/DataContext.jsx';
+import productStore from './stores/ProductStore.jsx';
+import purchaseStore from './stores/PurchaseStore.jsx';
 
 const App = () => {
   const location = useLocation();
   const { token } = useAuth();
-  const { loadData } = useData();
   const hideNav = !token || location.pathname === '/login';
 
   useEffect(() => {
     if (token) {
-      loadData();
+      Promise.all([
+        productStore.loadProducts(),
+        purchaseStore.loadPurchases(),
+      ]).catch((error) => {
+        console.error('Failed to load data:', error);
+      });
     }
-  }, [token, loadData]);
+  }, [token]);
 
   return (
     <Layout style={{ minHeight: '100vh', background: '#fff' }}>

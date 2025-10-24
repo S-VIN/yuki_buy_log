@@ -4,15 +4,14 @@ import { observer } from 'mobx-react-lite';
 import { EditOutlined } from '@ant-design/icons';
 import ProductCardsWidget from '../widgets/ProductCardsWidget.jsx';
 import dayjs from 'dayjs';
-import { useProductStore, usePurchaseStore } from '../stores/DataContext.jsx';
+import productStore from '../stores/ProductStore.jsx';
+import purchaseStore from '../stores/PurchaseStore.jsx';
 
 const { Title, Text } = Typography;
 
 const ReceiptDetails = observer(() => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const productStore = useProductStore();
-  const purchaseStore = usePurchaseStore();
 
   const receiptPurchases = purchaseStore.getPurchasesByReceiptId(id);
 
