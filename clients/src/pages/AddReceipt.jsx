@@ -6,7 +6,8 @@ import { observer } from 'mobx-react-lite';
 
 import NativeDatePicker from '../widgets/NativeDatePicker.jsx';
 import ProductSelectWidget from '../widgets/ProductSelectWidget.jsx';
-import { useProductStore, usePurchaseStore } from '../stores/DataContext.jsx';
+import productStore from '../stores/ProductStore.jsx';
+import purchaseStore from '../stores/PurchaseStore.jsx';
 import Purchase from '../models/Purchase.js';
 import ShopSelectWidget from '../widgets/ShopSelectWidget.jsx';
 import PriceQuantitySelectWidget from '../widgets/PriceQuantitySelectWidget.jsx';
@@ -14,8 +15,6 @@ import TagSelectWidget from '../widgets/TagSelectWidget.jsx';
 import ProductCardsWidget from '../widgets/ProductCardsWidget.jsx';
 
 const AddReceipt = observer(() => {
-  const productStore = useProductStore();
-  const purchaseStore = usePurchaseStore();
   const location = useLocation();
   const [purchaseList, setPurchaseList] = useState([]);
   const [product, setSelectedProduct] = useState(null);
@@ -42,7 +41,7 @@ const AddReceipt = observer(() => {
       });
       setPurchaseList(purchases);
     }
-  }, [location.state, productStore]);
+  }, [location.state]);
 
   const handleSelectProduct = (productId) => {
     const selected = productId ? productStore.getProductById(productId) : null;
