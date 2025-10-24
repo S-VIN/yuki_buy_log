@@ -1,9 +1,7 @@
 /* eslint-disable react/prop-types */
 import { Select } from 'antd';
 
-const options = ['food', 'electronics', 'clothes', 'healthy', 'drink', 'energy', 'carbs'];
-
-const DefaultTagsWidget = ({ value, onChange, placeholder = 'Default tags' }) => {
+const DefaultTagsWidget = ({ value, onChange, options = [], placeholder = 'Default tags' }) => {
   const handleChange = (selectedTags) => {
     onChange(selectedTags);
   };
