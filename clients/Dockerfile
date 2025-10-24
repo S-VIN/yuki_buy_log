@@ -29,7 +29,7 @@ RUN npm install -g serve@14.2.3
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
 
-EXPOSE 8080
+EXPOSE 3000
 
 # Start the server
-CMD ["serve", "-s", "dist", "-l", "8080"]
+CMD ["serve", "-s", "dist", "-l", "3000"]
