@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 
-import NativeDatePicker from '../widgets/NativeDatePicker.jsx';
+import DatepickerCustom from '../widgets/DatepickerCustom.jsx';
 import ProductSelectWidget from '../widgets/ProductSelectWidget.jsx';
 import productStore from '../stores/ProductStore.jsx';
 import purchaseStore from '../stores/PurchaseStore.jsx';
@@ -142,7 +142,7 @@ const AddReceipt = observer(() => {
       <Card style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <NativeDatePicker onChange={handleDateChange} value={date} />
+            <DatepickerCustom onChange={handleDateChange} value={date} />
             <ShopSelectWidget value={shop} onChange={setSelectedShop} />
           </div>
           <PriceQuantitySelectWidget
