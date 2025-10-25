@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { Button, Card, message, Modal } from 'antd';
+import { Button, Card, message } from 'antd';
 import { AppstoreAddOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -14,19 +14,18 @@ import ShopSelectWidget from '../widgets/ShopSelectWidget.jsx';
 import PriceQuantitySelectWidget from '../widgets/PriceQuantitySelectWidget.jsx';
 import TagSelectWidget from '../widgets/TagSelectWidget.jsx';
 import ProductCardsWidget from '../widgets/ProductCardsWidget.jsx';
+import BulkTagsModal from '../widgets/BulkTagsModal.jsx';
 
 const AddReceipt = observer(() => {
   const location = useLocation();
   const [product, setSelectedProduct] = useState(null);
   const [shop, setSelectedShop] = useState(null);
   const tagSelectWidgetRef = useRef(null);
-  const bulkTagSelectWidgetRef = useRef(null);
   const priceQuantitySelectWidgetRef = useRef(null);
   const [date, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [price, setPrice] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [tags, setSelectedTags] = useState([]);
-  const [bulkTags, setBulkTags] = useState([]);
   const [isBulkTagModalOpen, setIsBulkTagModalOpen] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
@@ -145,17 +144,14 @@ const AddReceipt = observer(() => {
       messageApi.warning('Add at least one purchase first');
       return;
     }
-    setBulkTags([]);
-    bulkTagSelectWidgetRef.current?.resetTags();
     setIsBulkTagModalOpen(true);
   };
 
   const handleCloseBulkTagModal = () => {
     setIsBulkTagModalOpen(false);
-    setBulkTags([]);
   };
 
-  const handleAddBulkTags = () => {
+  const handleAddBulkTags = (bulkTags) => {
     if (bulkTags.length === 0) {
       messageApi.warning('Please select at least one tag');
       return;
@@ -164,7 +160,7 @@ const AddReceipt = observer(() => {
     try {
       checkCache.addTagsToAllPurchases(bulkTags);
       messageApi.success(`Added ${bulkTags.length} tag(s) to all purchases`);
-      handleCloseBulkTagModal();
+      setIsBulkTagModalOpen(false);
     } catch (error) {
       messageApi.error(`Failed to add tags: ${error.message}`);
       console.error('Add bulk tags error:', error);
@@ -209,26 +205,11 @@ const AddReceipt = observer(() => {
       </Card>
       <ProductCardsWidget productListProp={checkCache.purchases} onDelete={handleDeletePurchase} onEdit={handleEditPurchase} />
 
-      <Modal
-        title="Add Tags to All Purchases"
+      <BulkTagsModal
         open={isBulkTagModalOpen}
         onCancel={handleCloseBulkTagModal}
-        footer={[
-          <Button key="cancel" onClick={handleCloseBulkTagModal}>
-            Cancel
-          </Button>,
-          <Button key="add" type="primary" onClick={handleAddBulkTags}>
-            Add
-          </Button>,
-        ]}
-      >
-        <div style={{ marginTop: 16, marginBottom: 16 }}>
-          <p style={{ marginBottom: 12, color: '#666' }}>
-            Selected tags will be added to all purchases in the list below
-          </p>
-          <TagSelectWidget onTagChange={setBulkTags} ref={bulkTagSelectWidgetRef} />
-        </div>
-      </Modal>
+        onAdd={handleAddBulkTags}
+      />
     </div>
   );
 });
