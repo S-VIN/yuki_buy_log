@@ -168,15 +168,12 @@ const Settings = () => {
       </Card>
 
       <Button
+        type="primary"
+        danger
         block
         size="large"
         onClick={handleLogout}
-        style={{
-          marginTop: 16,
-          backgroundColor: '#ff4d4f',
-          color: '#fff',
-          borderColor: '#ff4d4f'
-        }}
+        style={{ marginTop: 16 }}
       >
         Logout
       </Button>
