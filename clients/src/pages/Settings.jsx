@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Input, Button, Tag, message, Space, Card } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { fetchGroupMembers, fetchInvites, sendInvite as sendInviteAPI, leaveGroup } from '../api';
-import { useAuth } from '../stores/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import purchaseStore from '../stores/PurchaseStore';
 import productStore from '../stores/ProductStore';
 

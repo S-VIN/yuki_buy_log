@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+import PropTypes from 'prop-types';
 import { AutoComplete } from 'antd';
 
 const VolumeSelectWidget = ({ value, onChange, volumes = [] }) => (
@@ -9,5 +9,11 @@ const VolumeSelectWidget = ({ value, onChange, volumes = [] }) => (
     onChange={onChange}
   />
 );
+
+VolumeSelectWidget.propTypes = {
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+  volumes: PropTypes.arrayOf(PropTypes.string),
+};
 
 export default VolumeSelectWidget;
