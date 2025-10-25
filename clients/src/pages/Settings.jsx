@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Input, Button, Tag, message, Space, Card } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { fetchGroupMembers, fetchInvites, sendInvite as sendInviteAPI } from '../api';
+import { fetchGroupMembers, fetchInvites, sendInvite as sendInviteAPI, leaveGroup } from '../api';
 import { useAuth } from '../stores/AuthContext';
+import purchaseStore from '../stores/PurchaseStore';
+import productStore from '../stores/ProductStore';
 
 const Settings = () => {
   const [inviteLogin, setInviteLogin] = useState('');
@@ -73,6 +75,23 @@ const Settings = () => {
     }
   };
 
+  const handleLeaveGroup = async () => {
+    setLoading(true);
+    try {
+      await leaveGroup();
+      message.success('Successfully left the group');
+
+      // Reload all data to switch to individual mode
+      await loadGroupData();
+      await purchaseStore.loadPurchases();
+      await productStore.loadProducts();
+    } catch (error) {
+      message.error(error.message || 'Failed to leave group');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -133,6 +152,19 @@ const Settings = () => {
             </Button>
           </Space.Compact>
         </div>
+
+        {groupMembers.length > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <Button
+              danger
+              block
+              onClick={handleLeaveGroup}
+              loading={loading}
+            >
+              Leave Group
+            </Button>
+          </div>
+        )}
       </Card>
 
       <Button
