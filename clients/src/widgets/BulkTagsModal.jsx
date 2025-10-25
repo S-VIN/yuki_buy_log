@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import { useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import { Modal, Button } from 'antd';
 import TagSelectWidget from './TagSelectWidget.jsx';
 
@@ -38,6 +38,12 @@ const BulkTagsModal = ({ open, onCancel, onAdd }) => {
       </div>
     </Modal>
   );
+};
+
+BulkTagsModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onCancel: PropTypes.func.isRequired,
+  onAdd: PropTypes.func.isRequired,
 };
 
 export default BulkTagsModal;

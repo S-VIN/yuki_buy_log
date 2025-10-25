@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { DatePicker } from 'antd';
 import dayjs from 'dayjs';
 
@@ -59,6 +59,11 @@ const DatepickerCustom = ({ onChange, value }) => {
       inputReadOnly
     />
   );
+};
+
+DatepickerCustom.propTypes = {
+  onChange: PropTypes.func.isRequired,
+  value: PropTypes.string,
 };
 
 export default DatepickerCustom;

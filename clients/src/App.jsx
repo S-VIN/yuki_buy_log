@@ -7,7 +7,7 @@ import AddReceipt from './pages/AddReceipt.jsx';
 import Receipts from './pages/Receipts.jsx';
 import ReceiptDetails from './pages/ReceiptDetails.jsx';
 import Settings from './pages/Settings.jsx';
-import { useAuth } from './stores/AuthContext.jsx';
+import { useAuth } from './hooks/useAuth.js';
 import productStore from './stores/ProductStore.jsx';
 import purchaseStore from './stores/PurchaseStore.jsx';
 
