@@ -168,6 +168,7 @@ const Settings = () => {
       </Card>
 
       <Button
+        type="primary"
         danger
         block
         size="large"
