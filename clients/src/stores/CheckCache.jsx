@@ -1,7 +1,7 @@
 import { makeAutoObservable } from 'mobx';
 import Purchase from '../models/Purchase.js';
 
-class CheckCacheStore {
+class CheckCache {
   purchases = [];
 
   constructor() {
@@ -39,4 +39,4 @@ class CheckCacheStore {
   }
 }
 
-export default new CheckCacheStore();
+export default new CheckCache();

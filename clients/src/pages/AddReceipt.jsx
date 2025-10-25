@@ -8,7 +8,7 @@ import NativeDatePicker from '../widgets/NativeDatePicker.jsx';
 import ProductSelectWidget from '../widgets/ProductSelectWidget.jsx';
 import productStore from '../stores/ProductStore.jsx';
 import purchaseStore from '../stores/PurchaseStore.jsx';
-import checkCacheStore from '../stores/CheckCacheStore.jsx';
+import checkCache from '../stores/CheckCache.jsx';
 import Purchase from '../models/Purchase.js';
 import ShopSelectWidget from '../widgets/ShopSelectWidget.jsx';
 import PriceQuantitySelectWidget from '../widgets/PriceQuantitySelectWidget.jsx';
@@ -29,7 +29,7 @@ const AddReceipt = observer(() => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    checkCacheStore.clear();
+    checkCache.clear();
 
     if (location.state?.receipt) {
       const { receipt } = location.state;
@@ -38,7 +38,7 @@ const AddReceipt = observer(() => {
 
       receipt.items.forEach((item) => {
         const product = productStore.getProductById(String(item.product_id));
-        checkCacheStore.addPurchase(product, item.price, item.quantity, item.tags || []);
+        checkCache.addPurchase(product, item.price, item.quantity, item.tags || []);
       });
     }
   }, [location.state]);
@@ -63,7 +63,7 @@ const AddReceipt = observer(() => {
     }
 
     try {
-      checkCacheStore.addPurchase(product, price, quantity, tags);
+      checkCache.addPurchase(product, price, quantity, tags);
 
       setSelectedProduct(null);
       tagSelectWidgetRef.current?.resetTags();
@@ -79,7 +79,7 @@ const AddReceipt = observer(() => {
 
   const handleDeletePurchase = (purchase) => {
     try {
-      checkCacheStore.removePurchase(purchase.uuid);
+      checkCache.removePurchase(purchase.uuid);
       messageApi.success('Purchase deleted!');
     } catch (error) {
       messageApi.error(`Failed to delete purchase: ${error.message}`);
@@ -96,18 +96,18 @@ const AddReceipt = observer(() => {
     tagSelectWidgetRef.current?.setTags(purchase.tags || []);
     priceQuantitySelectWidgetRef.current?.setValues(purchase.price, purchase.quantity);
 
-    checkCacheStore.removePurchase(purchase.uuid);
+    checkCache.removePurchase(purchase.uuid);
   };
 
   const handleCloseCheck = async () => {
-    if (checkCacheStore.isEmpty) {
+    if (checkCache.isEmpty) {
       messageApi.warning('Add at least one purchase');
       return;
     }
 
     try {
       const receiptId = Math.floor(Date.now() / 1000);
-      const purchases = checkCacheStore.getPurchases();
+      const purchases = checkCache.getPurchases();
 
       for (const purchase of purchases) {
         const purchaseData = {
@@ -123,7 +123,7 @@ const AddReceipt = observer(() => {
         await purchaseStore.addPurchase(purchaseData);
       }
 
-      checkCacheStore.clear();
+      checkCache.clear();
       await purchaseStore.loadPurchases();
       messageApi.success('Receipt saved!');
       navigate('/receipts');
@@ -163,7 +163,7 @@ const AddReceipt = observer(() => {
           </div>
         </div>
       </Card>
-      <ProductCardsWidget productListProp={checkCacheStore.purchases} onDelete={handleDeletePurchase} onEdit={handleEditPurchase} />
+      <ProductCardsWidget productListProp={checkCache.purchases} onDelete={handleDeletePurchase} onEdit={handleEditPurchase} />
     </div>
   );
 });
