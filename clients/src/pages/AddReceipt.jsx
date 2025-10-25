@@ -8,6 +8,7 @@ import NativeDatePicker from '../widgets/NativeDatePicker.jsx';
 import ProductSelectWidget from '../widgets/ProductSelectWidget.jsx';
 import productStore from '../stores/ProductStore.jsx';
 import purchaseStore from '../stores/PurchaseStore.jsx';
+import checkCacheStore from '../stores/CheckCacheStore.jsx';
 import Purchase from '../models/Purchase.js';
 import ShopSelectWidget from '../widgets/ShopSelectWidget.jsx';
 import PriceQuantitySelectWidget from '../widgets/PriceQuantitySelectWidget.jsx';
@@ -16,7 +17,6 @@ import ProductCardsWidget from '../widgets/ProductCardsWidget.jsx';
 
 const AddReceipt = observer(() => {
   const location = useLocation();
-  const [purchaseList, setPurchaseList] = useState([]);
   const [product, setSelectedProduct] = useState(null);
   const [shop, setSelectedShop] = useState(null);
   const tagSelectWidgetRef = useRef(null);
@@ -27,19 +27,19 @@ const AddReceipt = observer(() => {
   const [tags, setSelectedTags] = useState([]);
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
-  const [receiptId] = useState(() => location.state?.receipt?.id || Date.now());
 
   useEffect(() => {
+    checkCacheStore.clear();
+
     if (location.state?.receipt) {
       const { receipt } = location.state;
       setSelectedDate(dayjs(receipt.date).format('YYYY-MM-DD'));
       setSelectedShop(receipt.shop);
 
-      const purchases = receipt.items.map((item) => {
+      receipt.items.forEach((item) => {
         const product = productStore.getProductById(String(item.product_id));
-        return new Purchase(item.id, product, item.price, item.quantity, item.tags || [], receipt.id);
+        checkCacheStore.addPurchase(product, item.price, item.quantity, item.tags || []);
       });
-      setPurchaseList(purchases);
     }
   }, [location.state]);
 
@@ -56,27 +56,14 @@ const AddReceipt = observer(() => {
     }
   };
 
-  const handleAddPurchase = async () => {
+  const handleAddPurchase = () => {
     if (!product || !price || !quantity || !shop) {
       messageApi.warning('Please fill all fields');
       return;
     }
 
     try {
-      const purchaseData = {
-        product_id: Number(product.id),
-        quantity: quantity,
-        price: price,
-        date: dayjs(date).toISOString(),
-        store: shop,
-        tags: tags,
-        receipt_id: receiptId,
-      };
-
-      const serverPurchase = await purchaseStore.addPurchase(purchaseData);
-
-      const newPurchase = new Purchase(serverPurchase.id, product, price, quantity, tags, receiptId);
-      setPurchaseList([...purchaseList, newPurchase]);
+      checkCacheStore.addPurchase(product, price, quantity, tags);
 
       setSelectedProduct(null);
       tagSelectWidgetRef.current?.resetTags();
@@ -90,13 +77,10 @@ const AddReceipt = observer(() => {
     }
   };
 
-  const handleDeletePurchase = async (purchase) => {
+  const handleDeletePurchase = (purchase) => {
     try {
-      if (purchase.uuid) {
-        await purchaseStore.removePurchase(purchase.uuid);
-        messageApi.success('Purchase deleted!');
-      }
-      setPurchaseList(purchaseList.filter((p) => p.uuid !== purchase.uuid));
+      checkCacheStore.removePurchase(purchase.uuid);
+      messageApi.success('Purchase deleted!');
     } catch (error) {
       messageApi.error(`Failed to delete purchase: ${error.message}`);
       console.error('Delete purchase error:', error);
@@ -112,19 +96,41 @@ const AddReceipt = observer(() => {
     tagSelectWidgetRef.current?.setTags(purchase.tags || []);
     priceQuantitySelectWidgetRef.current?.setValues(purchase.price, purchase.quantity);
 
-    setPurchaseList(purchaseList.filter((p) => p.uuid !== purchase.uuid));
+    checkCacheStore.removePurchase(purchase.uuid);
   };
 
   const handleCloseCheck = async () => {
-    if (purchaseList.length < 1) {
+    if (checkCacheStore.isEmpty) {
       messageApi.warning('Add at least one purchase');
       return;
     }
 
-    await purchaseStore.loadPurchases();
-    messageApi.success('Receipt saved!');
-    setPurchaseList([]);
-    navigate('/receipts');
+    try {
+      const receiptId = Math.floor(Date.now() / 1000);
+      const purchases = checkCacheStore.getPurchases();
+
+      for (const purchase of purchases) {
+        const purchaseData = {
+          product_id: Number(purchase.product.id),
+          quantity: purchase.quantity,
+          price: purchase.price,
+          date: dayjs(date).toISOString(),
+          store: shop,
+          tags: purchase.tags,
+          receipt_id: receiptId,
+        };
+
+        await purchaseStore.addPurchase(purchaseData);
+      }
+
+      checkCacheStore.clear();
+      await purchaseStore.loadPurchases();
+      messageApi.success('Receipt saved!');
+      navigate('/receipts');
+    } catch (error) {
+      messageApi.error(`Failed to save receipt: ${error.message}`);
+      console.error('Close check error:', error);
+    }
   };
 
   const handleDateChange = (d) => {
@@ -157,7 +163,7 @@ const AddReceipt = observer(() => {
           </div>
         </div>
       </Card>
-      <ProductCardsWidget productListProp={purchaseList} onDelete={handleDeletePurchase} onEdit={handleEditPurchase} />
+      <ProductCardsWidget productListProp={checkCacheStore.purchases} onDelete={handleDeletePurchase} onEdit={handleEditPurchase} />
     </div>
   );
 });
