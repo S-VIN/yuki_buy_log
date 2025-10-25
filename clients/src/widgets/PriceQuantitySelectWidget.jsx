@@ -1,6 +1,5 @@
-/* eslint-disable react/prop-types */
-/* eslint-disable react/display-name */
 import { forwardRef, useImperativeHandle, useState } from 'react';
+import PropTypes from 'prop-types';
 import { Input, Typography } from 'antd';
 import { ShoppingCartOutlined } from '@ant-design/icons';
 
@@ -67,5 +66,12 @@ const PriceQuantitySelectWidget = forwardRef(({ onPriceChanged, onQuantityChange
     </div>
   );
 });
+
+PriceQuantitySelectWidget.displayName = 'PriceQuantitySelectWidget';
+
+PriceQuantitySelectWidget.propTypes = {
+  onPriceChanged: PropTypes.func.isRequired,
+  onQuantityChanged: PropTypes.func.isRequired,
+};
 
 export default PriceQuantitySelectWidget;

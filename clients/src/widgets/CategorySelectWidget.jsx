@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+import PropTypes from 'prop-types';
 import { AutoComplete } from 'antd';
 
 const categories = ['Dairy', 'Bakery', 'Beverages'];
@@ -11,5 +11,10 @@ const CategorySelectWidget = ({ value, onChange }) => (
     onChange={onChange}
   />
 );
+
+CategorySelectWidget.propTypes = {
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+};
 
 export default CategorySelectWidget;

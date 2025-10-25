@@ -37,6 +37,14 @@ class CheckCache {
   get isEmpty() {
     return this.purchases.length === 0;
   }
+
+  addTagsToAllPurchases(newTags) {
+    this.purchases.forEach((purchase) => {
+      const existingTags = purchase.tags || [];
+      const combinedTags = [...new Set([...existingTags, ...newTags])];
+      purchase.tags = combinedTags;
+    });
+  }
 }
 
 export default new CheckCache();
