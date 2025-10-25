@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+import PropTypes from 'prop-types';
 import { Select } from 'antd';
 
 const DefaultTagsWidget = ({ value, onChange, options = [], placeholder = 'Default tags' }) => {
@@ -17,6 +17,13 @@ const DefaultTagsWidget = ({ value, onChange, options = [], placeholder = 'Defau
       options={options.map((item) => ({ value: item, label: item }))}
     />
   );
+};
+
+DefaultTagsWidget.propTypes = {
+  value: PropTypes.arrayOf(PropTypes.string),
+  onChange: PropTypes.func.isRequired,
+  options: PropTypes.arrayOf(PropTypes.string),
+  placeholder: PropTypes.string,
 };
 
 export default DefaultTagsWidget;

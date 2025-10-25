@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+import PropTypes from 'prop-types';
 import { Card, Row, Col, Tag, Button } from 'antd';
 import { DeleteTwoTone, EditTwoTone } from '@ant-design/icons';
 
@@ -57,5 +57,25 @@ const ProductCardsWidget = ({ productListProp, onDelete, onEdit }) => (
     </Row>
   </div>
 );
+
+ProductCardsWidget.propTypes = {
+  productListProp: PropTypes.arrayOf(
+    PropTypes.shape({
+      uuid: PropTypes.string,
+      product: PropTypes.shape({
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        name: PropTypes.string,
+        brand: PropTypes.string,
+        volume: PropTypes.string,
+        category: PropTypes.string,
+      }),
+      price: PropTypes.number,
+      quantity: PropTypes.number,
+      tags: PropTypes.arrayOf(PropTypes.string),
+    })
+  ).isRequired,
+  onDelete: PropTypes.func,
+  onEdit: PropTypes.func,
+};
 
 export default ProductCardsWidget;

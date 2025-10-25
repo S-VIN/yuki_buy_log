@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { Button, Card, message } from 'antd';
+import { AppstoreAddOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
@@ -13,6 +14,7 @@ import ShopSelectWidget from '../widgets/ShopSelectWidget.jsx';
 import PriceQuantitySelectWidget from '../widgets/PriceQuantitySelectWidget.jsx';
 import TagSelectWidget from '../widgets/TagSelectWidget.jsx';
 import ProductCardsWidget from '../widgets/ProductCardsWidget.jsx';
+import BulkTagsModal from '../widgets/BulkTagsModal.jsx';
 
 const AddReceipt = observer(() => {
   const location = useLocation();
@@ -24,6 +26,7 @@ const AddReceipt = observer(() => {
   const [price, setPrice] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [tags, setSelectedTags] = useState([]);
+  const [isBulkTagModalOpen, setIsBulkTagModalOpen] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
 
@@ -136,6 +139,34 @@ const AddReceipt = observer(() => {
     setSelectedDate(d ? d.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'));
   };
 
+  const handleOpenBulkTagModal = () => {
+    if (checkCache.isEmpty) {
+      messageApi.warning('Add at least one purchase first');
+      return;
+    }
+    setIsBulkTagModalOpen(true);
+  };
+
+  const handleCloseBulkTagModal = () => {
+    setIsBulkTagModalOpen(false);
+  };
+
+  const handleAddBulkTags = (bulkTags) => {
+    if (bulkTags.length === 0) {
+      messageApi.warning('Please select at least one tag');
+      return;
+    }
+
+    try {
+      checkCache.addTagsToAllPurchases(bulkTags);
+      messageApi.success(`Added ${bulkTags.length} tag(s) to all purchases`);
+      setIsBulkTagModalOpen(false);
+    } catch (error) {
+      messageApi.error(`Failed to add tags: ${error.message}`);
+      console.error('Add bulk tags error:', error);
+    }
+  };
+
   return (
     <div style={{ width: '100%', padding: 8 }}>
       {contextHolder}
@@ -151,7 +182,17 @@ const AddReceipt = observer(() => {
             ref={priceQuantitySelectWidgetRef}
           />
           <ProductSelectWidget onSelect={handleSelectProduct} selectedProductProp={product} />
-          <TagSelectWidget onTagChange={setSelectedTags} ref={tagSelectWidgetRef} />
+          <div style={{ display: 'flex', flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <div style={{ flex: 1 }}>
+              <TagSelectWidget onTagChange={setSelectedTags} ref={tagSelectWidgetRef} />
+            </div>
+            <Button
+              icon={<AppstoreAddOutlined />}
+              onClick={handleOpenBulkTagModal}
+              style={{ height: 32, flexShrink: 0 }}
+              title="Add tags to all purchases"
+            />
+          </div>
           <div style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
             <Button type="primary" block style={{ height: 32, fontSize: 16 }} onClick={handleCloseCheck}>
               Close check
@@ -163,6 +204,12 @@ const AddReceipt = observer(() => {
         </div>
       </Card>
       <ProductCardsWidget productListProp={checkCache.purchases} onDelete={handleDeletePurchase} onEdit={handleEditPurchase} />
+
+      <BulkTagsModal
+        open={isBulkTagModalOpen}
+        onCancel={handleCloseBulkTagModal}
+        onAdd={handleAddBulkTags}
+      />
     </div>
   );
 });

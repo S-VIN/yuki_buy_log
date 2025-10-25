@@ -1,6 +1,6 @@
 import { Card, Tabs, Form, Input, Button, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../stores/AuthContext.jsx';
+import { useAuth } from '../hooks/useAuth.js';
 import productStore from '../stores/ProductStore.jsx';
 import purchaseStore from '../stores/PurchaseStore.jsx';
 import API_URL from '../api.js';
