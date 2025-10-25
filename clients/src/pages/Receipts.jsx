@@ -34,6 +34,22 @@ const Receipts = observer(() => {
   const groupedReceipts = groupReceiptsByDate(receipts);
   const sortedDates = Object.keys(groupedReceipts).sort((a, b) => dayjs(b).diff(dayjs(a)));
 
+  if (receipts.length === 0) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '50vh',
+        padding: 16
+      }}>
+        <Text type="secondary" style={{ fontSize: 16 }}>
+          No receipts added yet
+        </Text>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: 8 }}>
       {sortedDates.map((date) => (
