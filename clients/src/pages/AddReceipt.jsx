@@ -9,7 +9,6 @@ import ProductSelectWidget from '../widgets/ProductSelectWidget.jsx';
 import productStore from '../stores/ProductStore.jsx';
 import purchaseStore from '../stores/PurchaseStore.jsx';
 import checkCache from '../stores/CheckCache.jsx';
-import Purchase from '../models/Purchase.js';
 import ShopSelectWidget from '../widgets/ShopSelectWidget.jsx';
 import PriceQuantitySelectWidget from '../widgets/PriceQuantitySelectWidget.jsx';
 import TagSelectWidget from '../widgets/TagSelectWidget.jsx';
