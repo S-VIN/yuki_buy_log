@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
-import { Button, Card, message } from 'antd';
+import { Button, Card, message, Modal } from 'antd';
+import { AppstoreAddOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
@@ -19,11 +20,14 @@ const AddReceipt = observer(() => {
   const [product, setSelectedProduct] = useState(null);
   const [shop, setSelectedShop] = useState(null);
   const tagSelectWidgetRef = useRef(null);
+  const bulkTagSelectWidgetRef = useRef(null);
   const priceQuantitySelectWidgetRef = useRef(null);
   const [date, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [price, setPrice] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [tags, setSelectedTags] = useState([]);
+  const [bulkTags, setBulkTags] = useState([]);
+  const [isBulkTagModalOpen, setIsBulkTagModalOpen] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
 
@@ -136,6 +140,37 @@ const AddReceipt = observer(() => {
     setSelectedDate(d ? d.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'));
   };
 
+  const handleOpenBulkTagModal = () => {
+    if (checkCache.isEmpty) {
+      messageApi.warning('Add at least one purchase first');
+      return;
+    }
+    setBulkTags([]);
+    bulkTagSelectWidgetRef.current?.resetTags();
+    setIsBulkTagModalOpen(true);
+  };
+
+  const handleCloseBulkTagModal = () => {
+    setIsBulkTagModalOpen(false);
+    setBulkTags([]);
+  };
+
+  const handleAddBulkTags = () => {
+    if (bulkTags.length === 0) {
+      messageApi.warning('Please select at least one tag');
+      return;
+    }
+
+    try {
+      checkCache.addTagsToAllPurchases(bulkTags);
+      messageApi.success(`Added ${bulkTags.length} tag(s) to all purchases`);
+      handleCloseBulkTagModal();
+    } catch (error) {
+      messageApi.error(`Failed to add tags: ${error.message}`);
+      console.error('Add bulk tags error:', error);
+    }
+  };
+
   return (
     <div style={{ width: '100%', padding: 8 }}>
       {contextHolder}
@@ -151,7 +186,17 @@ const AddReceipt = observer(() => {
             ref={priceQuantitySelectWidgetRef}
           />
           <ProductSelectWidget onSelect={handleSelectProduct} selectedProductProp={product} />
-          <TagSelectWidget onTagChange={setSelectedTags} ref={tagSelectWidgetRef} />
+          <div style={{ display: 'flex', flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <div style={{ flex: 1 }}>
+              <TagSelectWidget onTagChange={setSelectedTags} ref={tagSelectWidgetRef} />
+            </div>
+            <Button
+              icon={<AppstoreAddOutlined />}
+              onClick={handleOpenBulkTagModal}
+              style={{ height: 32, flexShrink: 0 }}
+              title="Add tags to all purchases"
+            />
+          </div>
           <div style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
             <Button type="primary" block style={{ height: 32, fontSize: 16 }} onClick={handleCloseCheck}>
               Close check
@@ -163,6 +208,27 @@ const AddReceipt = observer(() => {
         </div>
       </Card>
       <ProductCardsWidget productListProp={checkCache.purchases} onDelete={handleDeletePurchase} onEdit={handleEditPurchase} />
+
+      <Modal
+        title="Add Tags to All Purchases"
+        open={isBulkTagModalOpen}
+        onCancel={handleCloseBulkTagModal}
+        footer={[
+          <Button key="cancel" onClick={handleCloseBulkTagModal}>
+            Cancel
+          </Button>,
+          <Button key="add" type="primary" onClick={handleAddBulkTags}>
+            Add
+          </Button>,
+        ]}
+      >
+        <div style={{ marginTop: 16, marginBottom: 16 }}>
+          <p style={{ marginBottom: 12, color: '#666' }}>
+            Selected tags will be added to all purchases in the list below
+          </p>
+          <TagSelectWidget onTagChange={setBulkTags} ref={bulkTagSelectWidgetRef} />
+        </div>
+      </Modal>
     </div>
   );
 });
