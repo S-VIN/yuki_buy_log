@@ -61,6 +61,7 @@ const doDelete = async (path, data) => {
 
 // Group API
 export const fetchGroupMembers = () => doGet('/group');
+export const leaveGroup = () => doDelete('/group', {});
 
 // Invite API
 export const fetchInvites = () => doGet('/invite');
