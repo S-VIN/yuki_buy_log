@@ -1037,18 +1037,19 @@ class TestProductUpdate:
         """User should be able to update product with multiple tags"""
         login, password, token, headers = user
 
-        # Create a product
+        # Create a product with initial tag
         product = {
             "name": "ProductTags",
             "volume": "500ml",
             "brand": "BrandTags",
+            "default_tags": ["initial"],
         }
         r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
-        assert r.status_code == 200
+        assert r.status_code == 200, f"Failed to create product: {r.status_code} {r.text}"
         product_id = r.json()["id"]
 
-        # Update with maximum allowed tags (10)
-        tags = ["taga", "tagb", "tagc", "tagd", "tage", "tagf", "tagg", "tagh", "tagi", "tagj"]
+        # Update with 5 tags
+        tags = ["apple", "banana", "cherry", "date", "elderberry"]
         updated_product = {
             "id": product_id,
             "name": "ProductManyTags",
@@ -1057,7 +1058,35 @@ class TestProductUpdate:
             "default_tags": tags,
         }
         r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
+        assert r.status_code == 200, f"Failed to update product: {r.status_code} {r.text}"
+        assert len(r.json()["default_tags"]) == 5
+
+    def test_update_product_with_max_tags(self, user):
+        """User should be able to update product with maximum allowed tags (10)"""
+        login, password, token, headers = user
+
+        # Create a product
+        product = {
+            "name": "MaxTagProduct",
+            "volume": "500ml",
+            "brand": "MaxTagBrand",
+            "default_tags": ["start"],
+        }
+        r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
         assert r.status_code == 200
+        product_id = r.json()["id"]
+
+        # Update with maximum allowed tags (10)
+        tags = ["apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew", "imbe", "jujube"]
+        updated_product = {
+            "id": product_id,
+            "name": "UpdatedMaxTags",
+            "volume": "1L",
+            "brand": "MaxTagBrand",
+            "default_tags": tags,
+        }
+        r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
+        assert r.status_code == 200, f"Failed to update with 10 tags: {r.status_code} {r.text}"
         assert len(r.json()["default_tags"]) == 10
 
     def test_update_product_too_many_tags(self, user):
@@ -1069,13 +1098,14 @@ class TestProductUpdate:
             "name": "ProductTest",
             "volume": "500ml",
             "brand": "BrandTest",
+            "default_tags": ["initial"],
         }
         r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
         assert r.status_code == 200
         product_id = r.json()["id"]
 
         # Try to update with more than 10 tags (11 tags)
-        tags = ["taga", "tagb", "tagc", "tagd", "tage", "tagf", "tagg", "tagh", "tagi", "tagj", "tagk"]
+        tags = ["apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew", "imbe", "jujube", "kiwi"]
         updated_product = {
             "id": product_id,
             "name": "ProductTooManyTags",
