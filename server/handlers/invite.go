@@ -9,14 +9,14 @@ import (
 	"yuki_buy_log/models"
 )
 
-func InviteHandler(deps *Dependencies) http.HandlerFunc {
+func InviteHandler(d *Dependencies) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Invite handler called: %s %s", r.Method, r.URL.Path)
 		switch r.Method {
 		case http.MethodGet:
-			getIncomingInvites(deps, w, r)
+			getIncomingInvites(d, w, r)
 		case http.MethodPost:
-			sendInvite(deps, w, r)
+			sendInvite(d, w, r)
 		default:
 			log.Printf("Method not allowed for invite: %s", r.Method)
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -24,22 +24,22 @@ func InviteHandler(deps *Dependencies) http.HandlerFunc {
 	}
 }
 
-func getIncomingInvites(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
+func getIncomingInvites(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 	log.Println("Fetching incoming invites from database")
-	uid, ok := userID(r)
-	if !ok {
+	user, err := getUser(d, r)
+	if err != nil {
 		log.Println("Unauthorized access attempt to invites")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	log.Printf("Fetching incoming invites for user ID: %d", uid)
+	log.Printf("Fetching incoming invites for user ID: %d", user.Id)
 
-	rows, err := deps.DB.Query(`
+	rows, err := d.DB.Query(`
 		SELECT i.id, i.from_user_id, i.to_user_id, u_from.login, u_to.login, i.created_at
 		FROM invites i
 		JOIN users u_from ON i.from_user_id = u_from.id
 		JOIN users u_to ON i.to_user_id = u_to.id
-		WHERE i.to_user_id = $1`, uid)
+		WHERE i.to_user_id = $1`, user.Id)
 	if err != nil {
 		log.Printf("Failed to query invites: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -57,12 +57,12 @@ func getIncomingInvites(deps *Dependencies, w http.ResponseWriter, r *http.Reque
 		}
 		invites = append(invites, inv)
 	}
-	log.Printf("Successfully fetched %d incoming invites for user %d", len(invites), uid)
+	log.Printf("Successfully fetched %d incoming invites for user %d", len(invites), user.Id)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"invites": invites})
 }
 
-func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
+func sendInvite(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 	log.Println("Sending invite")
 	var req struct {
 		Login string `json:"login"`
@@ -73,8 +73,8 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uid, ok := userID(r)
-	if !ok {
+	user, err := getUser(d, r)
+	if err != nil {
 		log.Println("Unauthorized access attempt to send invite")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -82,7 +82,7 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 
 	// Get target user ID by login
 	var targetUserID int64
-	err := deps.DB.QueryRow(`SELECT id FROM users WHERE login = $1`, req.Login).Scan(&targetUserID)
+	err = d.DB.QueryRow(`SELECT id FROM users WHERE login = $1`, req.Login).Scan(&targetUserID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Printf("User with login '%s' not found", req.Login)
@@ -96,19 +96,19 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 
 	// Check if users are already in groups
 	var currentUserGroupID, targetUserGroupID sql.NullInt64
-	deps.DB.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, uid).Scan(&currentUserGroupID)
-	deps.DB.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, targetUserID).Scan(&targetUserGroupID)
+	d.DB.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, user.Id).Scan(&currentUserGroupID)
+	d.DB.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, targetUserID).Scan(&targetUserGroupID)
 
 	// Cannot send invite if both users are already in groups
 	if currentUserGroupID.Valid && targetUserGroupID.Valid {
 		// Check if they are in the same group
 		if currentUserGroupID.Int64 == targetUserGroupID.Int64 {
-			log.Printf("Both users %d and %d are already in the same group %d", uid, targetUserID, currentUserGroupID.Int64)
+			log.Printf("Both users %d and %d are already in the same group %d", user.Id, targetUserID, currentUserGroupID.Int64)
 			http.Error(w, "users are already in the same group", http.StatusBadRequest)
 			return
 		}
 		// Both users in different groups - cannot invite
-		log.Printf("Cannot invite: user %d in group %d, user %d in group %d", uid, currentUserGroupID.Int64, targetUserID, targetUserGroupID.Int64)
+		log.Printf("Cannot invite: user %d in group %d, user %d in group %d", user.Id, currentUserGroupID.Int64, targetUserID, targetUserGroupID.Int64)
 		http.Error(w, "cannot invite users who are in different groups", http.StatusBadRequest)
 		return
 	}
@@ -123,7 +123,7 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 
 	if groupToCheck.Valid {
 		var groupSize int
-		err := deps.DB.QueryRow(`SELECT COUNT(*) FROM groups WHERE id = $1`, groupToCheck.Int64).Scan(&groupSize)
+		err := d.DB.QueryRow(`SELECT COUNT(*) FROM groups WHERE id = $1`, groupToCheck.Int64).Scan(&groupSize)
 		if err != nil {
 			log.Printf("Failed to count group members: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -137,7 +137,7 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Start transaction
-	tx, err := deps.DB.Begin()
+	tx, err := d.DB.Begin()
 	if err != nil {
 		log.Printf("Failed to start transaction: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -147,14 +147,14 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 
 	// Check if reverse invite exists (mutual invite)
 	var reverseInviteID int64
-	err = tx.QueryRow(`SELECT id FROM invites WHERE from_user_id = $1 AND to_user_id = $2`, targetUserID, uid).Scan(&reverseInviteID)
+	err = tx.QueryRow(`SELECT id FROM invites WHERE from_user_id = $1 AND to_user_id = $2`, targetUserID, user.Id).Scan(&reverseInviteID)
 	mutualInvite := err == nil
 
 	if mutualInvite {
-		log.Printf("Mutual invite detected between users %d and %d, creating group", uid, targetUserID)
+		log.Printf("Mutual invite detected between users %d and %d, creating group", user.Id, targetUserID)
 
 		// Delete both invites
-		_, err = tx.Exec(`DELETE FROM invites WHERE (from_user_id = $1 AND to_user_id = $2) OR (from_user_id = $2 AND to_user_id = $1)`, uid, targetUserID)
+		_, err = tx.Exec(`DELETE FROM invites WHERE (from_user_id = $1 AND to_user_id = $2) OR (from_user_id = $2 AND to_user_id = $1)`, user.Id, targetUserID)
 		if err != nil {
 			log.Printf("Failed to delete invites: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -164,7 +164,7 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 		// Handle group creation based on current group status
 		// We need to refresh group IDs within the transaction to ensure consistency
 		var txCurrentUserGroupID, txTargetUserGroupID sql.NullInt64
-		tx.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, uid).Scan(&txCurrentUserGroupID)
+		tx.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, user.Id).Scan(&txCurrentUserGroupID)
 		tx.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, targetUserID).Scan(&txTargetUserGroupID)
 
 		if txCurrentUserGroupID.Valid && txTargetUserGroupID.Valid {
@@ -214,17 +214,17 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 
 			// Add current user with next available member number
 			nextMemberNumber := groupSize + 1
-			_, err = tx.Exec(`INSERT INTO groups (id, user_id, member_number) VALUES ($1, $2, $3)`, txTargetUserGroupID.Int64, uid, nextMemberNumber)
+			_, err = tx.Exec(`INSERT INTO groups (id, user_id, member_number) VALUES ($1, $2, $3)`, txTargetUserGroupID.Int64, user.Id, nextMemberNumber)
 			if err != nil {
 				log.Printf("Failed to add user to existing group: %v", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			log.Printf("Added user %d to existing group %d with member number %d", uid, txTargetUserGroupID.Int64, nextMemberNumber)
+			log.Printf("Added user %d to existing group %d with member number %d", user.Id, txTargetUserGroupID.Int64, nextMemberNumber)
 		} else {
 			// Neither user has a group, create a new one
 			var newGroupID int64
-			err = tx.QueryRow(`INSERT INTO groups (user_id, member_number) VALUES ($1, $2) RETURNING id`, uid, 1).Scan(&newGroupID)
+			err = tx.QueryRow(`INSERT INTO groups (user_id, member_number) VALUES ($1, $2) RETURNING id`, user.Id, 1).Scan(&newGroupID)
 			if err != nil {
 				log.Printf("Failed to create new group: %v", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -236,7 +236,7 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			log.Printf("Created new group %d with users %d (member 1) and %d (member 2)", newGroupID, uid, targetUserID)
+			log.Printf("Created new group %d with users %d (member 1) and %d (member 2)", newGroupID, user.Id, targetUserID)
 		}
 
 		if err = tx.Commit(); err != nil {
@@ -250,7 +250,7 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 	} else {
 		// No mutual invite, just create the invite
 		var inviteID int64
-		err = tx.QueryRow(`INSERT INTO invites (from_user_id, to_user_id) VALUES ($1, $2) RETURNING id`, uid, targetUserID).Scan(&inviteID)
+		err = tx.QueryRow(`INSERT INTO invites (from_user_id, to_user_id) VALUES ($1, $2) RETURNING id`, user.Id, targetUserID).Scan(&inviteID)
 		if err != nil {
 			log.Printf("Failed to create invite: %v", err)
 			http.Error(w, "failed to create invite (may already exist)", http.StatusBadRequest)
@@ -263,7 +263,7 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("Successfully created invite %d from user %d to user %d", inviteID, uid, targetUserID)
+		log.Printf("Successfully created invite %d from user %d to user %d", inviteID, user.Id, targetUserID)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{"message": "invite sent", "invite_id": inviteID})
 	}

@@ -23,8 +23,9 @@ type Purchase struct {
 	UserId    int64     `json:"user_id"`
 }
 
+type UserId = int64
 type User struct {
-	Id       int64  `json:"id"`
+	Id       UserId `json:"id"`
 	Login    string `json:"login"`
 	Password string `json:"password,omitempty"`
 }
