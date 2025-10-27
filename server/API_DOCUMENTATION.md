@@ -271,6 +271,9 @@ Groups allow users to share access to purchases and products. Users in a group c
 - Each user can only be in **one group** at a time
 - Groups are created automatically when two users send mutual invites to each other
 - When a group has only 1 member remaining (after others leave), the group is **automatically deleted**
+- Each group member is assigned a **member number** from 1 to 5
+- Member numbers are used by clients to color-code users and their purchases
+- Member numbers are automatically assigned when members join and renumbered when members leave to eliminate gaps
 
 **Group Creation Flow:**
 1. User A sends an invite to User B
@@ -291,19 +294,21 @@ Get all members of the authenticated user's group.
 - `Authorization: Bearer <token>` (required)
 
 **Response:**
-- **200 OK**: Returns list of group members
+- **200 OK**: Returns list of group members (sorted by member_number)
 ```json
 {
   "members": [
     {
       "group_id": 1,
       "user_id": 123,
-      "login": "user1"
+      "login": "user1",
+      "member_number": 1
     },
     {
       "group_id": 1,
       "user_id": 456,
-      "login": "user2"
+      "login": "user2",
+      "member_number": 2
     }
   ]
 }
@@ -477,9 +482,15 @@ Send an invite to another user. If mutual invites are detected, a group is creat
 {
   "group_id": 1,
   "user_id": 123,
-  "login": "username"
+  "login": "username",
+  "member_number": 1
 }
 ```
+
+**Field Descriptions:**
+- `member_number`: Integer from 1 to 5, assigned automatically when user joins group
+- Member numbers are sequential and renumbered when members leave to eliminate gaps
+- Used by clients to consistently color-code users and their purchases within a group
 
 ### Invite
 ```json

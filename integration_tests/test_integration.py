@@ -1180,3 +1180,181 @@ class TestFullFlow:
         r = requests.get(f"{BASE_URL}/products", headers=headers1)
         products = r.json()["products"]
         assert len(products) == 1  # Only User1's product
+
+
+class TestGroupMemberNumbers:
+    """Test member number assignment and renumbering"""
+
+    def test_member_numbers_assigned_on_group_creation(self, two_users):
+        """Member numbers should be assigned when group is created"""
+        user1, user2 = two_users
+        login1, password1, token1, headers1 = user1
+        login2, password2, token2, headers2 = user2
+
+        # Form a group via mutual invites
+        requests.post(f"{BASE_URL}/invite", json={"login": login2}, headers=headers1)
+        requests.post(f"{BASE_URL}/invite", json={"login": login1}, headers=headers2)
+
+        # Check that members have numbers 1 and 2
+        r = requests.get(f"{BASE_URL}/group", headers=headers1)
+        assert r.status_code == 200
+        members = r.json()["members"]
+        assert len(members) == 2
+
+        # Verify member numbers are present and valid
+        member_numbers = sorted([m["member_number"] for m in members])
+        assert member_numbers == [1, 2]
+
+        # Verify each member has a unique number
+        assert len(set(member_numbers)) == 2
+
+    def test_member_numbers_sequential_on_expansion(self, three_users):
+        """Member numbers should be sequential when group expands"""
+        user1, user2, user3 = three_users
+        login1, password1, token1, headers1 = user1
+        login2, password2, token2, headers2 = user2
+        login3, password3, token3, headers3 = user3
+
+        # User1 and User2 form a group
+        requests.post(f"{BASE_URL}/invite", json={"login": login2}, headers=headers1)
+        requests.post(f"{BASE_URL}/invite", json={"login": login1}, headers=headers2)
+
+        # Add User3 to the group
+        requests.post(f"{BASE_URL}/invite", json={"login": login3}, headers=headers1)
+        requests.post(f"{BASE_URL}/invite", json={"login": login1}, headers=headers3)
+
+        # Check member numbers
+        r = requests.get(f"{BASE_URL}/group", headers=headers1)
+        assert r.status_code == 200
+        members = r.json()["members"]
+        assert len(members) == 3
+
+        member_numbers = sorted([m["member_number"] for m in members])
+        assert member_numbers == [1, 2, 3]
+
+    def test_member_numbers_renumbered_after_leave(self, three_users):
+        """Member numbers should be renumbered after someone leaves"""
+        user1, user2, user3 = three_users
+        login1, password1, token1, headers1 = user1
+        login2, password2, token2, headers2 = user2
+        login3, password3, token3, headers3 = user3
+
+        # Create group with 3 members
+        requests.post(f"{BASE_URL}/invite", json={"login": login2}, headers=headers1)
+        requests.post(f"{BASE_URL}/invite", json={"login": login1}, headers=headers2)
+        requests.post(f"{BASE_URL}/invite", json={"login": login3}, headers=headers1)
+        requests.post(f"{BASE_URL}/invite", json={"login": login1}, headers=headers3)
+
+        # Get initial state to find member 2
+        r = requests.get(f"{BASE_URL}/group", headers=headers1)
+        members = r.json()["members"]
+        assert len(members) == 3
+
+        # Find the member with number 2 and have them leave
+        member2 = next((m for m in members if m["member_number"] == 2), None)
+        assert member2 is not None
+
+        # Determine which user is member 2 and have them leave
+        if member2["login"] == login1:
+            leaving_headers = headers1
+            remaining_headers = headers2  # Use a user who stays
+        elif member2["login"] == login2:
+            leaving_headers = headers2
+            remaining_headers = headers1  # Use a user who stays
+        else:
+            leaving_headers = headers3
+            remaining_headers = headers1  # Use a user who stays
+
+        # Member 2 leaves the group
+        r = requests.delete(f"{BASE_URL}/group", headers=leaving_headers)
+        assert r.status_code == 200
+
+        # Check that remaining members are renumbered to 1 and 2
+        r = requests.get(f"{BASE_URL}/group", headers=remaining_headers)
+        assert r.status_code == 200
+        remaining_members = r.json()["members"]
+        assert len(remaining_members) == 2
+
+        member_numbers = sorted([m["member_number"] for m in remaining_members])
+        assert member_numbers == [1, 2], f"Expected [1, 2] but got {member_numbers}"
+
+    def test_member_numbers_preserved_for_non_leaving_members(self):
+        """Test that member identities are preserved during renumbering"""
+        # Create 4 users
+        user1 = TestHelper.register_user()
+        user2 = TestHelper.register_user()
+        user3 = TestHelper.register_user()
+        user4 = TestHelper.register_user()
+
+        login1, password1, token1, headers1 = user1
+        login2, password2, token2, headers2 = user2
+        login3, password3, token3, headers3 = user3
+        login4, password4, token4, headers4 = user4
+
+        # Create group with 4 members
+        requests.post(f"{BASE_URL}/invite", json={"login": login2}, headers=headers1)
+        requests.post(f"{BASE_URL}/invite", json={"login": login1}, headers=headers2)
+        requests.post(f"{BASE_URL}/invite", json={"login": login3}, headers=headers1)
+        requests.post(f"{BASE_URL}/invite", json={"login": login1}, headers=headers3)
+        requests.post(f"{BASE_URL}/invite", json={"login": login4}, headers=headers1)
+        requests.post(f"{BASE_URL}/invite", json={"login": login1}, headers=headers4)
+
+        # Get initial state
+        r = requests.get(f"{BASE_URL}/group", headers=headers1)
+        members = r.json()["members"]
+        assert len(members) == 4
+
+        # Store initial member info
+        initial_members = {m["login"]: m["member_number"] for m in members}
+
+        # Find member with number 2 and have them leave
+        member2 = next((m for m in members if m["member_number"] == 2), None)
+        leaving_login = member2["login"]
+
+        if leaving_login == login1:
+            leaving_headers = headers1
+            remaining_headers = headers2  # Use a user who stays
+        elif leaving_login == login2:
+            leaving_headers = headers2
+            remaining_headers = headers1  # Use a user who stays
+        elif leaving_login == login3:
+            leaving_headers = headers3
+            remaining_headers = headers1  # Use a user who stays
+        else:
+            leaving_headers = headers4
+            remaining_headers = headers1  # Use a user who stays
+
+        # Member 2 leaves
+        requests.delete(f"{BASE_URL}/group", headers=leaving_headers)
+
+        # Check remaining members
+        r = requests.get(f"{BASE_URL}/group", headers=remaining_headers)
+        remaining_members = r.json()["members"]
+        assert len(remaining_members) == 3
+
+        # Verify all remaining members are still in the group
+        remaining_logins = {m["login"] for m in remaining_members}
+        expected_logins = {login1, login2, login3, login4} - {leaving_login}
+        assert remaining_logins == expected_logins
+
+        # Verify member numbers are sequential
+        member_numbers = sorted([m["member_number"] for m in remaining_members])
+        assert member_numbers == [1, 2, 3]
+
+    def test_member_number_in_range(self, two_users):
+        """Member numbers should always be between 1 and 5"""
+        user1, user2 = two_users
+        login1, password1, token1, headers1 = user1
+        login2, password2, token2, headers2 = user2
+
+        # Form a group
+        requests.post(f"{BASE_URL}/invite", json={"login": login2}, headers=headers1)
+        requests.post(f"{BASE_URL}/invite", json={"login": login1}, headers=headers2)
+
+        # Check member numbers are in valid range
+        r = requests.get(f"{BASE_URL}/group", headers=headers1)
+        members = r.json()["members"]
+
+        for member in members:
+            assert "member_number" in member
+            assert 1 <= member["member_number"] <= 5, f"Member number {member['member_number']} is out of range"
