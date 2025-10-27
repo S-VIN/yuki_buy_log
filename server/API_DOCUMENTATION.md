@@ -119,6 +119,47 @@ Create a new product.
 - **401 Unauthorized**: Invalid or missing token
 - **500 Internal Server Error**: Server error
 
+#### PUT /products
+Update an existing product.
+
+**Headers:**
+- `Authorization: Bearer <token>` (required)
+
+**Request Body:**
+```json
+{
+  "id": 1,
+  "name": "UpdatedProductName",
+  "volume": "1L",
+  "brand": "UpdatedBrand",
+  "default_tags": ["newtag1", "newtag2"]
+}
+```
+
+**Validation Rules:**
+- `id`: positive integer (required)
+- `name`: 1-30 characters, letters only
+- `volume`: 1-10 characters
+- `brand`: 1-30 characters, letters and digits only
+- `default_tags`: max 10 tags, each tag 1-20 characters
+
+**Response:**
+- **200 OK**: Returns updated product
+```json
+{
+  "id": 1,
+  "name": "UpdatedProductName",
+  "volume": "1L",
+  "brand": "UpdatedBrand",
+  "default_tags": ["newtag1", "newtag2"],
+  "user_id": 123
+}
+```
+- **400 Bad Request**: Validation error or missing id
+- **401 Unauthorized**: Invalid or missing token
+- **404 Not Found**: Product not found or does not belong to user
+- **500 Internal Server Error**: Server error
+
 ### Purchases
 
 #### GET /purchases
@@ -194,6 +235,29 @@ Create a new purchase.
 ```
 - **400 Bad Request**: Validation error
 - **401 Unauthorized**: Invalid or missing token
+- **500 Internal Server Error**: Server error
+
+#### DELETE /purchases
+Delete a purchase.
+
+**Headers:**
+- `Authorization: Bearer <token>` (required)
+
+**Request Body:**
+```json
+{
+  "id": 1
+}
+```
+
+**Validation Rules:**
+- `id`: positive integer (required)
+
+**Response:**
+- **204 No Content**: Purchase successfully deleted
+- **400 Bad Request**: Invalid request data or missing id
+- **401 Unauthorized**: Invalid or missing token
+- **404 Not Found**: Purchase not found or does not belong to user
 - **500 Internal Server Error**: Server error
 
 ### Groups
