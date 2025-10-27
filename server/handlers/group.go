@@ -81,7 +81,7 @@ func getGroupMembers(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 
 func leaveGroup(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 	log.Println("User leaving group")
-	uid, err := getUser(d, r)
+	user, err := getUser(d, r)
 	if err != nil {
 		log.Println("Unauthorized access attempt to leave group")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -90,9 +90,9 @@ func leaveGroup(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 
 	// Get the group_id for the current user
 	var groupID int64
-	err = d.DB.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, uid).Scan(&groupID)
+	err = d.DB.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, user.Id).Scan(&groupID)
 	if err != nil {
-		log.Printf("User %d is not in any group", uid)
+		log.Printf("User %d is not in any group", user.Id)
 		http.Error(w, "you are not in a group", http.StatusBadRequest)
 		return
 	}
@@ -107,7 +107,7 @@ func leaveGroup(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 
 	// Remove user from group
-	_, err = tx.Exec(`DELETE FROM groups WHERE user_id = $1`, uid)
+	_, err = tx.Exec(`DELETE FROM groups WHERE user_id = $1`, user.Id)
 	if err != nil {
 		log.Printf("Failed to remove user from group: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -148,7 +148,7 @@ func leaveGroup(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("User %d successfully left group %d", uid, groupID)
+	log.Printf("User %d successfully left group %d", user.Id, groupID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"message": "left group successfully"})
 }

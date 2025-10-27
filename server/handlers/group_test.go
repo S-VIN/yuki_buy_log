@@ -10,6 +10,8 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 )
 
+var UserIDKey = "userId"
+
 func TestGroupHandler_GET_WithGroup(t *testing.T) {
 	deps, mock := createTestDeps(t)
 	defer deps.DB.Close()
