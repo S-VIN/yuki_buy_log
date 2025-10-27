@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -9,10 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	_ "github.com/lib/pq"
 	"yuki_buy_log/handlers"
 	"yuki_buy_log/tasks"
 	"yuki_buy_log/validators"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -44,7 +46,7 @@ func main() {
 	defer db.Close()
 
 	log.Println("Initializing authenticator...")
-	auth := NewAuthenticator([]byte("secret"))
+	auth := NewAuthenticator([]byte("secret")) // TODO change key
 
 	log.Println("Setting up HTTP routes...")
 
@@ -72,14 +74,14 @@ func main() {
 
 	// Setup and start scheduler
 	log.Println("Setting up scheduler...")
-	sched := tasks.NewScheduler()
-	sched.AddTask(tasks.Task{
+	scheduler := tasks.NewScheduler()
+	scheduler.AddTask(tasks.Task{
 		Name:     "cleanup_old_invites",
 		Interval: 5 * time.Minute,
 		Run:      tasks.CleanupOldInvites(db),
 	})
-	sched.Start()
-	defer sched.Stop()
+	scheduler.Start()
+	defer scheduler.Stop()
 
 	// Get server port from environment
 	port := os.Getenv("SERVER_PORT")
@@ -100,7 +102,7 @@ func main() {
 	// Start server in goroutine
 	go func() {
 		log.Printf("Server started on :%s", port)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Server error: %v", err)
 		}
 	}()

@@ -11,9 +11,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// UserIDKey is the context key for the authenticated user's id.
-const UserIDKey = "userID"
-
 // Authenticator handles token generation and verification.
 type Authenticator struct {
 	secret []byte
@@ -71,13 +68,7 @@ func (a *Authenticator) Middleware(next http.Handler) http.Handler {
 			return
 		}
 		log.Printf("Successfully authenticated user %d for %s", id, r.URL.Path)
-		ctx := context.WithValue(r.Context(), UserIDKey, id)
+		ctx := context.WithValue(r.Context(), "userId", id)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-// userID retrieves the authenticated user id from the request context.
-func userID(r *http.Request) (int64, bool) {
-	id, ok := r.Context().Value(UserIDKey).(int64)
-	return id, ok
 }

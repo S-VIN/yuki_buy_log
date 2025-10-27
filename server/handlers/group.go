@@ -5,18 +5,17 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-
 	"yuki_buy_log/models"
 )
 
-func GroupHandler(deps *Dependencies) http.HandlerFunc {
+func GroupHandler(d *Dependencies) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Group handler called: %s %s", r.Method, r.URL.Path)
 		switch r.Method {
 		case http.MethodGet:
-			getGroupMembers(deps, w, r)
+			getGroupMembers(d, w, r)
 		case http.MethodDelete:
-			leaveGroup(deps, w, r)
+			leaveGroup(d, w, r)
 		default:
 			log.Printf("Method not allowed for group: %s", r.Method)
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -24,32 +23,32 @@ func GroupHandler(deps *Dependencies) http.HandlerFunc {
 	}
 }
 
-func getGroupMembers(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
+func getGroupMembers(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 	log.Println("Fetching group members from database")
-	uid, ok := userID(r)
-	if !ok {
+	user, err := getUser(d, r)
+	if err != nil {
 		log.Println("Unauthorized access attempt to group")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	log.Printf("Fetching group members for user ID: %d", uid)
+	log.Printf("Fetching group members for user ID: %d", user.Id)
 
 	// Get the group_id for the current user
 	var groupID int64
-	err := deps.DB.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, uid).Scan(&groupID)
+	err = d.DB.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, user.Id).Scan(&groupID)
 	if err != nil {
-		log.Printf("User %d is not in any group", uid)
+		log.Printf("User %d is not in any group", user.Id)
 		// Return empty list if user is not in a group
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"members":         []models.GroupMember{},
-			"current_user_id": uid,
+			"current_user_id": user.Id,
 		})
 		return
 	}
 
 	// Get all members of the same group
-	rows, err := deps.DB.Query(`
+	rows, err := d.DB.Query(`
 		SELECT g.id, g.user_id, u.login, g.member_number
 		FROM groups g
 		JOIN users u ON g.user_id = u.id
@@ -72,18 +71,18 @@ func getGroupMembers(deps *Dependencies, w http.ResponseWriter, r *http.Request)
 		}
 		members = append(members, m)
 	}
-	log.Printf("Successfully fetched %d group members for user %d", len(members), uid)
+	log.Printf("Successfully fetched %d group members for user %d", len(members), user.Id)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"members":         members,
-		"current_user_id": uid,
+		"current_user_id": user.Id,
 	})
 }
 
-func leaveGroup(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
+func leaveGroup(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 	log.Println("User leaving group")
-	uid, ok := userID(r)
-	if !ok {
+	uid, err := getUser(d, r)
+	if err != nil {
 		log.Println("Unauthorized access attempt to leave group")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -91,7 +90,7 @@ func leaveGroup(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 
 	// Get the group_id for the current user
 	var groupID int64
-	err := deps.DB.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, uid).Scan(&groupID)
+	err = d.DB.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, uid).Scan(&groupID)
 	if err != nil {
 		log.Printf("User %d is not in any group", uid)
 		http.Error(w, "you are not in a group", http.StatusBadRequest)
@@ -99,7 +98,7 @@ func leaveGroup(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Start transaction
-	tx, err := deps.DB.Begin()
+	tx, err := d.DB.Begin()
 	if err != nil {
 		log.Printf("Failed to start transaction: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
