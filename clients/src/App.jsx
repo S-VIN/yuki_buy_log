@@ -10,6 +10,7 @@ import Settings from './pages/Settings.jsx';
 import { useAuth } from './hooks/useAuth.js';
 import productStore from './stores/ProductStore.jsx';
 import purchaseStore from './stores/PurchaseStore.jsx';
+import groupStore from './stores/GroupStore.jsx';
 
 const App = () => {
   const location = useLocation();
@@ -21,6 +22,7 @@ const App = () => {
       Promise.all([
         productStore.loadProducts(),
         purchaseStore.loadPurchases(),
+        groupStore.loadGroupMembers(),
       ]).catch((error) => {
         console.error('Failed to load data:', error);
       });
