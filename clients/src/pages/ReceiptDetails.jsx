@@ -32,23 +32,8 @@ const ReceiptDetails = observer(() => {
   };
 
   // Получаем информацию об участнике, который создал чек
-  const getMemberInfo = () => {
-    if (!groupStore.isInMultiUserGroup || !receipt?.userId) {
-      return null;
-    }
-
-    const member = groupStore.getMemberByUserId(receipt.userId);
-    if (!member) {
-      return null;
-    }
-
-    return {
-      login: member.login,
-      color: getMemberColor(member.member_number),
-    };
-  };
-
-  const memberInfo = getMemberInfo();
+  const memberInfo = receipt?.userId ? groupStore.getMemberInfo(receipt.userId) : null;
+  const memberColor = memberInfo ? getMemberColor(memberInfo.memberNumber) : null;
 
   if (!receipt) {
     return <div style={{ padding: 16 }}>Receipt not found</div>;
@@ -62,7 +47,7 @@ const ReceiptDetails = observer(() => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <Title level={3} style={{ margin: 0 }}>{receipt.shop}</Title>
               {memberInfo && (
-                <Tag color={memberInfo.color}>{memberInfo.login}</Tag>
+                <Tag color={memberColor}>{memberInfo.login}</Tag>
               )}
             </div>
             <Text type="secondary">{dayjs(receipt.date).format('DD-MM-YYYY')}</Text>
