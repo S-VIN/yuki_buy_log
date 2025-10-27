@@ -783,6 +783,340 @@ class TestGroupExpansion:
         assert "different groups" in r.text.lower()
 
 
+class TestProductUpdate:
+    """Test product update operations"""
+
+    def test_update_product_success(self, user):
+        """User should be able to update their own product"""
+        login, password, token, headers = user
+
+        # Create a product
+        product = {
+            "name": "OriginalProduct",
+            "volume": "500ml",
+            "brand": "OriginalBrand",
+            "default_tags": ["original"],
+        }
+        r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
+        assert r.status_code == 200
+        product_id = r.json()["id"]
+
+        # Update the product
+        updated_product = {
+            "id": product_id,
+            "name": "UpdatedProduct",
+            "volume": "1L",
+            "brand": "UpdatedBrand",
+            "default_tags": ["updated", "new"],
+        }
+        r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
+        assert r.status_code == 200
+
+        # Verify the response contains updated data
+        response_product = r.json()
+        assert response_product["id"] == product_id
+        assert response_product["name"] == "UpdatedProduct"
+        assert response_product["volume"] == "1L"
+        assert response_product["brand"] == "UpdatedBrand"
+        assert "updated" in response_product["default_tags"]
+        assert "new" in response_product["default_tags"]
+
+        # Verify the update persisted by fetching products
+        r = requests.get(f"{BASE_URL}/products", headers=headers)
+        assert r.status_code == 200
+        products = r.json()["products"]
+        updated = next((p for p in products if p["id"] == product_id), None)
+        assert updated is not None
+        assert updated["name"] == "UpdatedProduct"
+        assert updated["volume"] == "1L"
+
+    def test_update_product_not_found(self, user):
+        """Updating non-existent product should return 404"""
+        login, password, token, headers = user
+
+        # Try to update a product that doesn't exist
+        updated_product = {
+            "id": 999999,
+            "name": "UpdatedProduct",
+            "volume": "1L",
+            "brand": "UpdatedBrand",
+            "default_tags": ["test"],
+        }
+        r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
+        assert r.status_code == 404
+
+    def test_update_product_unauthorized(self):
+        """Updating product without authentication should fail"""
+        updated_product = {
+            "id": 1,
+            "name": "UpdatedProduct",
+            "volume": "1L",
+            "brand": "UpdatedBrand",
+        }
+        r = requests.put(f"{BASE_URL}/products", json=updated_product)
+        assert r.status_code == 401
+
+    def test_update_product_different_user(self, two_users):
+        """User should not be able to update another user's product"""
+        user1, user2 = two_users
+        login1, password1, token1, headers1 = user1
+        login2, password2, token2, headers2 = user2
+
+        # User1 creates a product
+        product = {
+            "name": "UserOneProduct",
+            "volume": "500ml",
+            "brand": "BrandOne",
+        }
+        r = requests.post(f"{BASE_URL}/products", json=product, headers=headers1)
+        assert r.status_code == 200
+        product_id = r.json()["id"]
+
+        # User2 tries to update User1's product
+        updated_product = {
+            "id": product_id,
+            "name": "HackedProduct",
+            "volume": "1L",
+            "brand": "HackedBrand",
+        }
+        r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers2)
+        assert r.status_code == 404  # Should not find it (security: user_id check)
+
+        # Verify User1's product is unchanged
+        r = requests.get(f"{BASE_URL}/products", headers=headers1)
+        assert r.status_code == 200
+        products = r.json()["products"]
+        original = next((p for p in products if p["id"] == product_id), None)
+        assert original is not None
+        assert original["name"] == "UserOneProduct"
+
+    def test_update_product_invalid_json(self, user):
+        """Updating product with invalid JSON should return 400"""
+        login, password, token, headers = user
+
+        r = requests.put(f"{BASE_URL}/products", data="invalid json", headers=headers)
+        assert r.status_code == 400
+
+    def test_update_product_missing_id(self, user):
+        """Updating product without ID should return 400"""
+        login, password, token, headers = user
+
+        # Create a product first
+        product = {
+            "name": "TestProduct",
+            "volume": "500ml",
+            "brand": "TestBrand",
+        }
+        r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
+        assert r.status_code == 200
+
+        # Try to update without ID
+        updated_product = {
+            "name": "UpdatedProduct",
+            "volume": "1L",
+            "brand": "UpdatedBrand",
+        }
+        r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
+        assert r.status_code == 400
+
+        # Try with ID = 0
+        updated_product["id"] = 0
+        r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
+        assert r.status_code == 400
+
+    def test_update_product_invalid_validation(self, user):
+        """Updating product with invalid data should return 400"""
+        login, password, token, headers = user
+
+        # Create a product
+        product = {
+            "name": "ValidProduct",
+            "volume": "500ml",
+            "brand": "ValidBrand",
+        }
+        r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
+        assert r.status_code == 200
+        product_id = r.json()["id"]
+
+        # Try to update with invalid name (contains digits)
+        updated_product = {
+            "id": product_id,
+            "name": "Invalid123",
+            "volume": "1L",
+            "brand": "ValidBrand",
+        }
+        r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
+        assert r.status_code == 400
+
+        # Try to update with invalid brand (contains special characters)
+        updated_product = {
+            "id": product_id,
+            "name": "ValidProduct",
+            "volume": "1L",
+            "brand": "Invalid@Brand",
+        }
+        r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
+        assert r.status_code == 400
+
+    def test_update_product_empty_tags(self, user):
+        """User should be able to update product with empty tags"""
+        login, password, token, headers = user
+
+        # Create a product with tags
+        product = {
+            "name": "ProductWithTags",
+            "volume": "500ml",
+            "brand": "BrandName",
+            "default_tags": ["tag1", "tag2"],
+        }
+        r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
+        assert r.status_code == 200
+        product_id = r.json()["id"]
+
+        # Update product to have no tags
+        updated_product = {
+            "id": product_id,
+            "name": "ProductNoTags",
+            "volume": "1L",
+            "brand": "BrandName",
+            "default_tags": [],
+        }
+        r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
+        assert r.status_code == 200
+
+        response_product = r.json()
+        assert len(response_product["default_tags"]) == 0
+
+    def test_update_product_multiple_times(self, user):
+        """User should be able to update the same product multiple times"""
+        login, password, token, headers = user
+
+        # Create a product
+        product = {
+            "name": "FirstVersion",
+            "volume": "500ml",
+            "brand": "BrandOne",
+        }
+        r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
+        assert r.status_code == 200
+        product_id = r.json()["id"]
+
+        # First update
+        updated_product = {
+            "id": product_id,
+            "name": "SecondVersion",
+            "volume": "1L",
+            "brand": "BrandTwo",
+        }
+        r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
+        assert r.status_code == 200
+        assert r.json()["name"] == "SecondVersion"
+
+        # Second update
+        updated_product = {
+            "id": product_id,
+            "name": "ThirdVersion",
+            "volume": "2L",
+            "brand": "BrandThree",
+        }
+        r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
+        assert r.status_code == 200
+        assert r.json()["name"] == "ThirdVersion"
+        assert r.json()["volume"] == "2L"
+
+        # Verify final state
+        r = requests.get(f"{BASE_URL}/products", headers=headers)
+        products = r.json()["products"]
+        final = next((p for p in products if p["id"] == product_id), None)
+        assert final is not None
+        assert final["name"] == "ThirdVersion"
+        assert final["volume"] == "2L"
+        assert final["brand"] == "BrandThree"
+
+    def test_update_product_with_many_tags(self, user):
+        """User should be able to update product with multiple tags"""
+        login, password, token, headers = user
+
+        # Create a product with initial tag
+        product = {
+            "name": "ProductTags",
+            "volume": "500ml",
+            "brand": "BrandTags",
+            "default_tags": ["initial"],
+        }
+        r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
+        assert r.status_code == 200, f"Failed to create product: {r.status_code} {r.text}"
+        product_id = r.json()["id"]
+
+        # Update with 5 tags
+        tags = ["apple", "banana", "cherry", "date", "elderberry"]
+        updated_product = {
+            "id": product_id,
+            "name": "ProductManyTags",
+            "volume": "1L",
+            "brand": "BrandTags",
+            "default_tags": tags,
+        }
+        r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
+        assert r.status_code == 200, f"Failed to update product: {r.status_code} {r.text}"
+        assert len(r.json()["default_tags"]) == 5
+
+    def test_update_product_with_max_tags(self, user):
+        """User should be able to update product with maximum allowed tags (10)"""
+        login, password, token, headers = user
+
+        # Create a product
+        product = {
+            "name": "MaxTagProduct",
+            "volume": "500ml",
+            "brand": "MaxTagBrand",
+            "default_tags": ["start"],
+        }
+        r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
+        assert r.status_code == 200
+        product_id = r.json()["id"]
+
+        # Update with maximum allowed tags (10)
+        tags = ["apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew", "imbe", "jujube"]
+        updated_product = {
+            "id": product_id,
+            "name": "UpdatedMaxTags",
+            "volume": "1L",
+            "brand": "MaxTagBrand",
+            "default_tags": tags,
+        }
+        r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
+        assert r.status_code == 200, f"Failed to update with 10 tags: {r.status_code} {r.text}"
+        assert len(r.json()["default_tags"]) == 10
+
+    def test_update_product_too_many_tags(self, user):
+        """Updating product with too many tags should fail"""
+        login, password, token, headers = user
+
+        # Create a product
+        product = {
+            "name": "ProductTest",
+            "volume": "500ml",
+            "brand": "BrandTest",
+            "default_tags": ["initial"],
+        }
+        r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
+        assert r.status_code == 200
+        product_id = r.json()["id"]
+
+        # Try to update with more than 10 tags (11 tags)
+        tags = ["apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew", "imbe", "jujube", "kiwi"]
+        updated_product = {
+            "id": product_id,
+            "name": "ProductTooManyTags",
+            "volume": "1L",
+            "brand": "BrandTest",
+            "default_tags": tags,
+        }
+        r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
+        assert r.status_code == 400
+
+
 class TestFullFlow:
     """Test complete application flows"""
 
