@@ -1257,17 +1257,20 @@ class TestGroupMemberNumbers:
         # Determine which user is member 2 and have them leave
         if member2["login"] == login1:
             leaving_headers = headers1
+            remaining_headers = headers2  # Use a user who stays
         elif member2["login"] == login2:
             leaving_headers = headers2
+            remaining_headers = headers1  # Use a user who stays
         else:
             leaving_headers = headers3
+            remaining_headers = headers1  # Use a user who stays
 
         # Member 2 leaves the group
         r = requests.delete(f"{BASE_URL}/group", headers=leaving_headers)
         assert r.status_code == 200
 
         # Check that remaining members are renumbered to 1 and 2
-        r = requests.get(f"{BASE_URL}/group", headers=headers1)
+        r = requests.get(f"{BASE_URL}/group", headers=remaining_headers)
         assert r.status_code == 200
         remaining_members = r.json()["members"]
         assert len(remaining_members) == 2
@@ -1310,18 +1313,22 @@ class TestGroupMemberNumbers:
 
         if leaving_login == login1:
             leaving_headers = headers1
+            remaining_headers = headers2  # Use a user who stays
         elif leaving_login == login2:
             leaving_headers = headers2
+            remaining_headers = headers1  # Use a user who stays
         elif leaving_login == login3:
             leaving_headers = headers3
+            remaining_headers = headers1  # Use a user who stays
         else:
             leaving_headers = headers4
+            remaining_headers = headers1  # Use a user who stays
 
         # Member 2 leaves
         requests.delete(f"{BASE_URL}/group", headers=leaving_headers)
 
         # Check remaining members
-        r = requests.get(f"{BASE_URL}/group", headers=headers1)
+        r = requests.get(f"{BASE_URL}/group", headers=remaining_headers)
         remaining_members = r.json()["members"]
         assert len(remaining_members) == 3
 
