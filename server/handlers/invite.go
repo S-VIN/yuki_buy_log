@@ -188,13 +188,15 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			_, err = tx.Exec(`INSERT INTO groups (id, user_id) VALUES ($1, $2)`, txCurrentUserGroupID.Int64, targetUserID)
+			// Add target user with next available member number
+			nextMemberNumber := groupSize + 1
+			_, err = tx.Exec(`INSERT INTO groups (id, user_id, member_number) VALUES ($1, $2, $3)`, txCurrentUserGroupID.Int64, targetUserID, nextMemberNumber)
 			if err != nil {
 				log.Printf("Failed to add user to existing group: %v", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			log.Printf("Added user %d to existing group %d", targetUserID, txCurrentUserGroupID.Int64)
+			log.Printf("Added user %d to existing group %d with member number %d", targetUserID, txCurrentUserGroupID.Int64, nextMemberNumber)
 		} else if txTargetUserGroupID.Valid {
 			// Target user already has a group, add current user to it
 			var groupSize int
@@ -210,29 +212,31 @@ func sendInvite(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			_, err = tx.Exec(`INSERT INTO groups (id, user_id) VALUES ($1, $2)`, txTargetUserGroupID.Int64, uid)
+			// Add current user with next available member number
+			nextMemberNumber := groupSize + 1
+			_, err = tx.Exec(`INSERT INTO groups (id, user_id, member_number) VALUES ($1, $2, $3)`, txTargetUserGroupID.Int64, uid, nextMemberNumber)
 			if err != nil {
 				log.Printf("Failed to add user to existing group: %v", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			log.Printf("Added user %d to existing group %d", uid, txTargetUserGroupID.Int64)
+			log.Printf("Added user %d to existing group %d with member number %d", uid, txTargetUserGroupID.Int64, nextMemberNumber)
 		} else {
 			// Neither user has a group, create a new one
 			var newGroupID int64
-			err = tx.QueryRow(`INSERT INTO groups (user_id) VALUES ($1) RETURNING id`, uid).Scan(&newGroupID)
+			err = tx.QueryRow(`INSERT INTO groups (user_id, member_number) VALUES ($1, $2) RETURNING id`, uid, 1).Scan(&newGroupID)
 			if err != nil {
 				log.Printf("Failed to create new group: %v", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			_, err = tx.Exec(`INSERT INTO groups (id, user_id) VALUES ($1, $2)`, newGroupID, targetUserID)
+			_, err = tx.Exec(`INSERT INTO groups (id, user_id, member_number) VALUES ($1, $2, $3)`, newGroupID, targetUserID, 2)
 			if err != nil {
 				log.Printf("Failed to add second user to new group: %v", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			log.Printf("Created new group %d with users %d and %d", newGroupID, uid, targetUserID)
+			log.Printf("Created new group %d with users %d (member 1) and %d (member 2)", newGroupID, uid, targetUserID)
 		}
 
 		if err = tx.Commit(); err != nil {

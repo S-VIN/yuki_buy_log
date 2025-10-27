@@ -30,9 +30,10 @@ type User struct {
 }
 
 type GroupMember struct {
-	GroupId int64  `json:"group_id"`
-	UserId  int64  `json:"user_id"`
-	Login   string `json:"login"`
+	GroupId      int64  `json:"group_id"`
+	UserId       int64  `json:"user_id"`
+	Login        string `json:"login"`
+	MemberNumber int    `json:"member_number"`
 }
 
 type Invite struct {

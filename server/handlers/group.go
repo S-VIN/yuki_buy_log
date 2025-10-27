@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -46,10 +47,11 @@ func getGroupMembers(deps *Dependencies, w http.ResponseWriter, r *http.Request)
 
 	// Get all members of the same group
 	rows, err := deps.DB.Query(`
-		SELECT g.id, g.user_id, u.login
+		SELECT g.id, g.user_id, u.login, g.member_number
 		FROM groups g
 		JOIN users u ON g.user_id = u.id
-		WHERE g.id = $1`, groupID)
+		WHERE g.id = $1
+		ORDER BY g.member_number`, groupID)
 	if err != nil {
 		log.Printf("Failed to query group members: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -60,7 +62,7 @@ func getGroupMembers(deps *Dependencies, w http.ResponseWriter, r *http.Request)
 	members := []models.GroupMember{}
 	for rows.Next() {
 		var m models.GroupMember
-		if err := rows.Scan(&m.GroupId, &m.UserId, &m.Login); err != nil {
+		if err := rows.Scan(&m.GroupId, &m.UserId, &m.Login, &m.MemberNumber); err != nil {
 			log.Printf("Failed to scan group member row: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -125,6 +127,14 @@ func leaveGroup(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+	} else if remainingCount > 1 {
+		// Renumber remaining members to fill gaps
+		err = renumberGroupMembers(tx, groupID)
+		if err != nil {
+			log.Printf("Failed to renumber group members: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	if err = tx.Commit(); err != nil {
@@ -136,4 +146,42 @@ func leaveGroup(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 	log.Printf("User %d successfully left group %d", uid, groupID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"message": "left group successfully"})
+}
+
+// renumberGroupMembers reassigns member numbers to group members sequentially (1, 2, 3, ...)
+// to eliminate gaps after a member leaves
+func renumberGroupMembers(tx *sql.Tx, groupID int64) error {
+	// Get all members ordered by their current member_number
+	rows, err := tx.Query(`
+		SELECT user_id
+		FROM groups
+		WHERE id = $1
+		ORDER BY member_number`, groupID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var userIDs []int64
+	for rows.Next() {
+		var userID int64
+		if err := rows.Scan(&userID); err != nil {
+			return err
+		}
+		userIDs = append(userIDs, userID)
+	}
+
+	// Update each member with new sequential number
+	for i, userID := range userIDs {
+		newNumber := i + 1
+		_, err = tx.Exec(`
+			UPDATE groups
+			SET member_number = $1
+			WHERE id = $2 AND user_id = $3`, newNumber, groupID, userID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
