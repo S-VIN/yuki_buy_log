@@ -35,6 +35,7 @@ CREATE TABLE purchases (
 CREATE TABLE groups (
     id SERIAL,
     user_id INTEGER NOT NULL REFERENCES users(id),
+    member_number INTEGER NOT NULL CHECK (member_number >= 1 AND member_number <= 5),
     PRIMARY KEY (id, user_id),
     UNIQUE (user_id)
 );
