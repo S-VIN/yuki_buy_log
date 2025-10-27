@@ -133,11 +133,11 @@ class TestProducts:
         """User should see their own products"""
         login, password, token, headers = user
 
-        # Create a product
+        # Create a product with digits in brand
         product = {
             "name": "Apple",
             "volume": "1kg",
-            "brand": "FreshFarm",
+            "brand": "FreshFarm2024",
             "default_tags": ["fruit"],
         }
         r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
@@ -179,13 +179,13 @@ class TestPurchases:
         r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
         product_id = r.json()["id"]
 
-        # Create a purchase
+        # Create a purchase with digits in store name
         purchase = {
             "product_id": product_id,
             "quantity": 2,
             "price": 150,
             "date": "2024-01-15T00:00:00Z",
-            "store": "StoreOne",
+            "store": "Store 7",
             "receipt_id": 1,
         }
         r = requests.post(f"{BASE_URL}/purchases", json=purchase, headers=headers)
@@ -558,14 +558,14 @@ class TestGroupSharing:
         requests.post(f"{BASE_URL}/invite", json={"login": login2}, headers=headers1)
         requests.post(f"{BASE_URL}/invite", json={"login": login1}, headers=headers2)
 
-        # User1 creates a purchase
+        # User1 creates a purchase with digit in tag
         purchase1 = {
             "product_id": product1_id,
             "quantity": 2,
             "price": 1000,
             "date": "2024-01-01T00:00:00Z",
             "store": "StoreOne",
-            "tags": ["buy"],
+            "tags": ["buy2024"],
             "receipt_id": 100,
         }
         r = requests.post(f"{BASE_URL}/purchases", json=purchase1, headers=headers1)
@@ -577,7 +577,7 @@ class TestGroupSharing:
             "quantity": 3,
             "price": 2000,
             "date": "2024-01-02T00:00:00Z",
-            "store": "StoreTwo",
+            "store": "Store2",
             "tags": ["sale"],
             "receipt_id": 200,
         }
@@ -938,15 +938,15 @@ class TestProductUpdate:
         assert r.status_code == 200
         product_id = r.json()["id"]
 
-        # Try to update with invalid name (contains digits)
+        # Update with digits should now be valid
         updated_product = {
             "id": product_id,
-            "name": "Invalid123",
+            "name": "Valid123",
             "volume": "1L",
-            "brand": "ValidBrand",
+            "brand": "Brand2024",
         }
         r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
-        assert r.status_code == 400
+        assert r.status_code == 200, f"Expected 200 for name with digits, got {r.status_code}"
 
         # Try to update with invalid brand (contains special characters)
         updated_product = {
@@ -954,6 +954,16 @@ class TestProductUpdate:
             "name": "ValidProduct",
             "volume": "1L",
             "brand": "Invalid@Brand",
+        }
+        r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
+        assert r.status_code == 400
+
+        # Try to update with invalid name (contains special characters)
+        updated_product = {
+            "id": product_id,
+            "name": "Product#Name",
+            "volume": "1L",
+            "brand": "ValidBrand",
         }
         r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
         assert r.status_code == 400
@@ -1115,6 +1125,52 @@ class TestProductUpdate:
         }
         r = requests.put(f"{BASE_URL}/products", json=updated_product, headers=headers)
         assert r.status_code == 400
+
+    def test_product_with_digits_and_spaces(self, user):
+        """Products, brands, tags, and stores should allow digits and spaces"""
+        login, password, token, headers = user
+
+        # Create product with digits in name and brand
+        product = {
+            "name": "Coca Cola 2024",
+            "volume": "500ml",
+            "brand": "Brand123",
+            "default_tags": ["tag1", "sale2024"],
+        }
+        r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
+        assert r.status_code == 200, f"Failed to create product with digits: {r.status_code} {r.text}"
+        product_id = r.json()["id"]
+
+        # Verify product was created correctly
+        r = requests.get(f"{BASE_URL}/products", headers=headers)
+        products = r.json()["products"]
+        created_product = next(p for p in products if p["id"] == product_id)
+        assert created_product["name"] == "Coca Cola 2024"
+        assert created_product["brand"] == "Brand123"
+        assert "tag1" in created_product["default_tags"]
+        assert "sale2024" in created_product["default_tags"]
+
+        # Create purchase with digits in store and tags
+        purchase = {
+            "product_id": product_id,
+            "quantity": 3,
+            "price": 299,
+            "date": "2024-01-15T00:00:00Z",
+            "store": "Store 24",
+            "tags": ["discount50", "promo2024"],
+            "receipt_id": 999,
+        }
+        r = requests.post(f"{BASE_URL}/purchases", json=purchase, headers=headers)
+        assert r.status_code == 200, f"Failed to create purchase with digits: {r.status_code} {r.text}"
+        purchase_id = r.json()["id"]
+
+        # Verify purchase was created correctly
+        r = requests.get(f"{BASE_URL}/purchases", headers=headers)
+        purchases = r.json()["purchases"]
+        created_purchase = next(p for p in purchases if p["id"] == purchase_id)
+        assert created_purchase["store"] == "Store 24"
+        assert "discount50" in created_purchase["tags"]
+        assert "promo2024" in created_purchase["tags"]
 
 
 class TestFullFlow:

@@ -16,28 +16,28 @@ type Validator interface {
 type validator struct{}
 
 var (
-	reLetters       = regexp.MustCompile(`^[A-Za-z]+$`)
-	reLettersDigits = regexp.MustCompile(`^[A-Za-z0-9]+$`)
+	// reValidName allows Unicode letters, digits, and spaces
+	reValidName = regexp.MustCompile(`^[\p{L}\p{N}\s]+$`)
 )
 
 // NewValidator returns a Validator implementation.
 func NewValidator() Validator { return validator{} }
 
 func (validator) ValidateProduct(p *models.Product) error {
-	if len(p.Name) == 0 || len(p.Name) > 30 || !reLetters.MatchString(p.Name) {
+	if len(p.Name) == 0 || len(p.Name) > 30 || !reValidName.MatchString(p.Name) {
 		return errors.New("invalid name")
 	}
 	if len(p.Volume) == 0 || len(p.Volume) > 10 {
 		return errors.New("invalid volume")
 	}
-	if len(p.Brand) == 0 || len(p.Brand) > 30 || !reLettersDigits.MatchString(p.Brand) {
+	if len(p.Brand) == 0 || len(p.Brand) > 30 || !reValidName.MatchString(p.Brand) {
 		return errors.New("invalid brand")
 	}
 	if len(p.DefaultTags) > 10 {
 		return errors.New("too many default tags")
 	}
 	for _, tag := range p.DefaultTags {
-		if len(tag) == 0 || len(tag) > 20 {
+		if len(tag) == 0 || len(tag) > 20 || !reValidName.MatchString(tag) {
 			return errors.New("invalid default tag")
 		}
 	}
@@ -57,14 +57,14 @@ func (validator) ValidatePurchase(p *models.Purchase) error {
 	if p.Date.IsZero() {
 		return errors.New("invalid date")
 	}
-	if len(p.Store) == 0 || len(p.Store) > 30 || !reLetters.MatchString(p.Store) {
+	if len(p.Store) == 0 || len(p.Store) > 30 || !reValidName.MatchString(p.Store) {
 		return errors.New("invalid store")
 	}
 	if len(p.Tags) > 10 {
 		return errors.New("too many tags")
 	}
 	for _, tag := range p.Tags {
-		if len(tag) == 0 || len(tag) > 20 {
+		if len(tag) == 0 || len(tag) > 20 || !reValidName.MatchString(tag) {
 			return errors.New("invalid tag")
 		}
 	}
