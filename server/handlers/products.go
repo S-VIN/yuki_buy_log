@@ -18,6 +18,8 @@ func ProductsHandler(deps *Dependencies) http.HandlerFunc {
 			getProducts(deps, w, r)
 		case http.MethodPost:
 			createProduct(deps, w, r)
+		case http.MethodPut:
+			updateProduct(deps, w, r)
 		default:
 			log.Printf("Method not allowed for products: %s", r.Method)
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -138,6 +140,64 @@ func createProduct(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Printf("Successfully created product with ID: %d for user %d", p.Id, uid)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(p)
+}
+
+func updateProduct(deps *Dependencies, w http.ResponseWriter, r *http.Request) {
+	log.Println("Updating product")
+	uid, ok := userID(r)
+	if !ok {
+		log.Println("Unauthorized access attempt to update product")
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var p models.Product
+	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+		log.Printf("Failed to decode product JSON: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if p.Id == 0 {
+		log.Println("Missing id in request body")
+		http.Error(w, "id is required", http.StatusBadRequest)
+		return
+	}
+
+	p.UserId = uid
+	if err := deps.Validator.ValidateProduct(&p); err != nil {
+		log.Printf("Product validation failed: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	defaultTagsStr := strings.Join(p.DefaultTags, ",")
+	log.Printf("Updating product ID: %d for user ID: %d", p.Id, uid)
+
+	result, err := deps.DB.Exec(`UPDATE products SET name=$1, volume=$2, brand=$3, default_tags=$4 WHERE id=$5 AND user_id=$6`,
+		p.Name, p.Volume, p.Brand, defaultTagsStr, p.Id, uid)
+	if err != nil {
+		log.Printf("Failed to update product: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Failed to check rows affected: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if rowsAffected == 0 {
+		log.Printf("Product with ID %d not found for user %d", p.Id, uid)
+		http.Error(w, "product not found", http.StatusNotFound)
+		return
+	}
+
+	log.Printf("Successfully updated product with ID: %d", p.Id)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(p)
 }

@@ -16,7 +16,7 @@ CREATE TABLE products (
     name VARCHAR(30) NOT NULL,
     volume VARCHAR(10) NOT NULL,
     brand VARCHAR(30) NOT NULL,
-    default_tags VARCHAR(30) NOT NULL,
+    default_tags VARCHAR(250) NOT NULL,
     user_id INTEGER REFERENCES users(id)
 );
 
