@@ -41,7 +41,10 @@ func getGroupMembers(deps *Dependencies, w http.ResponseWriter, r *http.Request)
 		log.Printf("User %d is not in any group", uid)
 		// Return empty list if user is not in a group
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{"members": []models.GroupMember{}})
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"members":         []models.GroupMember{},
+			"current_user_id": uid,
+		})
 		return
 	}
 
@@ -71,7 +74,10 @@ func getGroupMembers(deps *Dependencies, w http.ResponseWriter, r *http.Request)
 	}
 	log.Printf("Successfully fetched %d group members for user %d", len(members), uid)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"members": members})
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"members":         members,
+		"current_user_id": uid,
+	})
 }
 
 func leaveGroup(deps *Dependencies, w http.ResponseWriter, r *http.Request) {

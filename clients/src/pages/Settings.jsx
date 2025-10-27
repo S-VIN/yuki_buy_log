@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Input, Button, Tag, message, Space, Card } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { fetchGroupMembers, fetchInvites, sendInvite as sendInviteAPI, leaveGroup } from '../api';
+import { observer } from 'mobx-react-lite';
+import { fetchInvites, sendInvite as sendInviteAPI, leaveGroup } from '../api';
 import { useAuth } from '../hooks/useAuth';
 import purchaseStore from '../stores/PurchaseStore';
 import productStore from '../stores/ProductStore';
+import groupStore from '../stores/GroupStore';
 
-const Settings = () => {
+const Settings = observer(() => {
   const [inviteLogin, setInviteLogin] = useState('');
-  const [groupMembers, setGroupMembers] = useState([]);
   const [incomingInvites, setIncomingInvites] = useState([]);
   const [loading, setLoading] = useState(false);
   const { logout } = useAuth();
@@ -21,8 +22,7 @@ const Settings = () => {
 
   const loadGroupData = async () => {
     try {
-      const data = await fetchGroupMembers();
-      setGroupMembers(data.members || []);
+      await groupStore.loadGroupMembers();
     } catch (error) {
       console.error('Failed to fetch group data:', error);
     }
@@ -100,12 +100,12 @@ const Settings = () => {
   return (
     <div style={{ padding: 16 }}>
       <Card style={{ marginTop: 16 }}>
-        {groupMembers.length > 0 ? (
+        {groupStore.members.length > 0 ? (
           <div style={{ marginBottom: 16 }}>
             <div style={{ marginBottom: 8, fontWeight: 'bold' }}>Group Members:</div>
             <Space wrap>
-              {groupMembers.map((member) => (
-                <Tag color="blue" key={member.user_id}>
+              {groupStore.members.map((member) => (
+                <Tag color={groupStore.getMemberColor(member.member_number)} key={member.user_id}>
                   {member.login}
                 </Tag>
               ))}
@@ -153,7 +153,7 @@ const Settings = () => {
           </Space.Compact>
         </div>
 
-        {groupMembers.length > 0 && (
+        {groupStore.members.length > 0 && (
           <div style={{ marginTop: 16 }}>
             <Button
               danger
@@ -179,6 +179,6 @@ const Settings = () => {
       </Button>
     </div>
   );
-};
+});
 
 export default Settings;
