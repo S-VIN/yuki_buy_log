@@ -3,7 +3,7 @@
 const MEMBER_COLORS = {
   1: 'green',
   2: 'red',
-  3: 'gold',
+  3: 'yellow',
   4: 'blue',
   5: 'purple',
 };
@@ -17,7 +17,7 @@ export const getMemberColor = (memberNumber) => {
 const MEMBER_HEX_COLORS = {
   1: '#52c41a', // green
   2: '#ff4d4f', // red
-  3: '#faad14', // gold
+  3: '#fadb14', // yellow
   4: '#1677ff', // blue
   5: '#722ed1', // purple
 };

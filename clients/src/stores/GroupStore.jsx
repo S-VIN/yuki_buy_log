@@ -55,6 +55,24 @@ class GroupStore {
   isCurrentUserPurchase(userId) {
     return this.currentUserId === userId;
   }
+
+  // Получить информацию об участнике для отображения (логин и цвет)
+  // Возвращает null если не в мультиюзерной группе или участник не найден
+  getMemberInfo(userId) {
+    if (!this.isInMultiUserGroup || !userId) {
+      return null;
+    }
+
+    const member = this.getMemberByUserId(userId);
+    if (!member) {
+      return null;
+    }
+
+    return {
+      login: member.login,
+      memberNumber: member.member_number,
+    };
+  }
 }
 
 export default new GroupStore();
