@@ -1048,7 +1048,7 @@ class TestProductUpdate:
         product_id = r.json()["id"]
 
         # Update with maximum allowed tags (10)
-        tags = [f"tag{i}" for i in range(1, 11)]
+        tags = ["taga", "tagb", "tagc", "tagd", "tage", "tagf", "tagg", "tagh", "tagi", "tagj"]
         updated_product = {
             "id": product_id,
             "name": "ProductManyTags",
@@ -1074,8 +1074,8 @@ class TestProductUpdate:
         assert r.status_code == 200
         product_id = r.json()["id"]
 
-        # Try to update with more than 10 tags
-        tags = [f"tag{i}" for i in range(1, 12)]  # 11 tags
+        # Try to update with more than 10 tags (11 tags)
+        tags = ["taga", "tagb", "tagc", "tagd", "tage", "tagf", "tagg", "tagh", "tagi", "tagj", "tagk"]
         updated_product = {
             "id": product_id,
             "name": "ProductTooManyTags",
