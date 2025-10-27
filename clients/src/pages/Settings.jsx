@@ -7,7 +7,6 @@ import { useAuth } from '../hooks/useAuth';
 import purchaseStore from '../stores/PurchaseStore';
 import productStore from '../stores/ProductStore';
 import groupStore from '../stores/GroupStore';
-import { getMemberColor } from '../utils/memberColors';
 
 const Settings = observer(() => {
   const [inviteLogin, setInviteLogin] = useState('');
@@ -106,7 +105,7 @@ const Settings = observer(() => {
             <div style={{ marginBottom: 8, fontWeight: 'bold' }}>Group Members:</div>
             <Space wrap>
               {groupStore.members.map((member) => (
-                <Tag color={getMemberColor(member.member_number)} key={member.user_id}>
+                <Tag color={groupStore.getMemberColor(member.member_number)} key={member.user_id}>
                   {member.login}
                 </Tag>
               ))}

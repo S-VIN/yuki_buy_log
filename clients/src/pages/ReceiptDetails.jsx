@@ -7,7 +7,6 @@ import dayjs from 'dayjs';
 import productStore from '../stores/ProductStore.jsx';
 import purchaseStore from '../stores/PurchaseStore.jsx';
 import groupStore from '../stores/GroupStore.jsx';
-import { getMemberColor } from '../utils/memberColors';
 
 const { Title, Text } = Typography;
 
@@ -33,7 +32,7 @@ const ReceiptDetails = observer(() => {
 
   // Получаем информацию об участнике, который создал чек
   const memberInfo = receipt?.userId ? groupStore.getMemberInfo(receipt.userId) : null;
-  const memberColor = memberInfo ? getMemberColor(memberInfo.memberNumber) : null;
+  const memberColor = memberInfo ? groupStore.getMemberColor(memberInfo.memberNumber) : null;
 
   if (!receipt) {
     return <div style={{ padding: 16 }}>Receipt not found</div>;

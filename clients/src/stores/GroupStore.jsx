@@ -1,6 +1,25 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import { fetchGroupMembers } from '../api.js';
 
+// Цвета для номеров участников группы (1-5)
+// Используем цвета, которые хорошо работают с Ant Design Tag компонентом
+const MEMBER_COLORS = {
+  1: 'green',
+  2: 'red',
+  3: 'yellow',
+  4: 'blue',
+  5: 'purple',
+};
+
+// Hex цвета для номеров участников (для использования в CSS)
+const MEMBER_HEX_COLORS = {
+  1: '#52c41a', // green
+  2: '#ff4d4f', // red
+  3: '#fadb14', // yellow
+  4: '#1677ff', // blue
+  5: '#722ed1', // purple
+};
+
 class GroupStore {
   members = [];
   loading = false;
@@ -72,6 +91,16 @@ class GroupStore {
       login: member.login,
       memberNumber: member.member_number,
     };
+  }
+
+  // Получить цвет для номера участника (для Ant Design Tag)
+  getMemberColor(memberNumber) {
+    return MEMBER_COLORS[memberNumber] || 'default';
+  }
+
+  // Получить hex цвет для номера участника (для CSS)
+  getMemberHexColor(memberNumber) {
+    return MEMBER_HEX_COLORS[memberNumber] || '#d9d9d9';
   }
 }
 
