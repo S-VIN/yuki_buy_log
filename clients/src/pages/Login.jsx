@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import productStore from '../stores/ProductStore.jsx';
 import purchaseStore from '../stores/PurchaseStore.jsx';
+import groupStore from '../stores/GroupStore.jsx';
 import API_URL from '../api.js';
 
 const Login = () => {
@@ -15,6 +16,7 @@ const Login = () => {
     await Promise.all([
       productStore.loadProducts(),
       purchaseStore.loadPurchases(),
+      groupStore.loadGroupMembers(),
     ]);
   };
 

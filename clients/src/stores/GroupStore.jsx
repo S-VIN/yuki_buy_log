@@ -1,0 +1,60 @@
+import { makeAutoObservable, runInAction } from 'mobx';
+import { fetchGroupMembers } from '../api.js';
+
+class GroupStore {
+  members = [];
+  loading = false;
+  error = null;
+  currentUserId = null;
+
+  constructor() {
+    makeAutoObservable(this);
+  }
+
+  async loadGroupMembers() {
+    this.loading = true;
+    this.error = null;
+
+    try {
+      const response = await fetchGroupMembers();
+      const membersData = response.members || [];
+      const currentUserId = response.current_user_id;
+
+      runInAction(() => {
+        this.members = membersData;
+        this.currentUserId = currentUserId;
+        this.loading = false;
+      });
+    } catch (error) {
+      runInAction(() => {
+        this.error = error.message;
+        this.loading = false;
+        // В случае ошибки (например, пользователь не в группе), очищаем участников
+        this.members = [];
+      });
+    }
+  }
+
+  // Проверяет, находится ли пользователь в мультиюзерной группе
+  get isInMultiUserGroup() {
+    return this.members.length > 1;
+  }
+
+  // Получить участника по user_id
+  getMemberByUserId(userId) {
+    return this.members.find((m) => m.user_id === userId);
+  }
+
+  // Получить номер участника по user_id
+  getMemberNumberByUserId(userId) {
+    const member = this.getMemberByUserId(userId);
+    return member ? member.member_number : null;
+  }
+
+  // Проверяет, является ли чек текущим пользователем
+  isCurrentUserPurchase(userId) {
+    return this.currentUserId === userId;
+  }
+}
+
+export default new GroupStore();
