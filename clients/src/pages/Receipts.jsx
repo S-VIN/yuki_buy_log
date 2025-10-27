@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import purchaseStore from '../stores/PurchaseStore.jsx';
 import groupStore from '../stores/GroupStore.jsx';
-import { getMemberHexColor } from '../utils/memberColors';
 
 const { Text } = Typography;
 
@@ -60,7 +59,7 @@ const Receipts = observer(() => {
       return null;
     }
 
-    return getMemberHexColor(memberNumber);
+    return groupStore.getMemberHexColor(memberNumber);
   };
 
   if (receipts.length === 0) {
