@@ -148,13 +148,13 @@ func TestInviteHandler_POST_MutualInvite_NewGroup(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 2))
 
 	// Create new group
-	mock.ExpectQuery("INSERT INTO groups \\(user_id\\) VALUES \\(\\$1\\) RETURNING id").
-		WithArgs(userID).
+	mock.ExpectQuery("INSERT INTO groups \\(user_id, member_number\\) VALUES \\(\\$1, \\$2\\) RETURNING id").
+		WithArgs(userID, 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(newGroupID))
 
 	// Add second user to group
-	mock.ExpectExec("INSERT INTO groups \\(id, user_id\\) VALUES \\(\\$1, \\$2\\)").
-		WithArgs(newGroupID, targetUserID).
+	mock.ExpectExec("INSERT INTO groups \\(id, user_id, member_number\\) VALUES \\(\\$1, \\$2, \\$3\\)").
+		WithArgs(newGroupID, targetUserID, 2).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	// Commit transaction
@@ -238,8 +238,8 @@ func TestInviteHandler_POST_MutualInvite_ExistingGroup(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(3))
 
 	// Add target user to existing group
-	mock.ExpectExec("INSERT INTO groups \\(id, user_id\\) VALUES \\(\\$1, \\$2\\)").
-		WithArgs(existingGroupID, targetUserID).
+	mock.ExpectExec("INSERT INTO groups \\(id, user_id, member_number\\) VALUES \\(\\$1, \\$2, \\$3\\)").
+		WithArgs(existingGroupID, targetUserID, 4).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	// Commit transaction
