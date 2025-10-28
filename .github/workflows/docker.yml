@@ -1,4 +1,4 @@
-name: Build and push Docker images
+name: Docker build and push
 
 on:
   workflow_dispatch:
@@ -10,6 +10,9 @@ permissions:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [db, server, client]
     steps:
       - uses: actions/checkout@v3
 
@@ -23,11 +26,33 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build all images with docker-compose
-        run: docker compose build
-        env:
-          BUILDKIT_INLINE_CACHE: 1
+      - name: Set context and dockerfile paths
+        id: paths
+        run: |
+          case "${{ matrix.service }}" in
+            db)
+              echo "context=./postgres" >> $GITHUB_OUTPUT
+              echo "dockerfile=./postgres/Dockerfile" >> $GITHUB_OUTPUT
+              ;;
+            server)
+              echo "context=./server" >> $GITHUB_OUTPUT
+              echo "dockerfile=./server/Dockerfile" >> $GITHUB_OUTPUT
+              ;;
+            client)
+              echo "context=./clients" >> $GITHUB_OUTPUT
+              echo "dockerfile=./clients/Dockerfile" >> $GITHUB_OUTPUT
+              ;;
+          esac
 
-      - name: Push all images to GitHub Container Registry
-        run: docker compose push
+      - name: Build and push ${{ matrix.service }} image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ steps.paths.outputs.context }}
+          file: ${{ steps.paths.outputs.dockerfile }}
+          tags: ghcr.io/s-vin/yuki_buy_log:${{ matrix.service }}
+          push: true
+          cache-from: |
+            type=gha,scope=${{ matrix.service }}
+            type=registry,ref=ghcr.io/s-vin/yuki_buy_log:${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 

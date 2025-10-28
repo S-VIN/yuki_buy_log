@@ -5,9 +5,8 @@ WORKDIR /tests
 # Copy only requirements first for better layer caching
 COPY requirements.txt .
 
-# Install dependencies with BuildKit cache mount for pip cache
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements.txt
+# Install dependencies (cached as separate layer)
+RUN pip install -r requirements.txt
 
 # Copy test files
 COPY . .
