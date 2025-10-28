@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import { Select } from 'antd';
 
-const DefaultTagsWidget = ({ value, onChange, options = [], placeholder = 'Default tags' }) => {
+const DefaultTagsWidget = ({ value, onChange, options = [], placeholder = 'default tags' }) => {
   const handleChange = (selectedTags) => {
     onChange(selectedTags);
   };

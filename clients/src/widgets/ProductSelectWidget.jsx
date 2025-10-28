@@ -116,17 +116,17 @@ const ProductSelectWidget = observer(({ onSelect, selectedProductProp }) => {
         footer={null}
       >
         <Form form={form} layout="horizontal" onFinish={handleAddProduct}>
-          <Form.Item label="name" name="name" rules={[{ required: true, message: 'name required' }]} style={{ marginBottom: 8 }}>
+          <Form.Item name="name" rules={[{ required: true, message: 'name required' }]} style={{ marginBottom: 8 }}>
             <Input placeholder="name" />
           </Form.Item>
-          <Form.Item label="volume" name="volume" rules={[{ required: true, message: 'volume required' }]} style={{ marginBottom: 8 }}>
+          <Form.Item name="volume" rules={[{ required: true, message: 'volume required' }]} style={{ marginBottom: 8 }}>
             <VolumeSelectWidget value={form.getFieldValue('volume')} onChange={(v) => form.setFieldsValue({ volume: v })} volumes={productStore.volumes} />
           </Form.Item>
-          <Form.Item label="brand" name="brand" rules={[{ required: true, message: 'brand required' }]} style={{ marginBottom: 8 }}>
+          <Form.Item name="brand" rules={[{ required: true, message: 'brand required' }]} style={{ marginBottom: 8 }}>
             <BrandSelectWidget value={form.getFieldValue('brand')} onChange={(v) => form.setFieldsValue({ brand: v })} />
           </Form.Item>
-          <Form.Item label="default tags" name="default_tags" style={{ marginBottom: 8 }}>
-            <DefaultTagsWidget value={form.getFieldValue('default_tags')} onChange={(v) => form.setFieldsValue({ default_tags: v })} options={productStore.tags} />
+          <Form.Item name="default_tags" style={{ marginBottom: 8 }}>
+            <DefaultTagsWidget value={form.getFieldValue('default_tags')} onChange={(v) => form.setFieldsValue({ default_tags: v })} options={productStore.tags} placeholder="default tags (optional)" />
           </Form.Item>
           <Form.Item style={{ marginBottom: 0 }}>
             <Button type="primary" htmlType="submit" block>
