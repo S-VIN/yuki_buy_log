@@ -57,7 +57,7 @@ jobs:
 
       - name: Run integration tests
         run: |
-          docker compose -f docker-compose.test.yml up \
+          docker compose -f integration-tests.yml up \
             --abort-on-container-exit \
             --exit-code-from integration-tests
 
@@ -65,13 +65,13 @@ jobs:
         if: failure()
         run: |
           echo "=== Server logs ==="
-          docker compose -f docker-compose.test.yml logs server
+          docker compose -f integration-tests.yml logs server
           echo "=== Test logs ==="
-          docker compose -f docker-compose.test.yml logs integration-tests
+          docker compose -f integration-tests.yml logs integration-tests
 
       - name: Cleanup
         if: always()
-        run: docker compose -f docker-compose.test.yml down -v
+        run: docker compose -f integration-tests.yml down -v
 
       # Move cache to prevent it from growing indefinitely
       - name: Rotate cache - server
