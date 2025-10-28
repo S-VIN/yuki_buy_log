@@ -13,15 +13,15 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
-    # No port mapping needed - internal only
 
   server:
+    # Use pre-built image if available, otherwise build locally
+    image: yuki_buy_log:server-test
     build:
       context: ./server
       dockerfile: Dockerfile
       cache_from:
-        - ghcr.io/s-vin/yuki_buy_log:server
-    image: yuki_buy_log:server-test
+        - ghcr.io/s-vin/yuki_buy_log:server-latest
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/yuki_buy_log?sslmode=disable
     depends_on:
@@ -33,13 +33,13 @@ services:
       timeout: 5s
       retries: 15
       start_period: 10s
-    # No port mapping needed - internal only
 
   integration-tests:
+    # Use pre-built image if available, otherwise build locally
+    image: yuki_buy_log:integration-tests
     build:
       context: ./integration_tests
       dockerfile: Dockerfile
-    image: yuki_buy_log:integration-tests
     environment:
       BASE_URL: http://server:8080
     depends_on:

@@ -11,10 +11,13 @@ permissions:
   contents: read
   packages: write
 
-jobs:
-  integration:
-    runs-on: ubuntu-latest
+env:
+  SERVER_IMAGE: ghcr.io/s-vin/yuki_buy_log:server-${{ github.sha }}
+  TEST_IMAGE: ghcr.io/s-vin/yuki_buy_log:integration-tests-${{ github.sha }}
 
+jobs:
+  build-server:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
@@ -28,89 +31,82 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cache base Docker images
-        uses: actions/cache@v3
-        with:
-          path: /tmp/docker-images
-          key: docker-images-${{ runner.os }}-${{ hashFiles('integration-tests.yml', 'server/Dockerfile', 'integration_tests/Dockerfile') }}
-          restore-keys: |
-            docker-images-${{ runner.os }}-
-
-      - name: Load cached Docker images
-        run: |
-          if [ -d "/tmp/docker-images" ] && [ "$(ls -A /tmp/docker-images)" ]; then
-            echo "Loading cached Docker images..."
-            for image in /tmp/docker-images/*.tar; do
-              if [ -f "$image" ]; then
-                echo "Loading $(basename $image)..."
-                docker load -i "$image" || true
-              fi
-            done
-            docker images
-          else
-            echo "No cached images found"
-          fi
-
-      - name: Pull pre-built images from GHCR for layer caching
-        run: |
-          echo "Pulling pre-built images from GHCR for layer caching..."
-          docker pull ghcr.io/s-vin/yuki_buy_log:server || echo "Server image not found in GHCR, will build from scratch"
-          docker pull ghcr.io/s-vin/yuki_buy_log:client || echo "Client image not found in GHCR"
-
-      - name: Pull and save base images
-        run: |
-          mkdir -p /tmp/docker-images
-
-          # Pull base images
-          docker pull postgres:15-alpine || true
-          docker pull golang:1.24.3-alpine || true
-          docker pull python:3.11-slim || true
-          docker pull alpine:3.18 || true
-
-          # Save images for caching (only if not already cached)
-          if [ ! -f "/tmp/docker-images/postgres.tar" ]; then
-            docker save postgres:15-alpine -o /tmp/docker-images/postgres.tar
-          fi
-          if [ ! -f "/tmp/docker-images/golang.tar" ]; then
-            docker save golang:1.24.3-alpine -o /tmp/docker-images/golang.tar
-          fi
-          if [ ! -f "/tmp/docker-images/python.tar" ]; then
-            docker save python:3.11-slim -o /tmp/docker-images/python.tar
-          fi
-          if [ ! -f "/tmp/docker-images/alpine.tar" ]; then
-            docker save alpine:3.18 -o /tmp/docker-images/alpine.tar
-          fi
-
-      - name: Build and cache server image
+      - name: Build and push server image
         uses: docker/build-push-action@v5
         with:
           context: ./server
           file: ./server/Dockerfile
           tags: |
-            yuki_buy_log:server-test
-            ghcr.io/s-vin/yuki_buy_log:server-ci-${{ github.sha }}
-          load: true
+            ${{ env.SERVER_IMAGE }}
+            ghcr.io/s-vin/yuki_buy_log:server-latest
+          push: true
           cache-from: |
             type=gha,scope=server
-            type=registry,ref=ghcr.io/s-vin/yuki_buy_log:server
+            type=registry,ref=ghcr.io/s-vin/yuki_buy_log:server-latest
           cache-to: type=gha,mode=max,scope=server
 
-      - name: Build and cache test image
+  build-test-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push test image
         uses: docker/build-push-action@v5
         with:
           context: ./integration_tests
           file: ./integration_tests/Dockerfile
-          tags: yuki_buy_log:integration-tests
-          load: true
+          tags: |
+            ${{ env.TEST_IMAGE }}
+            ghcr.io/s-vin/yuki_buy_log:integration-tests-latest
+          push: true
           cache-from: |
             type=gha,scope=tests
+            type=registry,ref=ghcr.io/s-vin/yuki_buy_log:integration-tests-latest
           cache-to: type=gha,mode=max,scope=tests
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: [build-server, build-test-image]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull built images
+        run: |
+          echo "Pulling pre-built images from this workflow run..."
+          docker pull ${{ env.SERVER_IMAGE }}
+          docker pull ${{ env.TEST_IMAGE }}
+
+          # Tag them for docker-compose
+          docker tag ${{ env.SERVER_IMAGE }} yuki_buy_log:server-test
+          docker tag ${{ env.TEST_IMAGE }} yuki_buy_log:integration-tests
+
+          echo "Images ready:"
+          docker images | grep yuki_buy_log
 
       - name: Run integration tests
         run: |
           docker compose -f integration-tests.yml up \
             --abort-on-container-exit \
-            --exit-code-from integration-tests
+            --exit-code-from integration-tests \
+            --no-build
 
       - name: Show logs on failure
         if: failure()
@@ -119,15 +115,37 @@ jobs:
           docker compose -f integration-tests.yml logs server
           echo "=== Test logs ==="
           docker compose -f integration-tests.yml logs integration-tests
-
-      - name: Push server image to GHCR for future caching
-        if: success() && github.ref == 'refs/heads/master'
-        run: |
-          echo "Pushing server image to GHCR for layer caching in future runs..."
-          docker tag yuki_buy_log:server-test ghcr.io/s-vin/yuki_buy_log:server
-          docker push ghcr.io/s-vin/yuki_buy_log:server
-          echo "Server image pushed successfully!"
+          echo "=== DB logs ==="
+          docker compose -f integration-tests.yml logs db
 
       - name: Cleanup
         if: always()
         run: docker compose -f integration-tests.yml down -v
+
+  publish-images:
+    runs-on: ubuntu-latest
+    needs: [integration-test]
+    if: github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Promote images to stable tags
+        run: |
+          echo "Promoting tested images to stable tags..."
+
+          # Pull SHA-tagged images
+          docker pull ${{ env.SERVER_IMAGE }}
+
+          # Tag as stable
+          docker tag ${{ env.SERVER_IMAGE }} ghcr.io/s-vin/yuki_buy_log:server
+
+          # Push stable tags
+          docker push ghcr.io/s-vin/yuki_buy_log:server
+
+          echo "Images promoted successfully!"
