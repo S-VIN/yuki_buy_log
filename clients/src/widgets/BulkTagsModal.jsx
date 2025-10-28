@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Modal, Button } from 'antd';
 import TagSelectWidget from './TagSelectWidget.jsx';
 
-const BulkTagsModal = ({ open, onCancel, onAdd }) => {
+const BulkTagsModal = ({ open, onCancel, onAdd, options = [] }) => {
   const [bulkTags, setBulkTags] = useState([]);
   const bulkTagSelectWidgetRef = useRef(null);
 
@@ -34,7 +34,7 @@ const BulkTagsModal = ({ open, onCancel, onAdd }) => {
       ]}
     >
       <div style={{ marginTop: 16, marginBottom: 16 }}>
-        <TagSelectWidget onTagChange={setBulkTags} ref={bulkTagSelectWidgetRef} />
+        <TagSelectWidget onTagChange={setBulkTags} ref={bulkTagSelectWidgetRef} options={options} />
       </div>
     </Modal>
   );
@@ -44,6 +44,7 @@ BulkTagsModal.propTypes = {
   open: PropTypes.bool.isRequired,
   onCancel: PropTypes.func.isRequired,
   onAdd: PropTypes.func.isRequired,
+  options: PropTypes.array,
 };
 
 export default BulkTagsModal;
