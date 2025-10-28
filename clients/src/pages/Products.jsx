@@ -1,7 +1,8 @@
-import { Tag, Card, Row, Col, Typography, Input } from 'antd';
+import { Card, Typography, Input } from 'antd';
 import { observer } from 'mobx-react-lite';
 import { useState } from 'react';
 import productStore from '../stores/ProductStore.jsx';
+import ProductCard from '../widgets/ProductCard.jsx';
 
 const { Text } = Typography;
 
@@ -72,41 +73,7 @@ const Products = observer(() => {
           </div>
         ) : (
           filteredProducts.map((product) => (
-            <Card
-              key={product.id}
-              style={{
-                width: '100%',
-                marginBottom: 8,
-                padding: 0,
-              }}
-              bodyStyle={{ padding: '8px 16px' }}
-            >
-              <Row align="middle" gutter={[8, 4]}>
-                <Col span={24}>
-                  <Text strong>{product.name}</Text>
-                </Col>
-                <Col span={24}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {product.brand && (
-                      <Tag color="blue" size="small">
-                        {product.brand}
-                      </Tag>
-                    )}
-                    {product.volume && (
-                      <Tag color="green" size="small">
-                        {product.volume}
-                      </Tag>
-                    )}
-                    {product.default_tags &&
-                      product.default_tags.map((tag) => (
-                        <Tag key={tag} color="orange" size="small">
-                          {tag}
-                        </Tag>
-                      ))}
-                  </div>
-                </Col>
-              </Row>
-            </Card>
+            <ProductCard key={product.id} product={product} />
           ))
         )}
       </div>
