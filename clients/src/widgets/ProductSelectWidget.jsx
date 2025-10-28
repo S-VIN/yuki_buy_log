@@ -110,7 +110,8 @@ const ProductSelectWidget = observer(({ onSelect, selectedProductProp }) => {
       <Modal
         title="Add New Product"
         open={isModalOpen}
-        style={{ top: 8, padding: 0 }}
+        style={{ top: 8 }}
+        bodyStyle={{ padding: 8 }}
         onCancel={() => setIsModalOpen(false)}
         footer={null}
       >
