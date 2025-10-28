@@ -1,4 +1,4 @@
-import { Card, Typography, Button, Tag } from 'antd';
+import { Card, Typography, Button, Tag, message } from 'antd';
 import { useParams, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import { EditOutlined } from '@ant-design/icons';
@@ -13,6 +13,7 @@ const { Title, Text } = Typography;
 const ReceiptDetails = observer(() => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [messageApi, contextHolder] = message.useMessage();
 
   const receiptPurchases = purchaseStore.getPurchasesByReceiptId(id);
 
@@ -34,12 +35,30 @@ const ReceiptDetails = observer(() => {
   const memberInfo = receipt?.userId ? groupStore.getMemberInfo(receipt.userId) : null;
   const memberColor = memberInfo ? groupStore.getMemberColor(memberInfo.memberNumber) : null;
 
+  const handleEditReceipt = async () => {
+    try {
+      // Удаляем все покупки из чека
+      for (const purchase of receiptPurchases) {
+        await purchaseStore.removePurchase(purchase.id);
+      }
+
+      messageApi.success('Receipt purchases deleted. Redirecting to edit...');
+
+      // Перенаправляем на экран добавления чека с предзаполненными данными
+      navigate('/add', { state: { receipt } });
+    } catch (error) {
+      messageApi.error(`Failed to delete purchases: ${error.message}`);
+      console.error('Edit receipt error:', error);
+    }
+  };
+
   if (!receipt) {
     return <div style={{ padding: 16 }}>Receipt not found</div>;
   }
 
   return (
     <div style={{ padding: 8 }}>
+      {contextHolder}
       <Card style={{ marginBottom: 16, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
@@ -54,10 +73,8 @@ const ReceiptDetails = observer(() => {
           <Button
             type="primary"
             icon={<EditOutlined />}
-            onClick={() => navigate('/add', { state: { receipt } })}
-          >
-            Edit
-          </Button>
+            onClick={handleEditReceipt}
+          />
         </div>
       </Card>
       <ProductCardsWidget productListProp={receipt.items} />
