@@ -7,19 +7,15 @@ RUN apk add --no-cache git ca-certificates
 
 COPY go.mod go.sum ./
 
-# Use BuildKit cache mount for go modules
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    go mod download
+# Download dependencies (cached as separate layer)
+RUN go mod download
 
 COPY . .
 
 # Build with optimizations for production
 # -ldflags="-s -w" removes debug info and symbol table to reduce binary size
 # CGO_ENABLED=0 for static binary
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -ldflags="-s -w" \
     -trimpath \
     -o server .

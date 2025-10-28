@@ -1,0 +1,142 @@
+name: Integration tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build server image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          tags: yuki_buy_log:server-test
+          outputs: type=docker,dest=/tmp/server.tar
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,mode=max,scope=server
+
+      - name: Upload server image
+        uses: actions/upload-artifact@v3
+        with:
+          name: server-image
+          path: /tmp/server.tar
+          retention-days: 1
+
+  build-db:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build DB image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./postgres
+          file: ./postgres/Dockerfile
+          tags: yuki_buy_log:db-test
+          outputs: type=docker,dest=/tmp/db.tar
+          cache-from: type=gha,scope=db
+          cache-to: type=gha,mode=max,scope=db
+
+      - name: Upload DB image
+        uses: actions/upload-artifact@v3
+        with:
+          name: db-image
+          path: /tmp/db.tar
+          retention-days: 1
+
+  build-test-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build test image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./integration_tests
+          file: ./integration_tests/Dockerfile
+          tags: yuki_buy_log:integration-tests
+          outputs: type=docker,dest=/tmp/integration-tests.tar
+          cache-from: type=gha,scope=integration-tests
+          cache-to: type=gha,mode=max,scope=integration-tests
+
+      - name: Upload test image
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-image
+          path: /tmp/integration-tests.tar
+          retention-days: 1
+
+  run-integration-tests:
+    runs-on: ubuntu-latest
+    needs: [build-server, build-db, build-test-image]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download server image
+        uses: actions/download-artifact@v3
+        with:
+          name: server-image
+          path: /tmp
+
+      - name: Download DB image
+        uses: actions/download-artifact@v3
+        with:
+          name: db-image
+          path: /tmp
+
+      - name: Download test image
+        uses: actions/download-artifact@v3
+        with:
+          name: test-image
+          path: /tmp
+
+      - name: Load Docker images
+        run: |
+          docker load --input /tmp/server.tar
+          docker load --input /tmp/db.tar
+          docker load --input /tmp/integration-tests.tar
+          echo "Images loaded:"
+          docker images | grep yuki_buy_log
+
+      - name: Run integration tests
+        run: |
+          docker compose -f integration-tests.yml up \
+            --abort-on-container-exit \
+            --exit-code-from integration-tests \
+            --no-build
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          echo "=== Server logs ==="
+          docker compose -f integration-tests.yml logs server
+          echo "=== Test logs ==="
+          docker compose -f integration-tests.yml logs integration-tests
+          echo "=== DB logs ==="
+          docker compose -f integration-tests.yml logs db
+
+      - name: Cleanup
+        if: always()
+        run: docker compose -f integration-tests.yml down -v
