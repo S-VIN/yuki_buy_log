@@ -20,6 +20,11 @@ func TestInviteHandler_GET(t *testing.T) {
 	userID := int64(1)
 	now := time.Now()
 
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "receiver", "hash1"))
+
 	// Mock getting incoming invites
 	rows := sqlmock.NewRows([]string{"id", "from_user_id", "to_user_id", "from_login", "to_login", "created_at"}).
 		AddRow(1, 2, 1, "sender", "receiver", now).
@@ -58,6 +63,11 @@ func TestInviteHandler_POST_NewInvite(t *testing.T) {
 		"login": "target_user",
 	}
 	body, _ := json.Marshal(requestBody)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	// Get target user ID
 	mock.ExpectQuery("SELECT id FROM users WHERE login = \\$1").
@@ -119,6 +129,11 @@ func TestInviteHandler_POST_MutualInvite_NewGroup(t *testing.T) {
 		"login": "target_user",
 	}
 	body, _ := json.Marshal(requestBody)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	// Get target user ID
 	mock.ExpectQuery("SELECT id FROM users WHERE login = \\$1").
@@ -190,6 +205,11 @@ func TestInviteHandler_POST_MutualInvite_ExistingGroup(t *testing.T) {
 		"login": "target_user",
 	}
 	body, _ := json.Marshal(requestBody)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	// Get target user ID
 	mock.ExpectQuery("SELECT id FROM users WHERE login = \\$1").
@@ -276,6 +296,11 @@ func TestInviteHandler_POST_TargetUserInGroup(t *testing.T) {
 	}
 	body, _ := json.Marshal(requestBody)
 
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
+
 	// Get target user ID
 	mock.ExpectQuery("SELECT id FROM users WHERE login = \\$1").
 		WithArgs("target_user").
@@ -344,6 +369,11 @@ func TestInviteHandler_POST_BothUsersInDifferentGroups(t *testing.T) {
 	}
 	body, _ := json.Marshal(requestBody)
 
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
+
 	// Get target user ID
 	mock.ExpectQuery("SELECT id FROM users WHERE login = \\$1").
 		WithArgs("target_user").
@@ -389,6 +419,11 @@ func TestInviteHandler_POST_GroupSizeLimitReached(t *testing.T) {
 		"login": "target_user",
 	}
 	body, _ := json.Marshal(requestBody)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	// Get target user ID
 	mock.ExpectQuery("SELECT id FROM users WHERE login = \\$1").
@@ -437,6 +472,11 @@ func TestInviteHandler_POST_UserNotFound(t *testing.T) {
 		"login": "nonexistent_user",
 	}
 	body, _ := json.Marshal(requestBody)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	// Get target user ID - not found
 	mock.ExpectQuery("SELECT id FROM users WHERE login = \\$1").
