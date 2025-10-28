@@ -20,7 +20,7 @@ services:
       context: ./server
       dockerfile: Dockerfile
       cache_from:
-        - vinstp/yuki_buy_log:server
+        - ghcr.io/s-vin/yuki_buy_log:server
     image: yuki_buy_log:server-test
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/yuki_buy_log?sslmode=disable
