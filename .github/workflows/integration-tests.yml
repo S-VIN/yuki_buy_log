@@ -31,7 +31,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=server
 
       - name: Upload server image
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: server-image
           path: /tmp/server.tar
@@ -56,7 +56,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=db
 
       - name: Upload DB image
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: db-image
           path: /tmp/db.tar
@@ -81,7 +81,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=integration-tests
 
       - name: Upload test image
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-image
           path: /tmp/integration-tests.tar
@@ -95,19 +95,19 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Download server image
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: server-image
           path: /tmp
 
       - name: Download DB image
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: db-image
           path: /tmp
 
       - name: Download test image
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: test-image
           path: /tmp
