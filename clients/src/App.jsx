@@ -6,6 +6,7 @@ import Login from './pages/Login.jsx';
 import AddReceipt from './pages/AddReceipt.jsx';
 import Receipts from './pages/Receipts.jsx';
 import ReceiptDetails from './pages/ReceiptDetails.jsx';
+import Products from './pages/Products.jsx';
 import Settings from './pages/Settings.jsx';
 import { useAuth } from './hooks/useAuth.js';
 import productStore from './stores/ProductStore.jsx';
@@ -40,6 +41,7 @@ const App = () => {
               <Route path="/add" element={<AddReceipt />} />
               <Route path="/receipts" element={<Receipts />} />
               <Route path="/receipts/:id" element={<ReceiptDetails />} />
+              <Route path="/products" element={<Products />} />
               <Route path="/settings" element={<Settings />} />
             </>
           )}

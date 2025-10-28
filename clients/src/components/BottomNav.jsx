@@ -1,5 +1,5 @@
 import { Menu } from 'antd';
-import { PlusCircleOutlined, ProfileOutlined, SettingOutlined } from '@ant-design/icons';
+import { PlusCircleOutlined, ProfileOutlined, SettingOutlined, ShoppingOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const BottomNav = () => {
@@ -8,6 +8,7 @@ const BottomNav = () => {
   const items = [
     { key: '/add', icon: <PlusCircleOutlined />, label: 'Add' },
     { key: '/receipts', icon: <ProfileOutlined />, label: 'Receipts' },
+    { key: '/products', icon: <ShoppingOutlined />, label: 'Products' },
     { key: '/settings', icon: <SettingOutlined />, label: 'Settings' },
   ];
 
