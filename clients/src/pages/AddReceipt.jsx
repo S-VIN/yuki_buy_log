@@ -184,7 +184,7 @@ const AddReceipt = observer(() => {
           <ProductSelectWidget onSelect={handleSelectProduct} selectedProductProp={product} />
           <div style={{ display: 'flex', flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <div style={{ flex: 1 }}>
-              <TagSelectWidget onTagChange={setSelectedTags} ref={tagSelectWidgetRef} />
+              <TagSelectWidget onTagChange={setSelectedTags} ref={tagSelectWidgetRef} options={productStore.tags} />
             </div>
             <Button
               icon={<AppstoreAddOutlined />}
@@ -209,6 +209,7 @@ const AddReceipt = observer(() => {
         open={isBulkTagModalOpen}
         onCancel={handleCloseBulkTagModal}
         onAdd={handleAddBulkTags}
+        options={productStore.tags}
       />
     </div>
   );
