@@ -17,21 +17,52 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Cache Docker layers - server
+      - name: Cache base Docker images
         uses: actions/cache@v3
         with:
-          path: /tmp/.buildx-cache-server
-          key: ${{ runner.os }}-buildx-server-${{ hashFiles('server/**') }}
+          path: /tmp/docker-images
+          key: docker-images-${{ runner.os }}-${{ hashFiles('integration-tests.yml', 'server/Dockerfile', 'integration_tests/Dockerfile') }}
           restore-keys: |
-            ${{ runner.os }}-buildx-server-
+            docker-images-${{ runner.os }}-
 
-      - name: Cache Docker layers - tests
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache-tests
-          key: ${{ runner.os }}-buildx-tests-${{ hashFiles('integration_tests/**') }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-tests-
+      - name: Load cached Docker images
+        run: |
+          if [ -d "/tmp/docker-images" ] && [ "$(ls -A /tmp/docker-images)" ]; then
+            echo "Loading cached Docker images..."
+            for image in /tmp/docker-images/*.tar; do
+              if [ -f "$image" ]; then
+                echo "Loading $(basename $image)..."
+                docker load -i "$image" || true
+              fi
+            done
+            docker images
+          else
+            echo "No cached images found"
+          fi
+
+      - name: Pull and save base images
+        run: |
+          mkdir -p /tmp/docker-images
+
+          # Pull base images
+          docker pull postgres:15-alpine || true
+          docker pull golang:1.24.3-alpine || true
+          docker pull python:3.11-slim || true
+          docker pull alpine:3.18 || true
+
+          # Save images for caching (only if not already cached)
+          if [ ! -f "/tmp/docker-images/postgres.tar" ]; then
+            docker save postgres:15-alpine -o /tmp/docker-images/postgres.tar
+          fi
+          if [ ! -f "/tmp/docker-images/golang.tar" ]; then
+            docker save golang:1.24.3-alpine -o /tmp/docker-images/golang.tar
+          fi
+          if [ ! -f "/tmp/docker-images/python.tar" ]; then
+            docker save python:3.11-slim -o /tmp/docker-images/python.tar
+          fi
+          if [ ! -f "/tmp/docker-images/alpine.tar" ]; then
+            docker save alpine:3.18 -o /tmp/docker-images/alpine.tar
+          fi
 
       - name: Build and cache server image
         uses: docker/build-push-action@v5
@@ -40,9 +71,8 @@ jobs:
           file: ./server/Dockerfile
           tags: yuki_buy_log:server-test
           load: true
-          cache-from: |
-            type=local,src=/tmp/.buildx-cache-server
-          cache-to: type=local,dest=/tmp/.buildx-cache-server-new,mode=max
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,mode=max,scope=server
 
       - name: Build and cache test image
         uses: docker/build-push-action@v5
@@ -51,9 +81,8 @@ jobs:
           file: ./integration_tests/Dockerfile
           tags: yuki_buy_log:integration-tests
           load: true
-          cache-from: |
-            type=local,src=/tmp/.buildx-cache-tests
-          cache-to: type=local,dest=/tmp/.buildx-cache-tests-new,mode=max
+          cache-from: type=gha,scope=tests
+          cache-to: type=gha,mode=max,scope=tests
 
       - name: Run integration tests
         run: |
@@ -72,16 +101,3 @@ jobs:
       - name: Cleanup
         if: always()
         run: docker compose -f integration-tests.yml down -v
-
-      # Move cache to prevent it from growing indefinitely
-      - name: Rotate cache - server
-        if: always()
-        run: |
-          rm -rf /tmp/.buildx-cache-server
-          mv /tmp/.buildx-cache-server-new /tmp/.buildx-cache-server || true
-
-      - name: Rotate cache - tests
-        if: always()
-        run: |
-          rm -rf /tmp/.buildx-cache-tests
-          mv /tmp/.buildx-cache-tests-new /tmp/.buildx-cache-tests || true
