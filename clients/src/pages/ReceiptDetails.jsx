@@ -1,7 +1,7 @@
-import { Card, Typography, Button, Tag, message } from 'antd';
+import { Card, Typography, Button, Tag, message, Modal } from 'antd';
 import { useParams, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
-import { EditOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import ProductCardsWidget from '../widgets/ProductCardsWidget.jsx';
 import dayjs from 'dayjs';
 import productStore from '../stores/ProductStore.jsx';
@@ -51,6 +51,32 @@ const ReceiptDetails = observer(() => {
     }
   };
 
+  const handleDeleteReceipt = () => {
+    Modal.confirm({
+      title: 'Delete receipt?',
+      content: 'All purchases from this receipt will be deleted. This action cannot be undone.',
+      okText: 'Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          // Удаляем все покупки из чека
+          for (const purchase of receiptPurchases) {
+            await purchaseStore.removePurchase(purchase.id);
+          }
+
+          message.success('Receipt deleted successfully');
+
+          // Перенаправляем на список чеков
+          navigate('/receipts');
+        } catch (error) {
+          message.error(`Failed to delete receipt: ${error.message}`);
+          console.error('Delete receipt error:', error);
+        }
+      },
+    });
+  };
+
   if (!receipt) {
     return <div style={{ padding: 16 }}>Receipt not found</div>;
   }
@@ -68,11 +94,18 @@ const ReceiptDetails = observer(() => {
             </div>
             <Text type="secondary">{dayjs(receipt.date).format('DD-MM-YYYY')}</Text>
           </div>
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={handleEditReceipt}
-          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={handleEditReceipt}
+            />
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={handleDeleteReceipt}
+            />
+          </div>
         </div>
       </Card>
       <ProductCardsWidget productListProp={receipt.items} />
