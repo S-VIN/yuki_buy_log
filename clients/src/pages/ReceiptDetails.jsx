@@ -13,7 +13,6 @@ const { Title, Text } = Typography;
 const ReceiptDetails = observer(() => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [messageApi, contextHolder] = message.useMessage();
 
   const receiptPurchases = purchaseStore.getPurchasesByReceiptId(id);
 
@@ -42,12 +41,12 @@ const ReceiptDetails = observer(() => {
         await purchaseStore.removePurchase(purchase.id);
       }
 
-      messageApi.success('Receipt purchases deleted. Redirecting to edit...');
+      message.success('Receipt purchases deleted. Redirecting to edit...');
 
       // Перенаправляем на экран добавления чека с предзаполненными данными
       navigate('/add', { state: { receipt } });
     } catch (error) {
-      messageApi.error(`Failed to delete purchases: ${error.message}`);
+      message.error(`Failed to delete purchases: ${error.message}`);
       console.error('Edit receipt error:', error);
     }
   };
@@ -58,7 +57,6 @@ const ReceiptDetails = observer(() => {
 
   return (
     <div style={{ padding: 8 }}>
-      {contextHolder}
       <Card style={{ marginBottom: 16, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
