@@ -7,7 +7,7 @@ services:
     build:
       context: ./postgres
       dockerfile: Dockerfile
-    image: vinstp/yuki_buy_log:db
+    image: ghcr.io/s-vin/yuki_buy_log:db
     container_name: yuki_db
     networks:
       - yuki_network
@@ -21,7 +21,7 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
-    image: vinstp/yuki_buy_log:server
+    image: ghcr.io/s-vin/yuki_buy_log:server
     container_name: yuki_server
     networks:
       - yuki_network
@@ -46,7 +46,7 @@ services:
         # API URL - server endpoint accessible from browser
         # For Dokploy, this will be proxied through /api path
         VITE_API_URL: https://yuki.stepan-vinokurov-moscow.ru/api
-    image: vinstp/yuki_buy_log:client
+    image: ghcr.io/s-vin/yuki_buy_log:client
     container_name: yuki_client
     networks:
       - yuki_network
