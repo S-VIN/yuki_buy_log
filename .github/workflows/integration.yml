@@ -9,7 +9,7 @@ on:
 
 permissions:
   contents: read
-  packages: read
+  packages: write
 
 jobs:
   integration:
@@ -51,12 +51,15 @@ jobs:
             echo "No cached images found"
           fi
 
+      - name: Pull pre-built images from GHCR for layer caching
+        run: |
+          echo "Pulling pre-built images from GHCR for layer caching..."
+          docker pull ghcr.io/s-vin/yuki_buy_log:server || echo "Server image not found in GHCR, will build from scratch"
+          docker pull ghcr.io/s-vin/yuki_buy_log:client || echo "Client image not found in GHCR"
+
       - name: Pull and save base images
         run: |
           mkdir -p /tmp/docker-images
-
-          # Try to pull our pre-built images from GHCR for layer caching
-          docker pull ghcr.io/s-vin/yuki_buy_log:server || true
 
           # Pull base images
           docker pull postgres:15-alpine || true
@@ -83,9 +86,13 @@ jobs:
         with:
           context: ./server
           file: ./server/Dockerfile
-          tags: yuki_buy_log:server-test
+          tags: |
+            yuki_buy_log:server-test
+            ghcr.io/s-vin/yuki_buy_log:server-ci-${{ github.sha }}
           load: true
-          cache-from: type=gha,scope=server
+          cache-from: |
+            type=gha,scope=server
+            type=registry,ref=ghcr.io/s-vin/yuki_buy_log:server
           cache-to: type=gha,mode=max,scope=server
 
       - name: Build and cache test image
@@ -95,7 +102,8 @@ jobs:
           file: ./integration_tests/Dockerfile
           tags: yuki_buy_log:integration-tests
           load: true
-          cache-from: type=gha,scope=tests
+          cache-from: |
+            type=gha,scope=tests
           cache-to: type=gha,mode=max,scope=tests
 
       - name: Run integration tests
@@ -111,6 +119,14 @@ jobs:
           docker compose -f integration-tests.yml logs server
           echo "=== Test logs ==="
           docker compose -f integration-tests.yml logs integration-tests
+
+      - name: Push server image to GHCR for future caching
+        if: success() && github.ref == 'refs/heads/master'
+        run: |
+          echo "Pushing server image to GHCR for layer caching in future runs..."
+          docker tag yuki_buy_log:server-test ghcr.io/s-vin/yuki_buy_log:server
+          docker push ghcr.io/s-vin/yuki_buy_log:server
+          echo "Server image pushed successfully!"
 
       - name: Cleanup
         if: always()
