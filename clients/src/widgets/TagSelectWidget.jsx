@@ -2,9 +2,7 @@ import { forwardRef, useImperativeHandle, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Select } from 'antd';
 
-const options = ['food', 'electronics', 'clothes'];
-
-const TagSelectWidget = forwardRef(({ onTagChange, style }, ref) => {
+const TagSelectWidget = forwardRef(({ onTagChange, style, options = [] }, ref) => {
   const [selectedTags, setSelectedTags] = useState([]);
 
   useImperativeHandle(ref, () => ({
@@ -35,6 +33,7 @@ TagSelectWidget.displayName = 'TagSelectWidget';
 TagSelectWidget.propTypes = {
   onTagChange: PropTypes.func.isRequired,
   style: PropTypes.object,
+  options: PropTypes.array,
 };
 
 export default TagSelectWidget;
