@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: yuki_buy_log
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # No port mapping needed - internal only
+
+  db-init:
+    image: postgres:15-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./postgres/schema.sql:/schema.sql
+    environment:
+      PGPASSWORD: postgres
+    command: >
+      psql -h db -U postgres -d yuki_buy_log -f /schema.sql
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      cache_from:
+        - vinstp/yuki_buy_log:server
+    image: yuki_buy_log:server-test
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/yuki_buy_log?sslmode=disable
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/products"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    # No port mapping needed - internal only
+
+  integration-tests:
+    build:
+      context: ./integration_tests
+      dockerfile: Dockerfile
+    image: yuki_buy_log:integration-tests
+    environment:
+      BASE_URL: http://server:8080
+    depends_on:
+      server:
+        condition: service_healthy

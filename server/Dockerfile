@@ -22,8 +22,8 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 FROM alpine:3.18
 WORKDIR /app
 
-# Add ca-certificates for HTTPS requests
-RUN apk --no-cache add ca-certificates tzdata
+# Add ca-certificates for HTTPS requests and wget for healthcheck
+RUN apk --no-cache add ca-certificates tzdata wget
 
 # Use non-root user for security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \

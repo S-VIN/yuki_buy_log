@@ -11,95 +11,77 @@ jobs:
   integration:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: yuki_buy_log
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.24'
-          cache: true
-          cache-dependency-path: server/go.sum
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-          cache: 'pip'
-          cache-dependency-path: integration_tests/requirements.txt
-
-      - name: Cache apt packages
+      - name: Cache Docker layers - server
         uses: actions/cache@v3
         with:
-          path: /var/cache/apt/archives
-          key: ${{ runner.os }}-apt-postgresql-${{ hashFiles('.github/workflows/integration.yml') }}
+          path: /tmp/.buildx-cache-server
+          key: ${{ runner.os }}-buildx-server-${{ hashFiles('server/**') }}
           restore-keys: |
-            ${{ runner.os }}-apt-postgresql-
+            ${{ runner.os }}-buildx-server-
 
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-
-      - name: Apply database migrations
-        run: |
-          PGPASSWORD=postgres psql -h localhost -U postgres -d yuki_buy_log -f postgres/schema.sql
-
-      - name: Cache Go build cache
+      - name: Cache Docker layers - tests
         uses: actions/cache@v3
         with:
-          path: ~/.cache/go-build
-          key: ${{ runner.os }}-go-build-${{ hashFiles('server/**/*.go') }}
+          path: /tmp/.buildx-cache-tests
+          key: ${{ runner.os }}-buildx-tests-${{ hashFiles('integration_tests/**') }}
           restore-keys: |
-            ${{ runner.os }}-go-build-
+            ${{ runner.os }}-buildx-tests-
 
-      - name: Install Go dependencies
-        run: |
-          cd server
-          go mod download
+      - name: Build and cache server image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          tags: yuki_buy_log:server-test
+          load: true
+          cache-from: |
+            type=local,src=/tmp/.buildx-cache-server
+          cache-to: type=local,dest=/tmp/.buildx-cache-server-new,mode=max
 
-      - name: Build server
-        run: |
-          cd server
-          go build -o server_bin .
-
-      - name: Start server in background
-        run: |
-          cd server
-          ./server_bin &
-          echo $! > /tmp/server.pid
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/yuki_buy_log?sslmode=disable
-
-      - name: Wait for server to be ready
-        run: |
-          timeout 30 bash -c 'until curl -s http://localhost:8080/products > /dev/null; do sleep 1; done'
-          echo "Server is ready!"
-
-      - name: Install Python test dependencies
-        run: pip install -r integration_tests/requirements.txt
+      - name: Build and cache test image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./integration_tests
+          file: ./integration_tests/Dockerfile
+          tags: yuki_buy_log:integration-tests
+          load: true
+          cache-from: |
+            type=local,src=/tmp/.buildx-cache-tests
+          cache-to: type=local,dest=/tmp/.buildx-cache-tests-new,mode=max
 
       - name: Run integration tests
-        run: pytest integration_tests/ -v --tb=short -n auto
+        run: |
+          docker compose -f docker-compose.test.yml up \
+            --abort-on-container-exit \
+            --exit-code-from integration-tests
 
-      - name: Stop server
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          echo "=== Server logs ==="
+          docker compose -f docker-compose.test.yml logs server
+          echo "=== Test logs ==="
+          docker compose -f docker-compose.test.yml logs integration-tests
+
+      - name: Cleanup
+        if: always()
+        run: docker compose -f docker-compose.test.yml down -v
+
+      # Move cache to prevent it from growing indefinitely
+      - name: Rotate cache - server
         if: always()
         run: |
-          if [ -f /tmp/server.pid ]; then
-            kill $(cat /tmp/server.pid) || true
-          fi
+          rm -rf /tmp/.buildx-cache-server
+          mv /tmp/.buildx-cache-server-new /tmp/.buildx-cache-server || true
+
+      - name: Rotate cache - tests
+        if: always()
+        run: |
+          rm -rf /tmp/.buildx-cache-tests
+          mv /tmp/.buildx-cache-tests-new /tmp/.buildx-cache-tests || true
