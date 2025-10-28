@@ -33,11 +33,23 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '1.24'
+          cache: true
+          cache-dependency-path: server/go.sum
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+          cache: 'pip'
+          cache-dependency-path: integration_tests/requirements.txt
+
+      - name: Cache apt packages
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-postgresql-${{ hashFiles('.github/workflows/integration.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-postgresql-
 
       - name: Install PostgreSQL client
         run: |
@@ -48,15 +60,28 @@ jobs:
         run: |
           PGPASSWORD=postgres psql -h localhost -U postgres -d yuki_buy_log -f postgres/schema.sql
 
+      - name: Cache Go build cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-go-build-${{ hashFiles('server/**/*.go') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-
+
       - name: Install Go dependencies
         run: |
           cd server
           go mod download
 
+      - name: Build server
+        run: |
+          cd server
+          go build -o server_bin .
+
       - name: Start server in background
         run: |
           cd server
-          go run . &
+          ./server_bin &
           echo $! > /tmp/server.pid
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/yuki_buy_log?sslmode=disable
@@ -70,7 +95,7 @@ jobs:
         run: pip install -r integration_tests/requirements.txt
 
       - name: Run integration tests
-        run: pytest integration_tests/ -v --tb=short
+        run: pytest integration_tests/ -v --tb=short -n auto
 
       - name: Stop server
         if: always()
