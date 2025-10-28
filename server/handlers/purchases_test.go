@@ -21,6 +21,11 @@ func TestPurchasesHandler_GET(t *testing.T) {
 
 	userID := int64(1)
 
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
+
 	// Mock group query (user not in a group)
 	mock.ExpectQuery("SELECT DISTINCT user_id FROM groups WHERE id =").
 		WithArgs(userID).
@@ -55,6 +60,13 @@ func TestPurchasesHandler_GET(t *testing.T) {
 func TestPurchasesHandler_POST(t *testing.T) {
 	deps, mock := createTestDeps(t)
 	defer deps.DB.Close()
+
+	userID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	// Mock successful purchase insertion
 	mock.ExpectQuery("INSERT INTO purchases").
@@ -96,6 +108,13 @@ func TestPurchasesHandler_DELETE_Success(t *testing.T) {
 	deps, mock := createTestDeps(t)
 	defer deps.DB.Close()
 
+	userID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
+
 	// Mock successful deletion
 	result := sqlmock.NewResult(0, 1) // 1 row affected
 	mock.ExpectExec("DELETE FROM purchases WHERE id=\\$1 AND user_id=\\$2").
@@ -130,6 +149,13 @@ func TestPurchasesHandler_DELETE_Success(t *testing.T) {
 func TestPurchasesHandler_DELETE_NotFound(t *testing.T) {
 	deps, mock := createTestDeps(t)
 	defer deps.DB.Close()
+
+	userID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	// Mock deletion with no rows affected
 	result := sqlmock.NewResult(0, 0) // 0 rows affected
@@ -185,8 +211,15 @@ func TestPurchasesHandler_DELETE_Unauthorized(t *testing.T) {
 }
 
 func TestPurchasesHandler_DELETE_InvalidJSON(t *testing.T) {
-	deps, _ := createTestDeps(t)
+	deps, mock := createTestDeps(t)
 	defer deps.DB.Close()
+
+	userID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	handler := PurchasesHandler(deps)
 
@@ -205,8 +238,15 @@ func TestPurchasesHandler_DELETE_InvalidJSON(t *testing.T) {
 }
 
 func TestPurchasesHandler_DELETE_MissingID(t *testing.T) {
-	deps, _ := createTestDeps(t)
+	deps, mock := createTestDeps(t)
 	defer deps.DB.Close()
+
+	userID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	handler := PurchasesHandler(deps)
 
@@ -263,6 +303,13 @@ func TestPurchasesHandler_DELETE_DatabaseError(t *testing.T) {
 	deps, mock := createTestDeps(t)
 	defer deps.DB.Close()
 
+	userID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
+
 	// Mock database error during deletion
 	mock.ExpectExec("DELETE FROM purchases WHERE id=\\$1 AND user_id=\\$2").
 		WithArgs(123, 1).
@@ -296,6 +343,13 @@ func TestPurchasesHandler_DELETE_DatabaseError(t *testing.T) {
 func TestPurchasesHandler_DELETE_DifferentUserPurchase(t *testing.T) {
 	deps, mock := createTestDeps(t)
 	defer deps.DB.Close()
+
+	userID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	// User 1 tries to delete purchase owned by user 2
 	// The query includes user_id check, so no rows will be affected
@@ -335,11 +389,21 @@ func TestPurchasesHandler_DELETE_MultipleSuccessful(t *testing.T) {
 
 	userID := int64(1)
 
+	// First getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
+
 	// First deletion
 	result1 := sqlmock.NewResult(0, 1)
 	mock.ExpectExec("DELETE FROM purchases WHERE id=\\$1 AND user_id=\\$2").
 		WithArgs(100, userID).
 		WillReturnResult(result1)
+
+	// Second getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	// Second deletion
 	result2 := sqlmock.NewResult(0, 1)
@@ -396,6 +460,11 @@ func TestPurchasesHandler_GET_WithGroup(t *testing.T) {
 
 	userID := int64(1)
 	now := time.Now()
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	// Mock group query (user is in a group with 3 members)
 	groupRows := sqlmock.NewRows([]string{"user_id"}).

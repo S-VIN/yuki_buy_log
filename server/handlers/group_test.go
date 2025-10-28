@@ -18,6 +18,11 @@ func TestGroupHandler_GET_WithGroup(t *testing.T) {
 
 	userID := int64(1)
 
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
+
 	// Mock getting user's group ID
 	mock.ExpectQuery("SELECT id FROM groups WHERE user_id = \\$1").
 		WithArgs(userID).
@@ -56,6 +61,11 @@ func TestGroupHandler_GET_NoGroup(t *testing.T) {
 
 	userID := int64(1)
 
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
+
 	// Mock getting user's group ID - no group found
 	mock.ExpectQuery("SELECT id FROM groups WHERE user_id = \\$1").
 		WithArgs(userID).
@@ -85,6 +95,11 @@ func TestGroupHandler_DELETE_Success(t *testing.T) {
 
 	userID := int64(1)
 	groupID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	// Mock getting user's group ID
 	mock.ExpectQuery("SELECT id FROM groups WHERE user_id = \\$1").
@@ -143,6 +158,11 @@ func TestGroupHandler_DELETE_AutoDeleteGroup(t *testing.T) {
 	userID := int64(1)
 	groupID := int64(1)
 
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
+
 	// Mock getting user's group ID
 	mock.ExpectQuery("SELECT id FROM groups WHERE user_id = \\$1").
 		WithArgs(userID).
@@ -193,6 +213,11 @@ func TestGroupHandler_DELETE_NotInGroup(t *testing.T) {
 
 	userID := int64(1)
 
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
+
 	// Mock getting user's group ID - no group found
 	mock.ExpectQuery("SELECT id FROM groups WHERE user_id = \\$1").
 		WithArgs(userID).
@@ -240,6 +265,11 @@ func TestGroupHandler_DELETE_WithRenumbering(t *testing.T) {
 
 	userID := int64(2) // User 2 is leaving
 	groupID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user2", "hash2"))
 
 	// Mock getting user's group ID
 	mock.ExpectQuery("SELECT id FROM groups WHERE user_id = \\$1").

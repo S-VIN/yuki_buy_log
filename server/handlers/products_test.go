@@ -19,6 +19,11 @@ func TestProductsHandler_GET(t *testing.T) {
 
 	userID := int64(1)
 
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
+
 	// Mock group query (user not in a group)
 	mock.ExpectQuery("SELECT DISTINCT user_id FROM groups WHERE id =").
 		WithArgs(userID).
@@ -53,6 +58,13 @@ func TestProductsHandler_GET(t *testing.T) {
 func TestProductsHandler_POST(t *testing.T) {
 	deps, mock := createTestDeps(t)
 	defer deps.DB.Close()
+
+	userID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	// Mock successful product insertion
 	mock.ExpectQuery("INSERT INTO products").
@@ -124,6 +136,11 @@ func TestProductsHandler_GET_WithGroup(t *testing.T) {
 
 	userID := int64(1)
 
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
+
 	// Mock group query (user is in a group with 3 members)
 	groupRows := sqlmock.NewRows([]string{"user_id"}).
 		AddRow(1).
@@ -187,6 +204,11 @@ func TestProductsHandler_PUT_Success(t *testing.T) {
 
 	userID := int64(1)
 
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
+
 	// Mock successful product update
 	result := sqlmock.NewResult(0, 1) // 1 row affected
 	mock.ExpectExec("UPDATE products SET name=\\$1, volume=\\$2, brand=\\$3, default_tags=\\$4 WHERE id=\\$5 AND user_id=\\$6").
@@ -237,6 +259,11 @@ func TestProductsHandler_PUT_NotFound(t *testing.T) {
 	defer deps.DB.Close()
 
 	userID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	// Mock update with no rows affected
 	result := sqlmock.NewResult(0, 0) // 0 rows affected
@@ -300,8 +327,15 @@ func TestProductsHandler_PUT_Unauthorized(t *testing.T) {
 }
 
 func TestProductsHandler_PUT_InvalidJSON(t *testing.T) {
-	deps, _ := createTestDeps(t)
+	deps, mock := createTestDeps(t)
 	defer deps.DB.Close()
+
+	userID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	handler := ProductsHandler(deps)
 
@@ -320,8 +354,15 @@ func TestProductsHandler_PUT_InvalidJSON(t *testing.T) {
 }
 
 func TestProductsHandler_PUT_MissingID(t *testing.T) {
-	deps, _ := createTestDeps(t)
+	deps, mock := createTestDeps(t)
 	defer deps.DB.Close()
+
+	userID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	handler := ProductsHandler(deps)
 
@@ -349,8 +390,15 @@ func TestProductsHandler_PUT_MissingID(t *testing.T) {
 }
 
 func TestProductsHandler_PUT_ValidationError(t *testing.T) {
-	deps, _ := createTestDepsWithFailingValidator(t)
+	deps, mock := createTestDepsWithFailingValidator(t)
 	defer deps.DB.Close()
+
+	userID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	handler := ProductsHandler(deps)
 
@@ -382,6 +430,11 @@ func TestProductsHandler_PUT_DifferentUserProduct(t *testing.T) {
 	defer deps.DB.Close()
 
 	userID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	// User 1 tries to update product owned by user 2
 	// The query includes user_id check, so no rows will be affected
@@ -425,6 +478,11 @@ func TestProductsHandler_PUT_DatabaseError(t *testing.T) {
 
 	userID := int64(1)
 
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
+
 	// Mock database error during update
 	mock.ExpectExec("UPDATE products SET name=\\$1, volume=\\$2, brand=\\$3, default_tags=\\$4 WHERE id=\\$5 AND user_id=\\$6").
 		WithArgs("UpdatedProduct", "1L", "UpdatedBrand", "tag1", 123, userID).
@@ -464,6 +522,11 @@ func TestProductsHandler_PUT_EmptyTags(t *testing.T) {
 	defer deps.DB.Close()
 
 	userID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	// Mock successful product update with empty tags
 	result := sqlmock.NewResult(0, 1) // 1 row affected
@@ -506,6 +569,11 @@ func TestProductsHandler_PUT_MultipleTags(t *testing.T) {
 
 	userID := int64(1)
 
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
+
 	// Mock successful product update with multiple tags
 	result := sqlmock.NewResult(0, 1) // 1 row affected
 	mock.ExpectExec("UPDATE products SET name=\\$1, volume=\\$2, brand=\\$3, default_tags=\\$4 WHERE id=\\$5 AND user_id=\\$6").
@@ -542,8 +610,15 @@ func TestProductsHandler_PUT_MultipleTags(t *testing.T) {
 }
 
 func TestProductsHandler_PUT_TooManyTags(t *testing.T) {
-	deps, _ := createTestDepsWithFailingValidator(t)
+	deps, mock := createTestDepsWithFailingValidator(t)
 	defer deps.DB.Close()
+
+	userID := int64(1)
+
+	// Mock getUser call
+	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
+		WithArgs(userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
 	handler := ProductsHandler(deps)
 
