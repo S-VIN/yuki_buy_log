@@ -44,9 +44,11 @@ const Products = observer(() => {
         }}
       >
         <Card
-          bodyStyle={{ padding: '8px 16px' }}
+          bodyStyle={{ padding: '12px 16px' }}
           style={{
-            marginBottom: 4,
+            marginBottom: 16,
+            borderRadius: 8,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           }}
         >
           <Input
