@@ -3,14 +3,17 @@ import { Card, Row, Col, Tag, Typography } from 'antd';
 
 const { Text } = Typography;
 
-const ProductCard = ({ product }) => (
+const ProductCard = ({ product, onClick }) => (
   <Card
     style={{
       width: '100%',
       marginBottom: 8,
       padding: 0,
+      cursor: onClick ? 'pointer' : 'default',
     }}
     bodyStyle={{ padding: '8px 16px' }}
+    onClick={() => onClick && onClick(product)}
+    hoverable={!!onClick}
   >
     <Row align="middle" gutter={[8, 4]}>
       <Col span={24}>
@@ -48,6 +51,7 @@ ProductCard.propTypes = {
     volume: PropTypes.string,
     default_tags: PropTypes.arrayOf(PropTypes.string),
   }).isRequired,
+  onClick: PropTypes.func,
 };
 
 export default ProductCard;

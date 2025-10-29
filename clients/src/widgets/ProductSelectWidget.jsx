@@ -1,19 +1,16 @@
 import { useEffect, useState } from 'react';
-import { AutoComplete, Button, Form, Input, Modal, Tag, message } from 'antd';
+import { AutoComplete, Input, Tag } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { observer } from 'mobx-react-lite';
 
 import productStore from '../stores/ProductStore.jsx';
-import VolumeSelectWidget from './VolumeSelectWidget.jsx';
-import BrandSelectWidget from './BrandSelectWidget.jsx';
-import DefaultTagsWidget from './DefaultTagsWidget.jsx';
+import ProductFormModal from './ProductFormModal.jsx';
 
 const ProductSelectWidget = observer(({ onSelect, selectedProductProp }) => {
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(selectedProductProp || null);
   const [inputLabel, setInputLabel] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form] = Form.useForm();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -46,16 +43,9 @@ const ProductSelectWidget = observer(({ onSelect, selectedProductProp }) => {
     setIsModalOpen(true);
   };
 
-  const handleAddProduct = async (values) => {
-    try {
-      const product = await productStore.addProduct(values);
-      message.success('Product added successfully!');
-      setIsModalOpen(false);
-      form.resetFields();
-      handleSelect(product.id);
-    } catch {
-      message.error('Failed to add product.');
-    }
+  const handleProductAdded = () => {
+    // After product is added, refresh the filtered products
+    setFilteredProducts(productStore.products);
   };
 
   return (
@@ -107,34 +97,12 @@ const ProductSelectWidget = observer(({ onSelect, selectedProductProp }) => {
         />
       </AutoComplete>
 
-      <Modal
-        title="Add New Product"
+      <ProductFormModal
         open={isModalOpen}
-        style={{ top: 8 }}
-        bodyStyle={{ padding: 8 }}
-        onCancel={() => setIsModalOpen(false)}
-        footer={null}
-      >
-        <Form form={form} layout="horizontal" onFinish={handleAddProduct}>
-          <Form.Item name="name" rules={[{ required: true, message: 'name required' }]} style={{ marginBottom: 8 }}>
-            <Input placeholder="name" />
-          </Form.Item>
-          <Form.Item name="volume" rules={[{ required: true, message: 'volume required' }]} style={{ marginBottom: 8 }}>
-            <VolumeSelectWidget value={form.getFieldValue('volume')} onChange={(v) => form.setFieldsValue({ volume: v })} volumes={productStore.volumes} />
-          </Form.Item>
-          <Form.Item name="brand" rules={[{ required: true, message: 'brand required' }]} style={{ marginBottom: 8 }}>
-            <BrandSelectWidget value={form.getFieldValue('brand')} onChange={(v) => form.setFieldsValue({ brand: v })} />
-          </Form.Item>
-          <Form.Item name="default_tags" style={{ marginBottom: 8 }}>
-            <DefaultTagsWidget value={form.getFieldValue('default_tags')} onChange={(v) => form.setFieldsValue({ default_tags: v })} options={productStore.tags} placeholder="default tags (optional)" />
-          </Form.Item>
-          <Form.Item style={{ marginBottom: 0 }}>
-            <Button type="primary" htmlType="submit" block>
-              add
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={handleProductAdded}
+        mode="add"
+      />
     </div>
   );
 });
