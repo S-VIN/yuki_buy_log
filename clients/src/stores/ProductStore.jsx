@@ -1,5 +1,5 @@
 import { makeAutoObservable, runInAction } from 'mobx';
-import { fetchProducts, createProduct } from '../api.js';
+import { fetchProducts, createProduct, updateProduct } from '../api.js';
 import Product from '../models/Product.js';
 
 class ProductStore {
@@ -50,6 +50,33 @@ class ProductStore {
       });
 
       return newProduct;
+    } catch (error) {
+      runInAction(() => {
+        this.error = error.message;
+      });
+      throw error;
+    }
+  }
+
+  async updateProduct(productData) {
+    try {
+      const response = await updateProduct(productData);
+      const updatedProduct = new Product(
+        String(response.id),
+        response.name,
+        response.volume,
+        response.brand,
+        response.default_tags || []
+      );
+
+      runInAction(() => {
+        const index = this.products.findIndex((p) => p.id === updatedProduct.id);
+        if (index !== -1) {
+          this.products[index] = updatedProduct;
+        }
+      });
+
+      return updatedProduct;
     } catch (error) {
       runInAction(() => {
         this.error = error.message;

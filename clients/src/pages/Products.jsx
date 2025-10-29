@@ -3,15 +3,28 @@ import { observer } from 'mobx-react-lite';
 import { useState } from 'react';
 import productStore from '../stores/ProductStore.jsx';
 import ProductCard from '../widgets/ProductCard.jsx';
+import ProductFormModal from '../widgets/ProductFormModal.jsx';
 
 const { Text } = Typography;
 
 const Products = observer(() => {
   const [searchText, setSearchText] = useState('');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   const filteredProducts = productStore.products.filter((product) =>
     product.name.toLowerCase().includes(searchText.toLowerCase())
   );
+
+  const handleProductClick = (product) => {
+    setSelectedProduct(product);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedProduct(null);
+  };
 
   if (productStore.products.length === 0) {
     return (
@@ -75,10 +88,17 @@ const Products = observer(() => {
           </div>
         ) : (
           filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard key={product.id} product={product} onClick={handleProductClick} />
           ))
         )}
       </div>
+
+      <ProductFormModal
+        open={isEditModalOpen}
+        onClose={handleCloseModal}
+        mode="edit"
+        product={selectedProduct}
+      />
     </div>
   );
 });
