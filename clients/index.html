@@ -10,7 +10,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="YukiBuyLog">
     <link rel="apple-touch-icon" href="/icons/196.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- Отключает pull-to-refresh в Chrome на Android -->
+    <style>
+      body {
+        overscroll-behavior-y: none;
+      }
+    </style>
     <title>YukiBuyLog</title>
   </head>
   <body>
