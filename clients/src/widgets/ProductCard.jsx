@@ -13,7 +13,6 @@ const ProductCard = ({ product, onClick }) => (
     }}
     bodyStyle={{ padding: '8px 16px' }}
     onClick={() => onClick && onClick(product)}
-    hoverable={!!onClick}
   >
     <Row align="middle" gutter={[8, 4]}>
       <Col span={24}>

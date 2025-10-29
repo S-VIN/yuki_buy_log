@@ -45,21 +45,20 @@ const Products = observer(() => {
   }
 
   return (
-    <div style={{ paddingBottom: 8 }}>
-      {/* Fixed header with search */}
+    <>
+      {/* Sticky header with search */}
       <div
         style={{
           position: 'sticky',
           top: 0,
-          zIndex: 1,
+          zIndex: 10,
           backgroundColor: '#fff',
-          padding: '8px 8px 4px 8px',
+          padding: '8px 8px 8px 8px',
         }}
       >
         <Card
           bodyStyle={{ padding: '12px 16px' }}
           style={{
-            marginBottom: 16,
             borderRadius: 8,
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           }}
@@ -74,7 +73,7 @@ const Products = observer(() => {
       </div>
 
       {/* Products list */}
-      <div style={{ padding: 8 }}>
+      <div style={{ padding: 8, paddingTop: 8 }}>
         {filteredProducts.length === 0 ? (
           <div
             style={{
@@ -99,7 +98,7 @@ const Products = observer(() => {
         mode="edit"
         product={selectedProduct}
       />
-    </div>
+    </>
   );
 });
 
