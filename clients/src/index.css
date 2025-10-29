@@ -1,9 +1,34 @@
+html {
+  /* Отключает overscroll эффект (резиновое растягивание) */
+  overscroll-behavior: none;
+  /* Фиксирует высоту на мобильных устройствах */
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   background: #ffffff;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  /* Отключает overscroll эффект (резиновое растягивание) */
+  overscroll-behavior: none;
+  /* Запрещает pull-to-refresh жест */
+  overscroll-behavior-y: contain;
+  /* Предотвращает нежелательные touch жесты */
+  touch-action: pan-x pan-y;
+  /* Фиксирует высоту и позицию */
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 #root {
   min-height: 100vh;
+  height: 100%;
+  overflow: auto;
+  /* Отключает overscroll для корневого элемента */
+  overscroll-behavior: none;
+  /* Создает новый контекст прокрутки */
+  -webkit-overflow-scrolling: touch;
 }
