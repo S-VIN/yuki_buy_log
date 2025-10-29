@@ -48,7 +48,7 @@ const Products = observer(() => {
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      height: '100vh',
+      height: '100%',
       width: '100%'
     }}>
       {/* Sticky header with search */}
