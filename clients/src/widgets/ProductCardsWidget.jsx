@@ -5,12 +5,11 @@ import { DeleteTwoTone, EditTwoTone } from '@ant-design/icons';
 const ProductCardsWidget = ({ productListProp, onDelete, onEdit }) => (
   <div
     style={{
-      flex: 1,
+      height: '100%',
       overflowY: 'auto',
       border: '1px solid #f0f0f0',
       borderRadius: 8,
       padding: 4,
-      maxHeight: 'calc(100vh - 300px)',
     }}
   >
     <Row gutter={[0, 0]} justify="start">
