@@ -168,9 +168,15 @@ const AddReceipt = observer(() => {
   };
 
   return (
-    <div style={{ width: '100%', padding: 8 }}>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100vh',
+      width: '100%',
+      padding: 8
+    }}>
       {contextHolder}
-      <Card style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+      <Card style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', flexShrink: 0 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <DatepickerCustom onChange={handleDateChange} value={date} />
@@ -203,7 +209,9 @@ const AddReceipt = observer(() => {
           </div>
         </div>
       </Card>
-      <ProductCardsWidget productListProp={checkCache.purchases} onDelete={handleDeletePurchase} onEdit={handleEditPurchase} />
+      <div style={{ flex: 1, minHeight: 0, marginTop: 8 }}>
+        <ProductCardsWidget productListProp={checkCache.purchases} onDelete={handleDeletePurchase} onEdit={handleEditPurchase} />
+      </div>
 
       <BulkTagsModal
         open={isBulkTagModalOpen}

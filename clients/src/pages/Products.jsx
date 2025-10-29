@@ -45,13 +45,16 @@ const Products = observer(() => {
   }
 
   return (
-    <>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100vh',
+      width: '100%'
+    }}>
       {/* Sticky header with search */}
       <div
         style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
+          flexShrink: 0,
           backgroundColor: '#fff',
           padding: '8px 8px 8px 8px',
         }}
@@ -73,7 +76,13 @@ const Products = observer(() => {
       </div>
 
       {/* Products list */}
-      <div style={{ padding: 8, paddingTop: 8 }}>
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: 8,
+        paddingTop: 8,
+        minHeight: 0
+      }}>
         {filteredProducts.length === 0 ? (
           <div
             style={{
@@ -98,7 +107,7 @@ const Products = observer(() => {
         mode="edit"
         product={selectedProduct}
       />
-    </>
+    </div>
   );
 });
 

@@ -79,10 +79,15 @@ const Receipts = observer(() => {
   }
 
   return (
-    <div style={{ padding: 8 }}>
+    <div style={{
+      height: '100vh',
+      overflowY: 'auto',
+      padding: 8,
+      paddingBottom: 64
+    }}>
       {sortedDates.map((date) => (
         <div key={date}>
-              <div style={{ 
+              <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 paddingLeft: '16px',
