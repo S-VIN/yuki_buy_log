@@ -59,6 +59,21 @@ const doDelete = async (path, data) => {
   return response.json();
 };
 
+const doPut = async (path, data) => {
+  const response = await fetch(`${API_URL}${path}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || `PUT ${path} failed`);
+  }
+
+  return response.json();
+};
+
 // Group API
 export const fetchGroupMembers = () => doGet('/group');
 export const leaveGroup = () => doDelete('/group', {});
@@ -70,6 +85,7 @@ export const sendInvite = (login) => doPost('/invite', { login });
 // Product API
 export const fetchProducts = () => doGet('/products');
 export const createProduct = (product) => doPost('/products', product);
+export const updateProduct = (product) => doPut('/products', product);
 
 // Purchase API
 export const fetchPurchases = () => doGet('/purchases');
