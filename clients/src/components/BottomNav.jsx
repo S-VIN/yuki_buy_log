@@ -6,10 +6,10 @@ const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const items = [
-    { key: '/add', icon: <PlusCircleOutlined />, label: 'Add' },
-    { key: '/receipts', icon: <ProfileOutlined />, label: 'Receipts' },
-    { key: '/products', icon: <ShoppingOutlined />, label: 'Products' },
-    { key: '/settings', icon: <SettingOutlined />, label: 'Settings' },
+    { key: '/add', icon: <PlusCircleOutlined /> },
+    { key: '/receipts', icon: <ProfileOutlined /> },
+    { key: '/products', icon: <ShoppingOutlined /> },
+    { key: '/settings', icon: <SettingOutlined /> },
   ];
 
   const selectedKey = location.pathname === '/' ? '/add' : location.pathname;
