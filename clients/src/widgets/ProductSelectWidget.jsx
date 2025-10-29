@@ -54,7 +54,7 @@ const ProductSelectWidget = observer(({ onSelect, selectedProductProp }) => {
         style={{ width: '100%' }}
         onSearch={handleSearch}
         onSelect={handleSelect}
-        placeholder="Name"
+        placeholder="name"
         notFoundContent={'No products found'}
         value={inputLabel}
         open={open}
