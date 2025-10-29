@@ -80,10 +80,9 @@ const Receipts = observer(() => {
 
   return (
     <div style={{
-      height: '100vh',
+      height: '100%',
       overflowY: 'auto',
-      padding: 8,
-      paddingBottom: 64
+      padding: 8
     }}>
       {sortedDates.map((date) => (
         <div key={date}>
