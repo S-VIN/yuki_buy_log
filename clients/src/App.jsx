@@ -57,7 +57,11 @@ const App = () => {
           <Route path="*" element={<Navigate to={token ? '/' : '/login'} replace />} />
         </Routes>
       </Layout.Content>
-      {!hideNav && token && <BottomNav />}
+      {!hideNav && token && (
+        <Layout.Footer style={{ padding: 0, background: '#fff' }}>
+          <BottomNav />
+        </Layout.Footer>
+      )}
     </Layout>
   );
 };
