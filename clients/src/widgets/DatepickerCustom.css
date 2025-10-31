@@ -1,0 +1,60 @@
+.date-picker-mobile {
+  width: 100%;
+  height: 32px;
+  padding: 4px 11px;
+  font-size: 14px;
+  line-height: 1.5715;
+  color: rgba(0, 0, 0, 0.88);
+  background-color: #ffffff;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  outline: none;
+  transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+  box-sizing: border-box;
+  margin: 0;
+  display: block;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* WebKit/Safari specific fixes */
+.date-picker-mobile::-webkit-date-and-time-value {
+  text-align: left;
+  min-height: auto;
+}
+
+.date-picker-mobile::-webkit-datetime-edit {
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.date-picker-mobile::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+
+.date-picker-mobile::-webkit-calendar-picker-indicator {
+  margin-left: 4px;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Focus state */
+.date-picker-mobile:focus {
+  border-color: #4096ff;
+  box-shadow: 0 0 0 2px rgba(5, 145, 255, 0.1);
+}
+
+/* Hover state */
+.date-picker-mobile:hover {
+  border-color: #4096ff;
+}
+
+/* Disabled state */
+.date-picker-mobile:disabled {
+  color: rgba(0, 0, 0, 0.25);
+  background-color: rgba(0, 0, 0, 0.04);
+  cursor: not-allowed;
+  opacity: 1;
+}
