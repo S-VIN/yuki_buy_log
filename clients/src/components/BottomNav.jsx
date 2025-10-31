@@ -26,6 +26,7 @@ const BottomNav = () => {
         justifyContent: 'space-around',
         height: 56,
         flexShrink: 0,
+        borderTop: '1px solid #f0f0f0',
       }}
     />
   );
