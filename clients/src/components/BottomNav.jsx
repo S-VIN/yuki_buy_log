@@ -21,12 +21,11 @@ const BottomNav = () => {
       onClick={(e) => navigate(e.key)}
       items={items}
       style={{
-        position: 'fixed',
-        bottom: 0,
         width: '100%',
         display: 'flex',
         justifyContent: 'space-around',
         height: 56,
+        flexShrink: 0,
       }}
     />
   );
