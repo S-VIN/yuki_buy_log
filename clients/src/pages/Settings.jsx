@@ -98,7 +98,7 @@ const Settings = observer(() => {
   };
 
   return (
-    <div style={{ height: '100%', overflowY: 'auto', padding: 16 }}>
+    <div style={{ padding: 16 }}>
       <Card style={{ marginTop: 16 }}>
         {groupStore.members.length > 0 ? (
           <div style={{ marginBottom: 16 }}>
