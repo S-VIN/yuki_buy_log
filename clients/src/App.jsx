@@ -31,11 +31,16 @@ const App = () => {
   }, [token]);
 
   return (
-    <Layout style={{ height: '100vh', background: '#fff' }}>
+    <Layout style={{
+      height: '100vh',
+      background: '#fff',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
       <Layout.Content style={{
-        height: '100%',
-        paddingBottom: hideNav ? 0 : 56,
-        overflow: 'hidden'
+        flex: 1,
+        overflow: 'hidden',
+        minHeight: 0
       }}>
         <Routes>
           <Route path="/login" element={!token ? <Login /> : <Navigate to="/" replace />} />
