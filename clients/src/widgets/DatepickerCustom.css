@@ -1,4 +1,10 @@
 .date-picker-mobile {
+  /* Disable webkit native styling */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  /* Match Ant Design input styling */
   width: 100%;
   height: 32px;
   padding: 4px 11px;
@@ -12,32 +18,7 @@
   transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
   box-sizing: border-box;
   margin: 0;
-  display: block;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-}
-
-/* WebKit/Safari specific fixes */
-.date-picker-mobile::-webkit-date-and-time-value {
-  text-align: left;
-  min-height: auto;
-}
-
-.date-picker-mobile::-webkit-datetime-edit {
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-}
-
-.date-picker-mobile::-webkit-datetime-edit-fields-wrapper {
-  padding: 0;
-}
-
-.date-picker-mobile::-webkit-calendar-picker-indicator {
-  margin-left: 4px;
-  padding: 0;
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
 }
 
 /* Focus state */
