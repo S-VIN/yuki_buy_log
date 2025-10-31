@@ -82,8 +82,8 @@ const ReceiptDetails = observer(() => {
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: 8 }}>
-      <Card style={{ marginBottom: 16, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', flexShrink: 0 }}>
+    <div style={{ padding: 8 }}>
+      <Card style={{ marginBottom: 16, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -108,9 +108,7 @@ const ReceiptDetails = observer(() => {
           </div>
         </div>
       </Card>
-      <div style={{ flex: 1, minHeight: 0 }}>
-        <ProductCardsWidget productListProp={receipt.items} />
-      </div>
+      <ProductCardsWidget productListProp={receipt.items} />
     </div>
   );
 });
