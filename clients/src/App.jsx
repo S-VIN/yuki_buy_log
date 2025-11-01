@@ -35,12 +35,14 @@ const App = () => {
       height: '100vh',
       background: '#fff',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      overflow: 'hidden'
     }}>
       <Layout.Content style={{
-        flex: 1,
+        flex: '1 1 auto',
         overflow: 'hidden',
-        minHeight: 0
+        minHeight: 0,
+        WebkitFlex: '1 1 auto'
       }}>
         <Routes>
           <Route path="/login" element={!token ? <Login /> : <Navigate to="/" replace />} />
@@ -58,7 +60,14 @@ const App = () => {
         </Routes>
       </Layout.Content>
       {!hideNav && token && (
-        <Layout.Footer style={{ padding: 0, background: '#fff' }}>
+        <Layout.Footer style={{
+          padding: 0,
+          background: '#fff',
+          height: 56,
+          flexShrink: 0,
+          position: 'relative',
+          zIndex: 100
+        }}>
           <BottomNav />
         </Layout.Footer>
       )}
