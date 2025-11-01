@@ -25,8 +25,12 @@ const BottomNav = () => {
         display: 'flex',
         justifyContent: 'space-around',
         height: 56,
+        minHeight: 56,
+        maxHeight: 56,
         flexShrink: 0,
         borderTop: '1px solid #f0f0f0',
+        WebkitFlexShrink: 0,
+        position: 'relative',
       }}
     />
   );
