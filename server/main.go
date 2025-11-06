@@ -20,36 +20,15 @@ import (
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = "postgres://postgres:postgres@localhost:5432/yuki_buy_log?sslmode=disable"
-	}
-
-	log.Printf("Connecting to database with DSN: %s", dsn)
-	db, err := sql.Open("postgres", dsn)
-	if err != nil {
-		log.Fatalf("Failed to open database connection: %v", err)
-	}
-
-	log.Println("Waiting for database connection...")
-	for i := 0; i < 30; i++ {
-		if err = db.Ping(); err == nil {
-			log.Println("Database connection established successfully")
-			break
-		}
-		log.Printf("Database connection attempt %d failed, retrying in 1 second...", i+1)
-		time.Sleep(time.Second)
-	}
-	if err != nil {
-		log.Fatalf("Failed to connect to database after 30 attempts: %v", err)
-	}
-	defer db.Close()
-
 	log.Println("Initializing authenticator...")
 	auth := NewAuthenticator([]byte("secret")) // TODO change key
 
 	log.Println("Setting up HTTP routes...")
 
+	db, err := sql.Open("postgres", "postgres://postgres:postgres@localhost:5432/yuki_buy_log?sslmode=disable")
+	if err != nil {
+		log.Fatalf("Failed to open database connection: %v", err)
+	}
 	// Создаем зависимости для handlers
 	deps := &handlers.Dependencies{
 		DB:        db,

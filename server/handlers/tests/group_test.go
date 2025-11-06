@@ -1,4 +1,4 @@
-package handlers
+package handlers_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"yuki_buy_log/handlers"
 	"github.com/DATA-DOG/go-sqlmock"
 )
 
@@ -37,7 +38,7 @@ func TestGroupHandler_GET_WithGroup(t *testing.T) {
 		WithArgs(1).
 		WillReturnRows(rows)
 
-	handler := GroupHandler(deps)
+	handler := handlers.GroupHandler(deps)
 
 	req := httptest.NewRequest("GET", "/group", nil)
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)
@@ -71,7 +72,7 @@ func TestGroupHandler_GET_NoGroup(t *testing.T) {
 		WithArgs(userID).
 		WillReturnError(sql.ErrNoRows)
 
-	handler := GroupHandler(deps)
+	handler := handlers.GroupHandler(deps)
 
 	req := httptest.NewRequest("GET", "/group", nil)
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)
@@ -133,7 +134,7 @@ func TestGroupHandler_DELETE_Success(t *testing.T) {
 	// Commit transaction
 	mock.ExpectCommit()
 
-	handler := GroupHandler(deps)
+	handler := handlers.GroupHandler(deps)
 
 	req := httptest.NewRequest("DELETE", "/group", nil)
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)
@@ -189,7 +190,7 @@ func TestGroupHandler_DELETE_AutoDeleteGroup(t *testing.T) {
 	// Commit transaction
 	mock.ExpectCommit()
 
-	handler := GroupHandler(deps)
+	handler := handlers.GroupHandler(deps)
 
 	req := httptest.NewRequest("DELETE", "/group", nil)
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)
@@ -223,7 +224,7 @@ func TestGroupHandler_DELETE_NotInGroup(t *testing.T) {
 		WithArgs(userID).
 		WillReturnError(sql.ErrNoRows)
 
-	handler := GroupHandler(deps)
+	handler := handlers.GroupHandler(deps)
 
 	req := httptest.NewRequest("DELETE", "/group", nil)
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)
@@ -245,7 +246,7 @@ func TestGroupHandler_MethodNotAllowed(t *testing.T) {
 	deps, _ := createTestDeps(t)
 	defer deps.DB.Close()
 
-	handler := GroupHandler(deps)
+	handler := handlers.GroupHandler(deps)
 
 	req := httptest.NewRequest("POST", "/group", nil)
 	ctx := context.WithValue(req.Context(), UserIDKey, int64(1))
@@ -314,7 +315,7 @@ func TestGroupHandler_DELETE_WithRenumbering(t *testing.T) {
 	// Commit transaction
 	mock.ExpectCommit()
 
-	handler := GroupHandler(deps)
+	handler := handlers.GroupHandler(deps)
 
 	req := httptest.NewRequest("DELETE", "/group", nil)
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)

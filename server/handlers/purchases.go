@@ -29,7 +29,7 @@ func PurchasesHandler(d *Dependencies) http.HandlerFunc {
 
 func getPurchases(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 	log.Println("Fetching purchases from database")
-	user, err := getUser(d, r)
+	user, err := getUser(r)
 	if err != nil {
 		log.Println("Unauthorized access attempt to purchases")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -112,7 +112,7 @@ func createPurchase(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	user, err := getUser(d, r)
+	user, err := getUser(r)
 	if err != nil {
 		log.Println("Unauthorized access attempt to create purchase")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -139,7 +139,7 @@ func createPurchase(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 
 func deletePurchase(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 	log.Println("Deleting purchase")
-	user, err := getUser(d, r)
+	user, err := getUser(r)
 	if err != nil {
 		log.Println("Unauthorized access attempt to delete purchase")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)

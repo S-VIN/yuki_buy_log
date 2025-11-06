@@ -1,0 +1,61 @@
+package database
+
+import (
+	"database/sql"
+	"fmt"
+	"log"
+	"yuki_buy_log/models"
+)
+
+func GetUserById(id *models.UserId) (user *models.User, err error) {
+	user = &models.User{}
+	err = db.QueryRow(`SELECT id, login, password_hash FROM users WHERE id = $1`, id).Scan(&user.Id, &user.Login, &user.Password)
+	if err != nil {
+		return nil, fmt.Errorf("Cant find user with id: %d in db, err: %e", id, err)
+	}
+	return user, nil
+}
+
+func GetUserByLogin(login string) (user *models.User, err error) {
+	err = db.QueryRow(`SELECT id, password_hash FROM users WHERE login=$1`, login).Scan(&user.Id, &user.Password)
+	if err != nil {
+		log.Printf("User not found or database error for login %s: %v", login, err)
+		return nil, fmt.Errorf("User not found or database error for login %s", login)
+	}
+	return user, nil
+}
+
+func GetUsersByGroupId(id *models.GroupId) (users []models.User, err error) {
+	err = db.QueryRow(`SELECT id FROM groups WHERE user_id = $1`, id).Scan(&id)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return users, fmt.Errorf("Cant find users in group id %d, err: %e", id, err)
+		}
+		return users, nil
+	}
+
+	rows, err := db.Query(`SELECT user_id, login, password_hash FROM groups JOIN users u on groups.user_id = u.id WHERE groups.id = $1`, id)
+	if err != nil {
+		return nil, fmt.Errorf("Cant find user with id: %d in db, err: %e", id, err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var user models.User
+		err := rows.Scan(&user.Id, &user.Login, &user.Password)
+		if err != nil {
+			return nil, fmt.Errorf("scan error: %w", err)
+		}
+		users = append(users, user)
+	}
+	return users, nil
+}
+
+func AddUser(user *models.User) (err error) {
+	err = db.QueryRow(`INSERT INTO users (login, password_hash) VALUES ($1,$2) RETURNING id`, user.Login, user.Password).Scan(&user.Id)
+	if err != nil {
+		log.Printf("Failed to insert user: %v", err)
+		return err
+	}
+	return nil
+}

@@ -1,4 +1,4 @@
-package handlers
+package handlers_test
 
 import (
 	"bytes"
@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"yuki_buy_log/handlers"
 	"yuki_buy_log/models"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -39,7 +40,7 @@ func TestPurchasesHandler_GET(t *testing.T) {
 		WithArgs(userID).
 		WillReturnRows(rows)
 
-	handler := PurchasesHandler(deps)
+	handler := handlers.PurchasesHandler(deps)
 
 	req := httptest.NewRequest("GET", "/purchases", nil)
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)
@@ -73,7 +74,7 @@ func TestPurchasesHandler_POST(t *testing.T) {
 		WithArgs(1, 2, 1000, sqlmock.AnyArg(), "TestStore", pq.Array([]string{"test"}), int64(123), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
-	handler := PurchasesHandler(deps)
+	handler := handlers.PurchasesHandler(deps)
 
 	purchase := models.Purchase{
 		ProductId: 1,
@@ -121,7 +122,7 @@ func TestPurchasesHandler_DELETE_Success(t *testing.T) {
 		WithArgs(123, 1).
 		WillReturnResult(result)
 
-	handler := PurchasesHandler(deps)
+	handler := handlers.PurchasesHandler(deps)
 
 	deleteReq := struct {
 		Id int64 `json:"id"`
@@ -163,7 +164,7 @@ func TestPurchasesHandler_DELETE_NotFound(t *testing.T) {
 		WithArgs(999, 1).
 		WillReturnResult(result)
 
-	handler := PurchasesHandler(deps)
+	handler := handlers.PurchasesHandler(deps)
 
 	deleteReq := struct {
 		Id int64 `json:"id"`
@@ -192,7 +193,7 @@ func TestPurchasesHandler_DELETE_Unauthorized(t *testing.T) {
 	deps, _ := createTestDeps(t)
 	defer deps.DB.Close()
 
-	handler := PurchasesHandler(deps)
+	handler := handlers.PurchasesHandler(deps)
 
 	deleteReq := struct {
 		Id int64 `json:"id"`
@@ -221,7 +222,7 @@ func TestPurchasesHandler_DELETE_InvalidJSON(t *testing.T) {
 		WithArgs(userID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
-	handler := PurchasesHandler(deps)
+	handler := handlers.PurchasesHandler(deps)
 
 	req := httptest.NewRequest("DELETE", "/purchases", bytes.NewBuffer([]byte("invalid json")))
 	req.Header.Set("Content-Type", "application/json")
@@ -248,7 +249,7 @@ func TestPurchasesHandler_DELETE_MissingID(t *testing.T) {
 		WithArgs(userID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
-	handler := PurchasesHandler(deps)
+	handler := handlers.PurchasesHandler(deps)
 
 	deleteReq := struct {
 		Id int64 `json:"id"`
@@ -273,7 +274,7 @@ func TestPurchasesHandler_InvalidMethod(t *testing.T) {
 	deps, _ := createTestDeps(t)
 	defer deps.DB.Close()
 
-	handler := PurchasesHandler(deps)
+	handler := handlers.PurchasesHandler(deps)
 
 	req := httptest.NewRequest("PUT", "/purchases", nil)
 	w := httptest.NewRecorder()
@@ -288,7 +289,7 @@ func TestPurchasesHandler_Unauthorized(t *testing.T) {
 	deps, _ := createTestDeps(t)
 	defer deps.DB.Close()
 
-	handler := PurchasesHandler(deps)
+	handler := handlers.PurchasesHandler(deps)
 
 	req := httptest.NewRequest("GET", "/purchases", nil)
 	w := httptest.NewRecorder()
@@ -315,7 +316,7 @@ func TestPurchasesHandler_DELETE_DatabaseError(t *testing.T) {
 		WithArgs(123, 1).
 		WillReturnError(sqlmock.ErrCancelled)
 
-	handler := PurchasesHandler(deps)
+	handler := handlers.PurchasesHandler(deps)
 
 	deleteReq := struct {
 		Id int64 `json:"id"`
@@ -358,7 +359,7 @@ func TestPurchasesHandler_DELETE_DifferentUserPurchase(t *testing.T) {
 		WithArgs(456, 1).
 		WillReturnResult(result)
 
-	handler := PurchasesHandler(deps)
+	handler := handlers.PurchasesHandler(deps)
 
 	deleteReq := struct {
 		Id int64 `json:"id"`
@@ -411,7 +412,7 @@ func TestPurchasesHandler_DELETE_MultipleSuccessful(t *testing.T) {
 		WithArgs(200, userID).
 		WillReturnResult(result2)
 
-	handler := PurchasesHandler(deps)
+	handler := handlers.PurchasesHandler(deps)
 
 	// Delete first purchase
 	deleteReq1 := struct {
@@ -486,7 +487,7 @@ func TestPurchasesHandler_GET_WithGroup(t *testing.T) {
 		WithArgs(sqlmock.AnyArg()).
 		WillReturnRows(purchaseRows)
 
-	handler := PurchasesHandler(deps)
+	handler := handlers.PurchasesHandler(deps)
 
 	req := httptest.NewRequest("GET", "/purchases", nil)
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)

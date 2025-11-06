@@ -1,14 +1,15 @@
-package validators
+package validators_test
 
 import (
 	"testing"
 	"time"
 	
 	"yuki_buy_log/models"
+	"yuki_buy_log/validators"
 )
 
 func TestValidateProduct(t *testing.T) {
-	v := NewValidator()
+	v := validators.NewValidator()
 	// Valid product with English letters
 	if err := v.ValidateProduct(&models.Product{Name: "Tea", Volume: "500ml", Brand: "Brand1", DefaultTags: []string{"tag1"}, UserId: 1}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -32,7 +33,7 @@ func TestValidateProduct(t *testing.T) {
 }
 
 func TestValidatePurchase(t *testing.T) {
-	v := NewValidator()
+	v := validators.NewValidator()
 	validDate := time.Date(2023, 3, 1, 0, 0, 0, 0, time.UTC)
 	// Valid purchase with English letters
 	if err := v.ValidatePurchase(&models.Purchase{ProductId: 1, Quantity: 2, Price: 100, Date: validDate, Store: "Store", ReceiptId: 1, UserId: 1}); err != nil {

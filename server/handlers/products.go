@@ -30,7 +30,7 @@ func ProductsHandler(d *Dependencies) http.HandlerFunc {
 
 func getProducts(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 	log.Println("Fetching products from database")
-	user, err := getUser(d, r)
+	user, err := getUser(r)
 	if err != nil {
 		log.Println("Unauthorized access attempt to products")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -119,7 +119,7 @@ func createProduct(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	user, err := getUser(d, r)
+	user, err := getUser(r)
 	if err != nil {
 		log.Println("Unauthorized access attempt to create product")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -147,7 +147,7 @@ func createProduct(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 
 func updateProduct(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 	log.Println("Updating product")
-	user, err := getUser(d, r)
+	user, err := getUser(r)
 	if err != nil {
 		log.Println("Unauthorized access attempt to update product")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)

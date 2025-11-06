@@ -1,10 +1,11 @@
-package tasks
+package tasks_test
 
 import (
 	"database/sql"
 	"testing"
 	"time"
 
+	"yuki_buy_log/tasks"
 	"github.com/DATA-DOG/go-sqlmock"
 )
 
@@ -21,7 +22,7 @@ func TestCleanupOldInvites_Success(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 3))
 
 	// Execute the cleanup function
-	cleanupFunc := CleanupOldInvites(db)
+	cleanupFunc := tasks.CleanupOldInvites(db)
 	cleanupFunc()
 
 	// Verify expectations
@@ -43,7 +44,7 @@ func TestCleanupOldInvites_NoInvitesToDelete(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
 	// Execute the cleanup function
-	cleanupFunc := CleanupOldInvites(db)
+	cleanupFunc := tasks.CleanupOldInvites(db)
 	cleanupFunc()
 
 	// Verify expectations
@@ -65,7 +66,7 @@ func TestCleanupOldInvites_DatabaseError(t *testing.T) {
 		WillReturnError(sql.ErrConnDone)
 
 	// Execute the cleanup function - should not panic
-	cleanupFunc := CleanupOldInvites(db)
+	cleanupFunc := tasks.CleanupOldInvites(db)
 	cleanupFunc()
 
 	// Verify expectations
@@ -89,7 +90,7 @@ func TestCleanupOldInvites_VerifyCutoffTime(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	// Execute the cleanup function
-	cleanupFunc := CleanupOldInvites(db)
+	cleanupFunc := tasks.CleanupOldInvites(db)
 	cleanupFunc()
 
 	afterTest := time.Now().Add(-24 * time.Hour)

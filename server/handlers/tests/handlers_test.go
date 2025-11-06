@@ -1,10 +1,11 @@
-package handlers
+package handlers_test
 
 import (
 	"database/sql"
 	"errors"
 	"testing"
 
+	"yuki_buy_log/handlers"
 	"yuki_buy_log/models"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -52,10 +53,10 @@ func setupMockDB(t *testing.T) (*sql.DB, sqlmock.Sqlmock) {
 }
 
 // Helper to create test dependencies
-func createTestDeps(t *testing.T) (*Dependencies, sqlmock.Sqlmock) {
+func createTestDeps(t *testing.T) (*handlers.Dependencies, sqlmock.Sqlmock) {
 	db, mock := setupMockDB(t)
 	
-	deps := &Dependencies{
+	deps := &handlers.Dependencies{
 		DB:        db,
 		Validator: testValidator{},
 		Auth:      testAuth{},
@@ -65,10 +66,10 @@ func createTestDeps(t *testing.T) (*Dependencies, sqlmock.Sqlmock) {
 }
 
 // Helper to create test dependencies with failing validator
-func createTestDepsWithFailingValidator(t *testing.T) (*Dependencies, sqlmock.Sqlmock) {
+func createTestDepsWithFailingValidator(t *testing.T) (*handlers.Dependencies, sqlmock.Sqlmock) {
 	db, mock := setupMockDB(t)
 	
-	deps := &Dependencies{
+	deps := &handlers.Dependencies{
 		DB:        db,
 		Validator: testValidator{shouldFailProduct: true, shouldFailPurchase: true},
 		Auth:      testAuth{},
@@ -78,10 +79,10 @@ func createTestDepsWithFailingValidator(t *testing.T) (*Dependencies, sqlmock.Sq
 }
 
 // Helper to create test dependencies with failing auth
-func createTestDepsWithFailingAuth(t *testing.T) (*Dependencies, sqlmock.Sqlmock) {
+func createTestDepsWithFailingAuth(t *testing.T) (*handlers.Dependencies, sqlmock.Sqlmock) {
 	db, mock := setupMockDB(t)
 	
-	deps := &Dependencies{
+	deps := &handlers.Dependencies{
 		DB:        db,
 		Validator: testValidator{},
 		Auth:      testAuth{shouldFail: true},

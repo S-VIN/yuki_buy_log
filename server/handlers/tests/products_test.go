@@ -1,4 +1,4 @@
-package handlers
+package handlers_test
 
 import (
 	"bytes"
@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"yuki_buy_log/handlers"
 	"yuki_buy_log/models"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -37,7 +38,7 @@ func TestProductsHandler_GET(t *testing.T) {
 		WithArgs(userID).
 		WillReturnRows(rows)
 
-	handler := ProductsHandler(deps)
+	handler := handlers.ProductsHandler(deps)
 
 	req := httptest.NewRequest("GET", "/products", nil)
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)
@@ -71,7 +72,7 @@ func TestProductsHandler_POST(t *testing.T) {
 		WithArgs("TestProduct", "500ml", "TestBrand", "test", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
-	handler := ProductsHandler(deps)
+	handler := handlers.ProductsHandler(deps)
 
 	product := models.Product{
 		Name:        "TestProduct",
@@ -103,7 +104,7 @@ func TestProductsHandler_InvalidMethod(t *testing.T) {
 	deps, _ := createTestDeps(t)
 	defer deps.DB.Close()
 
-	handler := ProductsHandler(deps)
+	handler := handlers.ProductsHandler(deps)
 
 	req := httptest.NewRequest("DELETE", "/products", nil)
 	w := httptest.NewRecorder()
@@ -118,7 +119,7 @@ func TestProductsHandler_Unauthorized(t *testing.T) {
 	deps, _ := createTestDeps(t)
 	defer deps.DB.Close()
 
-	handler := ProductsHandler(deps)
+	handler := handlers.ProductsHandler(deps)
 
 	// Request without user_id in context
 	req := httptest.NewRequest("GET", "/products", nil)
@@ -161,7 +162,7 @@ func TestProductsHandler_GET_WithGroup(t *testing.T) {
 		WithArgs(sqlmock.AnyArg()).
 		WillReturnRows(productRows)
 
-	handler := ProductsHandler(deps)
+	handler := handlers.ProductsHandler(deps)
 
 	req := httptest.NewRequest("GET", "/products", nil)
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)
@@ -215,7 +216,7 @@ func TestProductsHandler_PUT_Success(t *testing.T) {
 		WithArgs("UpdatedProduct", "1L", "UpdatedBrand", "tag1,tag2", 123, userID).
 		WillReturnResult(result)
 
-	handler := ProductsHandler(deps)
+	handler := handlers.ProductsHandler(deps)
 
 	product := models.Product{
 		Id:          123,
@@ -271,7 +272,7 @@ func TestProductsHandler_PUT_NotFound(t *testing.T) {
 		WithArgs("UpdatedProduct", "1L", "UpdatedBrand", "tag1", 999, userID).
 		WillReturnResult(result)
 
-	handler := ProductsHandler(deps)
+	handler := handlers.ProductsHandler(deps)
 
 	product := models.Product{
 		Id:          999,
@@ -304,7 +305,7 @@ func TestProductsHandler_PUT_Unauthorized(t *testing.T) {
 	deps, _ := createTestDeps(t)
 	defer deps.DB.Close()
 
-	handler := ProductsHandler(deps)
+	handler := handlers.ProductsHandler(deps)
 
 	product := models.Product{
 		Id:          123,
@@ -337,7 +338,7 @@ func TestProductsHandler_PUT_InvalidJSON(t *testing.T) {
 		WithArgs(userID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
-	handler := ProductsHandler(deps)
+	handler := handlers.ProductsHandler(deps)
 
 	req := httptest.NewRequest("PUT", "/products", bytes.NewBuffer([]byte("invalid json")))
 	req.Header.Set("Content-Type", "application/json")
@@ -364,7 +365,7 @@ func TestProductsHandler_PUT_MissingID(t *testing.T) {
 		WithArgs(userID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
-	handler := ProductsHandler(deps)
+	handler := handlers.ProductsHandler(deps)
 
 	product := models.Product{
 		Id:          0, // Missing/invalid ID
@@ -400,7 +401,7 @@ func TestProductsHandler_PUT_ValidationError(t *testing.T) {
 		WithArgs(userID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
-	handler := ProductsHandler(deps)
+	handler := handlers.ProductsHandler(deps)
 
 	product := models.Product{
 		Id:          123,
@@ -443,7 +444,7 @@ func TestProductsHandler_PUT_DifferentUserProduct(t *testing.T) {
 		WithArgs("UpdatedProduct", "1L", "UpdatedBrand", "tag1", 456, userID).
 		WillReturnResult(result)
 
-	handler := ProductsHandler(deps)
+	handler := handlers.ProductsHandler(deps)
 
 	product := models.Product{
 		Id:          456, // Product owned by different user
@@ -488,7 +489,7 @@ func TestProductsHandler_PUT_DatabaseError(t *testing.T) {
 		WithArgs("UpdatedProduct", "1L", "UpdatedBrand", "tag1", 123, userID).
 		WillReturnError(sqlmock.ErrCancelled)
 
-	handler := ProductsHandler(deps)
+	handler := handlers.ProductsHandler(deps)
 
 	product := models.Product{
 		Id:          123,
@@ -534,7 +535,7 @@ func TestProductsHandler_PUT_EmptyTags(t *testing.T) {
 		WithArgs("UpdatedProduct", "1L", "UpdatedBrand", "", 123, userID).
 		WillReturnResult(result)
 
-	handler := ProductsHandler(deps)
+	handler := handlers.ProductsHandler(deps)
 
 	product := models.Product{
 		Id:          123,
@@ -580,7 +581,7 @@ func TestProductsHandler_PUT_MultipleTags(t *testing.T) {
 		WithArgs("UpdatedProduct", "1L", "UpdatedBrand", "tag1,tag2,tag3,tag4,tag5", 123, userID).
 		WillReturnResult(result)
 
-	handler := ProductsHandler(deps)
+	handler := handlers.ProductsHandler(deps)
 
 	product := models.Product{
 		Id:          123,
@@ -620,7 +621,7 @@ func TestProductsHandler_PUT_TooManyTags(t *testing.T) {
 		WithArgs(userID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
 
-	handler := ProductsHandler(deps)
+	handler := handlers.ProductsHandler(deps)
 
 	// Create product with 11 tags (exceeds limit of 10)
 	tags := make([]string, 11)

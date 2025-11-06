@@ -1,14 +1,16 @@
-package tasks
+package tasks_test
 
 import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"yuki_buy_log/tasks"
 )
 
 func TestScheduler_AddTask(t *testing.T) {
-	s := NewScheduler()
-	task := Task{
+	s := tasks.NewScheduler()
+	task := tasks.Task{
 		Name:     "test_task",
 		Interval: 1 * time.Second,
 		Run:      func() {},
@@ -16,20 +18,20 @@ func TestScheduler_AddTask(t *testing.T) {
 
 	s.AddTask(task)
 
-	if len(s.tasks) != 1 {
-		t.Errorf("Expected 1 task, got %d", len(s.tasks))
+	if s.TaskCount() != 1 {
+		t.Errorf("Expected 1 task, got %d", s.TaskCount())
 	}
 
-	if s.tasks[0].Name != "test_task" {
-		t.Errorf("Expected task name 'test_task', got '%s'", s.tasks[0].Name)
+	if s.GetTask(0).Name != "test_task" {
+		t.Errorf("Expected task name 'test_task', got '%s'", s.GetTask(0).Name)
 	}
 }
 
 func TestScheduler_StartStop(t *testing.T) {
-	s := NewScheduler()
+	s := tasks.NewScheduler()
 	var counter atomic.Int32
 
-	task := Task{
+	task := tasks.Task{
 		Name:     "test_task",
 		Interval: 100 * time.Millisecond,
 		Run: func() {
@@ -61,11 +63,11 @@ func TestScheduler_StartStop(t *testing.T) {
 }
 
 func TestScheduler_MultipleTasks(t *testing.T) {
-	s := NewScheduler()
+	s := tasks.NewScheduler()
 	var counter1 atomic.Int32
 	var counter2 atomic.Int32
 
-	task1 := Task{
+	task1 := tasks.Task{
 		Name:     "task1",
 		Interval: 50 * time.Millisecond,
 		Run: func() {
@@ -73,7 +75,7 @@ func TestScheduler_MultipleTasks(t *testing.T) {
 		},
 	}
 
-	task2 := Task{
+	task2 := tasks.Task{
 		Name:     "task2",
 		Interval: 100 * time.Millisecond,
 		Run: func() {
@@ -108,7 +110,7 @@ func TestScheduler_MultipleTasks(t *testing.T) {
 }
 
 func TestScheduler_EmptyScheduler(t *testing.T) {
-	s := NewScheduler()
+	s := tasks.NewScheduler()
 	s.Start()
 	time.Sleep(100 * time.Millisecond)
 	s.Stop()

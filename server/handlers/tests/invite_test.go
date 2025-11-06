@@ -1,4 +1,4 @@
-package handlers
+package handlers_test
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"yuki_buy_log/handlers"
 	"github.com/DATA-DOG/go-sqlmock"
 )
 
@@ -34,7 +35,7 @@ func TestInviteHandler_GET(t *testing.T) {
 		WithArgs(userID).
 		WillReturnRows(rows)
 
-	handler := InviteHandler(deps)
+	handler := handlers.InviteHandler(deps)
 
 	req := httptest.NewRequest("GET", "/invite", nil)
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)
@@ -99,7 +100,7 @@ func TestInviteHandler_POST_NewInvite(t *testing.T) {
 	// Commit transaction
 	mock.ExpectCommit()
 
-	handler := InviteHandler(deps)
+	handler := handlers.InviteHandler(deps)
 
 	req := httptest.NewRequest("POST", "/invite", bytes.NewReader(body))
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)
@@ -175,7 +176,7 @@ func TestInviteHandler_POST_MutualInvite_NewGroup(t *testing.T) {
 	// Commit transaction
 	mock.ExpectCommit()
 
-	handler := InviteHandler(deps)
+	handler := handlers.InviteHandler(deps)
 
 	req := httptest.NewRequest("POST", "/invite", bytes.NewReader(body))
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)
@@ -265,7 +266,7 @@ func TestInviteHandler_POST_MutualInvite_ExistingGroup(t *testing.T) {
 	// Commit transaction
 	mock.ExpectCommit()
 
-	handler := InviteHandler(deps)
+	handler := handlers.InviteHandler(deps)
 
 	req := httptest.NewRequest("POST", "/invite", bytes.NewReader(body))
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)
@@ -336,7 +337,7 @@ func TestInviteHandler_POST_TargetUserInGroup(t *testing.T) {
 	// Commit transaction
 	mock.ExpectCommit()
 
-	handler := InviteHandler(deps)
+	handler := handlers.InviteHandler(deps)
 
 	req := httptest.NewRequest("POST", "/invite", bytes.NewReader(body))
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)
@@ -388,7 +389,7 @@ func TestInviteHandler_POST_BothUsersInDifferentGroups(t *testing.T) {
 		WithArgs(targetUserID).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(targetGroupID))
 
-	handler := InviteHandler(deps)
+	handler := handlers.InviteHandler(deps)
 
 	req := httptest.NewRequest("POST", "/invite", bytes.NewReader(body))
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)
@@ -444,7 +445,7 @@ func TestInviteHandler_POST_GroupSizeLimitReached(t *testing.T) {
 		WithArgs(existingGroupID).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(5))
 
-	handler := InviteHandler(deps)
+	handler := handlers.InviteHandler(deps)
 
 	req := httptest.NewRequest("POST", "/invite", bytes.NewReader(body))
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)
@@ -483,7 +484,7 @@ func TestInviteHandler_POST_UserNotFound(t *testing.T) {
 		WithArgs("nonexistent_user").
 		WillReturnError(sql.ErrNoRows)
 
-	handler := InviteHandler(deps)
+	handler := handlers.InviteHandler(deps)
 
 	req := httptest.NewRequest("POST", "/invite", bytes.NewReader(body))
 	ctx := context.WithValue(req.Context(), UserIDKey, userID)
@@ -505,7 +506,7 @@ func TestInviteHandler_MethodNotAllowed(t *testing.T) {
 	deps, _ := createTestDeps(t)
 	defer deps.DB.Close()
 
-	handler := InviteHandler(deps)
+	handler := handlers.InviteHandler(deps)
 
 	req := httptest.NewRequest("PUT", "/invite", nil)
 	ctx := context.WithValue(req.Context(), UserIDKey, int64(1))

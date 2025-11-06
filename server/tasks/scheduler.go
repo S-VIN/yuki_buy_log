@@ -33,6 +33,19 @@ func (s *Scheduler) AddTask(task Task) {
 	s.tasks = append(s.tasks, task)
 }
 
+// TaskCount returns the number of scheduled tasks
+func (s *Scheduler) TaskCount() int {
+	return len(s.tasks)
+}
+
+// GetTask returns the task at the specified index
+func (s *Scheduler) GetTask(index int) Task {
+	if index >= 0 && index < len(s.tasks) {
+		return s.tasks[index]
+	}
+	return Task{}
+}
+
 // Start begins executing all scheduled tasks in separate goroutines
 func (s *Scheduler) Start() {
 	log.Println("Starting scheduler...")

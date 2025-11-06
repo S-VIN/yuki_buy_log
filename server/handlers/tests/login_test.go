@@ -1,4 +1,4 @@
-package handlers
+package handlers_test
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"yuki_buy_log/handlers"
 	"yuki_buy_log/models"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -21,7 +22,7 @@ func TestRegisterHandler_Success(t *testing.T) {
 		WithArgs("testuser", sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
-	handler := RegisterHandler(deps)
+	handler := handlers.RegisterHandler(deps)
 
 	user := models.User{
 		Login:    "testuser",
@@ -56,7 +57,7 @@ func TestRegisterHandler_InvalidMethod(t *testing.T) {
 	deps, _ := createTestDeps(t)
 	defer deps.DB.Close()
 
-	handler := RegisterHandler(deps)
+	handler := handlers.RegisterHandler(deps)
 
 	req := httptest.NewRequest("GET", "/register", nil)
 	w := httptest.NewRecorder()
@@ -71,7 +72,7 @@ func TestRegisterHandler_InvalidJSON(t *testing.T) {
 	deps, _ := createTestDeps(t)
 	defer deps.DB.Close()
 
-	handler := RegisterHandler(deps)
+	handler := handlers.RegisterHandler(deps)
 
 	req := httptest.NewRequest("POST", "/register", bytes.NewBufferString("invalid json"))
 	req.Header.Set("Content-Type", "application/json")
@@ -94,7 +95,7 @@ func TestLoginHandler_Success(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id", "password_hash"}).
 			AddRow(1, "$2a$10$hash")) // bcrypt hash placeholder
 
-	handler := LoginHandler(deps)
+	handler := handlers.LoginHandler(deps)
 
 	credentials := models.User{
 		Login:    "testuser",
@@ -123,7 +124,7 @@ func TestLoginHandler_InvalidMethod(t *testing.T) {
 	deps, _ := createTestDeps(t)
 	defer deps.DB.Close()
 
-	handler := LoginHandler(deps)
+	handler := handlers.LoginHandler(deps)
 
 	req := httptest.NewRequest("GET", "/login", nil)
 	w := httptest.NewRecorder()
@@ -138,7 +139,7 @@ func TestLoginHandler_InvalidJSON(t *testing.T) {
 	deps, _ := createTestDeps(t)
 	defer deps.DB.Close()
 
-	handler := LoginHandler(deps)
+	handler := handlers.LoginHandler(deps)
 
 	req := httptest.NewRequest("POST", "/login", bytes.NewBufferString("invalid json"))
 	req.Header.Set("Content-Type", "application/json")
