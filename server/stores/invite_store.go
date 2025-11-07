@@ -89,26 +89,36 @@ func (s *InviteStore) AddInvite(invite models.Invite) error {
 	// Добавляем в локальный стор
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+
+	var maxId = models.InviteId(0)
+	for _, item := range s.data {
+		if item.Id > maxId {
+			maxId = item.Id
+		}
+	}
+
+	// При добавлении нового инвайта добавляем его с Id больше на 1
+	invite.Id = maxId + 1
 	s.data = append(s.data, invite)
 
 	return nil
 }
 
-func (s *InviteStore) DeleteInvite(fromUserId, toUserId models.UserId) error {
+func (s *InviteStore) DeleteInvites(fromUserId, toUserId models.UserId) error {
+	// Удаляем из локального стора
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	// Удаляем из БД
 	err := database.DeleteInvitesBetweenUsers(fromUserId, toUserId)
 	if err != nil {
 		return err
 	}
 
-	// Удаляем из локального стора
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
 	var newData []models.Invite
 	for _, invite := range s.data {
-		if !((invite.FromUserId == int64(fromUserId) && invite.ToUserId == int64(toUserId)) ||
-			(invite.FromUserId == int64(toUserId) && invite.ToUserId == int64(fromUserId))) {
+		if !((invite.FromUserId == fromUserId && invite.ToUserId == toUserId) ||
+			(invite.FromUserId == toUserId && invite.ToUserId == fromUserId)) {
 			newData = append(newData, invite)
 		}
 	}

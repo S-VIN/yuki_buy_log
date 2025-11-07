@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"yuki_buy_log/database"
 	"yuki_buy_log/models"
+	"yuki_buy_log/stores"
 	"yuki_buy_log/validators"
 )
 
@@ -13,7 +13,7 @@ import (
 type Validator = validators.Validator
 
 type Authenticator interface {
-	GenerateToken(userID int64) (string, error)
+	GenerateToken(userId models.UserId) (string, error)
 }
 
 // Структура с зависимостями для handlers
@@ -37,5 +37,10 @@ func getUser(r *http.Request) (user *models.User, err error) {
 		return nil, fmt.Errorf("Invalid userId type in context")
 	}
 
-	return database.GetUserById(&userIdTyped)
+	userStore := stores.GetUserStore()
+	user = userStore.GetUserById(userIdTyped)
+	if user == nil {
+		return nil, fmt.Errorf("User not found")
+	}
+	return user, nil
 }

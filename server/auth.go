@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"yuki_buy_log/models"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -21,9 +22,9 @@ func NewAuthenticator(secret []byte) *Authenticator {
 }
 
 // GenerateToken creates a signed JWT for the given user id.
-func (a *Authenticator) GenerateToken(userID int64) (string, error) {
+func (a *Authenticator) GenerateToken(userId models.UserId) (string, error) {
 	claims := jwt.RegisteredClaims{
-		Subject:   strconv.FormatInt(userID, 10),
+		Subject:   strconv.FormatInt(int64(userId), 10),
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

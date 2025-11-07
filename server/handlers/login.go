@@ -5,8 +5,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
-	"yuki_buy_log/database"
 	"yuki_buy_log/models"
+	"yuki_buy_log/stores"
 )
 
 func RegisterHandler(deps *Dependencies) http.HandlerFunc {
@@ -33,10 +33,12 @@ func RegisterHandler(deps *Dependencies) http.HandlerFunc {
 		}
 		u.Password = string(hash)
 
-		err = database.AddUser(&u)
+		userStore := stores.GetUserStore()
+		err = userStore.AddUser(&u)
 		if err != nil {
 			log.Printf("Failed to register user: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		token, err := deps.Auth.GenerateToken(u.Id)
@@ -73,10 +75,11 @@ func LoginHandler(deps *Dependencies) http.HandlerFunc {
 
 		log.Printf("Login attempt for user: %s", credentials.Login)
 
-		// Получение пользователя из базы данных
-		user, err := database.GetUserByLogin(credentials.Login)
-		if err != nil {
-			log.Printf("Failed to get user %s: %v", credentials.Login, err)
+		// Получение пользователя из стора
+		userStore := stores.GetUserStore()
+		user := userStore.GetUserByLogin(credentials.Login)
+		if user == nil {
+			log.Printf("User %s not found", credentials.Login)
 			http.Error(w, "invalid credentials", http.StatusUnauthorized)
 			return
 		}

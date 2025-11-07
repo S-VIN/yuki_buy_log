@@ -5,6 +5,37 @@ import (
 	"yuki_buy_log/models"
 )
 
+func GetAllGroups() (result []models.GroupMember, err error) {
+	// Получение всех участников всех групп
+	rows, err := db.Query(`
+		SELECT g.id, g.user_id, u.login, g.member_number
+		FROM groups g
+		JOIN users u ON g.user_id = u.id
+		ORDER BY g.id, g.member_number`)
+	if err != nil {
+		log.Printf("Failed to query all groups: %v", err)
+		return result, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var member models.GroupMember
+		if err := rows.Scan(&member.GroupId, &member.UserId, &member.Login, &member.MemberNumber); err != nil {
+			log.Printf("Failed to scan group member row: %v", err)
+			return result, err
+		}
+		result = append(result, member)
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Printf("Error during rows iteration: %v", err)
+		return result, err
+	}
+
+	log.Printf("Successfully retrieved %d group members", len(result))
+	return result, nil
+}
+
 func GetGroupById(id models.GroupId) (result []models.GroupMember, err error) {
 	// Получение всех участников группы по ID группы
 	rows, err := db.Query(`
@@ -22,7 +53,7 @@ func GetGroupById(id models.GroupId) (result []models.GroupMember, err error) {
 	// Обработка всех строк из результата запроса
 	for rows.Next() {
 		var member models.GroupMember
-		if err := rows.Scan(&member.GroupId, &member.UserId, &member.MemberNumber); err != nil {
+		if err := rows.Scan(&member.GroupId, &member.UserId, &member.Login, &member.MemberNumber); err != nil {
 			log.Printf("Failed to scan group member row: %v", err)
 			return result, err
 		}
@@ -43,7 +74,7 @@ func GetGroupUserCount(id models.GroupId) (count int64, err error) {
 	err = db.QueryRow(`SELECT COUNT(*) FROM groups WHERE id = $1`, id).Scan(&count)
 	if err != nil {
 		log.Printf("Failed to count remaining group members: %v", err)
-		return models.UnknownId, err
+		return 0, err
 	}
 	return count, nil
 }
@@ -116,7 +147,7 @@ func RenumberGroupMembers(groupId models.GroupId) error {
 	return nil
 }
 
-func AddUserToGroup(groupId, userId models.UserId, memberNumber int) error {
+func AddUserToGroup(groupId models.GroupId, userId models.UserId, memberNumber int) error {
 	_, err := db.Exec(`INSERT INTO groups (id, user_id, member_number) VALUES ($1, $2, $3)`, groupId, userId, memberNumber)
 	return err
 }
