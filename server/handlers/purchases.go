@@ -44,17 +44,17 @@ func getPurchases(w http.ResponseWriter, r *http.Request) {
 	// Get all user IDs in the same group (including current user)
 	// If user is not in a group, just return their own purchases
 	var userIds []models.UserId
-	groupMembers := groupStore.GetGroupByUserId(user.Id)
+	group := groupStore.GetGroupByUserId(user.Id)
 
-	if groupMembers == nil || len(groupMembers) == 0 {
+	if group.Members == nil {
 		// User is not in a group, fetch only their purchases
 		log.Printf("User %d is not in a group, fetching only their purchases", user.Id)
 		userIds = []models.UserId{user.Id}
 	} else {
 		// User is in a group, get all group member IDs
-		log.Printf("User %d is in a group with %d members, fetching purchases for all", user.Id, len(groupMembers))
-		userIds = make([]models.UserId, len(groupMembers))
-		for i, member := range groupMembers {
+		log.Printf("User %d is in a group with %d members, fetching purchases for all", user.Id, len(group.Members))
+		userIds = make([]models.UserId, len(group.Members))
+		for i, member := range group.Members {
 			userIds[i] = member.UserId
 		}
 	}

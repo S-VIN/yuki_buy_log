@@ -68,8 +68,7 @@ func mergeUsersToGroups(firstUserId models.UserId, secondUserId models.UserId) e
 			return err
 		}
 
-		// Добавляем второго пользователя с member_number = 2
-		err = groupStore.AddUserToGroup(*newGroupId, secondUserId, 2)
+		err = groupStore.AddUserToGroup(*newGroupId, secondUserId)
 		if err != nil {
 			log.Printf("Failed to add new group to user: %v", err)
 			return err
@@ -79,8 +78,8 @@ func mergeUsersToGroups(firstUserId models.UserId, secondUserId models.UserId) e
 	// Первый юзер в группе, а второй не в группе
 	// Добавляем второго пользователя в группу к первому
 	if firstUserGroup != nil {
-		// Добавляем второго пользователя с member_number = max + 1
-		err := groupStore.AddUserToGroup(firstUserGroup[0].GroupId, secondUserId, len(firstUserGroup))
+		// Добавляем второго пользователя
+		err := groupStore.AddUserToGroup(firstUserGroup.Id, secondUserId)
 		if err != nil {
 			log.Printf("Failed to add new group to user: %v", err)
 			return err
@@ -89,8 +88,8 @@ func mergeUsersToGroups(firstUserId models.UserId, secondUserId models.UserId) e
 
 	// Тоже самое только наоборот
 	if secondUserGroup != nil {
-		// Добавляем первого пользователя с member_number = max + 1
-		err := groupStore.AddUserToGroup(secondUserGroup[0].GroupId, firstUserId, len(secondUserGroup))
+		// Добавляем первого пользователя
+		err := groupStore.AddUserToGroup(secondUserGroup.Id, firstUserId)
 		if err != nil {
 			log.Printf("Failed to add new group to user: %v", err)
 			return err

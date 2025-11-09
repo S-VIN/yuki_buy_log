@@ -44,23 +44,23 @@ func getProducts(w http.ResponseWriter, r *http.Request) {
 	// If user is not in a group, just return their own products
 	var products []models.Product
 
-	// Try to get group members
-	groupMembers := groupStore.GetGroupByUserId(user.Id)
+	// Try to get group
+	group := groupStore.GetGroupByUserId(user.Id)
 
-	if groupMembers == nil || len(groupMembers) == 0 {
+	if group == nil {
 		// User is not in a group, fetch only their products
 		log.Printf("User %d is not in a group, fetching only their products", user.Id)
 		products = productStore.GetProductsByUserId(user.Id)
 	} else {
 		// User is in a group, fetch products for all group members
-		log.Printf("User %d is in a group with %d members, fetching products for all", user.Id, len(groupMembers))
+		log.Printf("User %d is in a group with %d members, fetching products for all", user.Id, len(group.Members))
 
-		userIDs := make([]models.UserId, len(groupMembers))
-		for i, member := range groupMembers {
-			userIDs[i] = member.UserId
+		userIds := make([]models.UserId, len(group.Members))
+		for i, member := range group.Members {
+			userIds[i] = member.UserId
 		}
 
-		products = productStore.GetProductsByUserIds(userIDs)
+		products = productStore.GetProductsByUserIds(userIds)
 	}
 
 	if products == nil {

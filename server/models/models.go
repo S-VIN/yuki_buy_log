@@ -3,12 +3,13 @@ package models
 import "time"
 
 type (
-	InviteId   int64
-	GroupId    int64
-	UserId     int64
-	ProductId  int64
-	PurchaseId int64
-	ReceiptId  int64
+	InviteId      int64
+	GroupId       int64
+	GroupMemberId int64
+	UserId        int64
+	ProductId     int64
+	PurchaseId    int64
+	ReceiptId     int64
 )
 
 type Product struct {
@@ -36,6 +37,11 @@ type User struct {
 	Id       UserId `json:"id"`
 	Login    string `json:"login"`
 	Password string `json:"password,omitempty"`
+}
+
+type Group struct {
+	Id      GroupId       `json:"id"`
+	Members []GroupMember `json:"members"`
 }
 
 type GroupMember struct {

@@ -119,14 +119,14 @@ func (s *UserStore) GetUsersByGroupId(groupId models.GroupId) []models.User {
 
 	// Получаем группу
 	groupStore := GetGroupStore()
-	members := groupStore.GetGroupById(groupId)
-	if members == nil {
+	group := groupStore.GetGroupById(groupId)
+	if group == nil {
 		return nil
 	}
 
 	// Собираем пользователей
 	var users []models.User
-	for _, member := range members {
+	for _, member := range group.Members {
 		if user, ok := s.data[member.UserId]; ok {
 			users = append(users, user)
 		}

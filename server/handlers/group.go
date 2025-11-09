@@ -36,8 +36,8 @@ func getGroupMembers(w http.ResponseWriter, r *http.Request) {
 	groupStore := stores.GetGroupStore()
 
 	// Get the group_id for the current user
-	groupId, err := groupStore.GetGroupIdByUserId(user.Id)
-	if err != nil {
+	group := groupStore.GetGroupByUserId(user.Id)
+	if group == nil {
 		log.Printf("User %d is not in any group", user.Id)
 		// Return empty list if user is not in a group
 		w.Header().Set("Content-Type", "application/json")
@@ -48,12 +48,10 @@ func getGroupMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get all members of the same group
-	members := groupStore.GetGroupById(groupId)
-	log.Printf("Successfully fetched %d group members for user %d", len(members), user.Id)
+	log.Printf("Successfully fetched %d group members for user %d", len(group.Members), user.Id)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"members":         members,
+		"members":         group.Members,
 		"current_user_id": user.Id,
 	})
 }
@@ -70,8 +68,8 @@ func leaveGroup(w http.ResponseWriter, r *http.Request) {
 	groupStore := stores.GetGroupStore()
 
 	// Get the group_id for the current user
-	groupId, err := groupStore.GetGroupIdByUserId(user.Id)
-	if err != nil {
+	group := groupStore.GetGroupByUserId(user.Id)
+	if group == nil {
 		log.Printf("User %d is not in any group: %v", user.Id, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -85,29 +83,7 @@ func leaveGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check remaining members count
-	count := groupStore.GetGroupUserCount(groupId)
-
-	// If only 1 member remains, delete the entire group
-	if count == 1 {
-		log.Printf("Only 1 member remains in group %d, deleting group", groupId)
-		err = groupStore.DeleteGroupById(groupId)
-		if err != nil {
-			log.Printf("Failed to delete group: %v", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	} else if count > 1 {
-		// Renumber remaining members to fill gaps
-		err = groupStore.RenumberGroupMembers(groupId)
-		if err != nil {
-			log.Printf("Failed to renumber group members: %v", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-
-	log.Printf("User %d successfully left group %d", user.Id, groupId)
+	log.Printf("User %d successfully left group %d", user.Id, group.Id)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"message": "left group successfully"})
 }

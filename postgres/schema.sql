@@ -3,6 +3,7 @@ DROP TABLE IF EXISTS groups CASCADE;
 DROP TABLE IF EXISTS purchases CASCADE;
 DROP TABLE IF EXISTS products CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS group_members CASCADE;
 
 -- Create tables
 CREATE TABLE users (
@@ -32,11 +33,11 @@ CREATE TABLE purchases (
     user_id INTEGER REFERENCES users(id)
 );
 
-CREATE TABLE groups (
-    id SERIAL,
+CREATE TABLE group_members (
+    group_id SERIAL,
     user_id INTEGER NOT NULL REFERENCES users(id),
     member_number INTEGER NOT NULL CHECK (member_number >= 1 AND member_number <= 5),
-    PRIMARY KEY (id, user_id),
+    PRIMARY KEY (group_id, user_id),
     UNIQUE (user_id)
 );
 
