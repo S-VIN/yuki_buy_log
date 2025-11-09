@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"time"
 	"yuki_buy_log/models"
 )
 
@@ -96,4 +97,12 @@ func CreateInvite(fromUserId, toUserId models.UserId) (models.InviteId, error) {
 	var inviteId models.InviteId
 	err := db.QueryRow(`INSERT INTO invites (from_user_id, to_user_id) VALUES ($1, $2) RETURNING id`, fromUserId, toUserId).Scan(&inviteId)
 	return inviteId, err
+}
+
+func DeleteOldInvites(cutoffTime time.Time) (int64, error) {
+	result, err := db.Exec(`DELETE FROM invites WHERE created_at < $1`, cutoffTime)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

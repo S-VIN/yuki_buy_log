@@ -1,26 +1,14 @@
 package handlers
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"yuki_buy_log/models"
 	"yuki_buy_log/stores"
-	"yuki_buy_log/validators"
 )
-
-// Тип Validator из пакета validators
-type Validator = validators.Validator
 
 type Authenticator interface {
 	GenerateToken(userId models.UserId) (string, error)
-}
-
-// Структура с зависимостями для handlers
-type Dependencies struct {
-	DB        *sql.DB
-	Validator Validator
-	Auth      Authenticator
 }
 
 // Вспомогательная функция для получения ID пользователя из контекста

@@ -12,7 +12,6 @@ import (
 
 	"yuki_buy_log/handlers"
 	"yuki_buy_log/tasks"
-	"yuki_buy_log/validators"
 
 	_ "github.com/lib/pq"
 )
@@ -29,12 +28,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to open database connection: %v", err)
 	}
-	// Создаем зависимости для handlers
-	deps := &handlers.Dependencies{
-		DB:        db,
-		Validator: validators.NewValidator(),
-		Auth:      auth,
-	}
+	// We need db for potential future use, so we keep it
+	_ = db
 
 	mux := http.NewServeMux()
 
@@ -44,12 +39,12 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	mux.Handle("/products", auth.Middleware(handlers.ProductsHandler(deps)))
-	mux.Handle("/purchases", auth.Middleware(handlers.PurchasesHandler(deps)))
-	mux.Handle("/group", auth.Middleware(handlers.GroupHandler(deps)))
-	mux.Handle("/invite", auth.Middleware(handlers.InviteHandler(deps)))
-	mux.HandleFunc("/register", handlers.RegisterHandler(deps))
-	mux.HandleFunc("/login", handlers.LoginHandler(deps))
+	mux.Handle("/products", auth.Middleware(handlers.ProductsHandler(auth)))
+	mux.Handle("/purchases", auth.Middleware(handlers.PurchasesHandler(auth)))
+	mux.Handle("/group", auth.Middleware(handlers.GroupHandler(auth)))
+	mux.Handle("/invite", auth.Middleware(handlers.InviteHandler(auth)))
+	mux.HandleFunc("/register", handlers.RegisterHandler(auth))
+	mux.HandleFunc("/login", handlers.LoginHandler(auth))
 
 	// Setup and start scheduler
 	log.Println("Setting up scheduler...")
@@ -57,7 +52,7 @@ func main() {
 	scheduler.AddTask(tasks.Task{
 		Name:     "cleanup_old_invites",
 		Interval: 5 * time.Minute,
-		Run:      tasks.CleanupOldInvites(db),
+		Run:      tasks.CleanupOldInvites(),
 	})
 	scheduler.Start()
 	defer scheduler.Stop()

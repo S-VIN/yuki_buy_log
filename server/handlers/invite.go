@@ -5,12 +5,11 @@ import (
 	"log"
 	"net/http"
 	"time"
-	"yuki_buy_log/database"
 	"yuki_buy_log/models"
 	"yuki_buy_log/stores"
 )
 
-func InviteHandler(d *Dependencies) http.HandlerFunc {
+func InviteHandler(auth Authenticator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Invite handler called: %s %s", r.Method, r.URL.Path)
 		switch r.Method {
@@ -34,13 +33,8 @@ func getIncomingInvites(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Printf("Fetching incoming invites for user ID: %d", user.Id)
-
-	invites, err := database.GetIncomingInvites(user.Id)
-	if err != nil {
-		log.Printf("Failed to query invites: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	inviteStore := stores.GetInviteStore()
+	invites := inviteStore.GetInvitesToUser(user.Id)
 	log.Printf("Successfully fetched %d incoming invites for user %d", len(invites), user.Id)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"invites": invites})

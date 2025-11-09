@@ -1,6 +1,7 @@
 package stores
 
 import (
+	"fmt"
 	"sync"
 	"yuki_buy_log/database"
 	"yuki_buy_log/models"
@@ -66,6 +67,32 @@ func (s *GroupStore) GetGroupByUserId(userId models.UserId) []models.GroupMember
 		}
 	}
 	return nil
+}
+
+// GetGroupIdByUserId возвращает ID группы, в которой состоит пользователь
+func (s *GroupStore) GetGroupIdByUserId(userId models.UserId) (models.GroupId, error) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	for _, members := range s.data {
+		for _, member := range members {
+			if member.UserId == userId {
+				return member.GroupId, nil
+			}
+		}
+	}
+	return 0, fmt.Errorf("user %d is not in any group", userId)
+}
+
+// GetGroupUserCount возвращает количество участников в группе
+func (s *GroupStore) GetGroupUserCount(groupId models.GroupId) int {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	if members, ok := s.data[groupId]; ok {
+		return len(members)
+	}
+	return 0
 }
 
 // IsUserInGroup проверяет, состоит ли пользователь в какой-либо группе

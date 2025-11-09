@@ -9,7 +9,7 @@ import (
 	"yuki_buy_log/stores"
 )
 
-func RegisterHandler(deps *Dependencies) http.HandlerFunc {
+func RegisterHandler(auth Authenticator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Register handler called: %s %s", r.Method, r.URL.Path)
 		if r.Method != http.MethodPost {
@@ -41,7 +41,7 @@ func RegisterHandler(deps *Dependencies) http.HandlerFunc {
 			return
 		}
 
-		token, err := deps.Auth.GenerateToken(u.Id)
+		token, err := auth.GenerateToken(u.Id)
 		if err != nil {
 			log.Printf("Failed to generate token for user %d: %v", u.Id, err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -53,7 +53,7 @@ func RegisterHandler(deps *Dependencies) http.HandlerFunc {
 	}
 }
 
-func LoginHandler(deps *Dependencies) http.HandlerFunc {
+func LoginHandler(auth Authenticator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Login handler called: %s %s", r.Method, r.URL.Path)
 
@@ -92,7 +92,7 @@ func LoginHandler(deps *Dependencies) http.HandlerFunc {
 		}
 
 		// Генерация токена аутентификации
-		token, err := deps.Auth.GenerateToken(user.Id)
+		token, err := auth.GenerateToken(user.Id)
 		if err != nil {
 			log.Printf("Failed to generate token for user %d: %v", user.Id, err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)

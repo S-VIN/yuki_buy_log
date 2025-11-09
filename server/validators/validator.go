@@ -3,27 +3,17 @@ package validators
 import (
 	"errors"
 	"regexp"
-	
+
 	"yuki_buy_log/models"
 )
-
-// Validator validates incoming products and purchases.
-type Validator interface {
-	ValidateProduct(*models.Product) error
-	ValidatePurchase(*models.Purchase) error
-}
-
-type validator struct{}
 
 var (
 	// reValidName allows Unicode letters, digits, and spaces
 	reValidName = regexp.MustCompile(`^[\p{L}\p{N}\s]+$`)
 )
 
-// NewValidator returns a Validator implementation.
-func NewValidator() Validator { return validator{} }
-
-func (validator) ValidateProduct(p *models.Product) error {
+// ValidateProduct validates a product.
+func ValidateProduct(p *models.Product) error {
 	if len(p.Name) == 0 || len(p.Name) > 30 || !reValidName.MatchString(p.Name) {
 		return errors.New("invalid name")
 	}
@@ -44,7 +34,8 @@ func (validator) ValidateProduct(p *models.Product) error {
 	return nil
 }
 
-func (validator) ValidatePurchase(p *models.Purchase) error {
+// ValidatePurchase validates a purchase.
+func ValidatePurchase(p *models.Purchase) error {
 	if p.ProductId <= 0 {
 		return errors.New("invalid product_id")
 	}

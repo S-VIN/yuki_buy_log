@@ -2,6 +2,7 @@ package stores
 
 import (
 	"sync"
+	"time"
 	"yuki_buy_log/database"
 	"yuki_buy_log/models"
 )
@@ -125,4 +126,26 @@ func (s *InviteStore) DeleteInvites(fromUserId, toUserId models.UserId) error {
 	s.data = newData
 
 	return nil
+}
+
+func (s *InviteStore) DeleteOldInvites(cutoffTime time.Time) (int64, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	// Удаляем из БД
+	rowsAffected, err := database.DeleteOldInvites(cutoffTime)
+	if err != nil {
+		return 0, err
+	}
+
+	// Удаляем из локального стора
+	var newData []models.Invite
+	for _, invite := range s.data {
+		if invite.CreatedAt.After(cutoffTime) || invite.CreatedAt.Equal(cutoffTime) {
+			newData = append(newData, invite)
+		}
+	}
+	s.data = newData
+
+	return rowsAffected, nil
 }

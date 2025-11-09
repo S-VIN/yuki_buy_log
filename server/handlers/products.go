@@ -5,22 +5,21 @@ import (
 	"log"
 	"net/http"
 	"strings"
-
 	"yuki_buy_log/models"
-
-	"github.com/lib/pq"
+	"yuki_buy_log/stores"
+	"yuki_buy_log/validators"
 )
 
-func ProductsHandler(d *Dependencies) http.HandlerFunc {
+func ProductsHandler(auth Authenticator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Products handler called: %s %s", r.Method, r.URL.Path)
 		switch r.Method {
 		case http.MethodGet:
-			getProducts(d, w, r)
+			getProducts(w, r)
 		case http.MethodPost:
-			createProduct(d, w, r)
+			createProduct(w, r)
 		case http.MethodPut:
-			updateProduct(d, w, r)
+			updateProduct(w, r)
 		default:
 			log.Printf("Method not allowed for products: %s", r.Method)
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -28,8 +27,8 @@ func ProductsHandler(d *Dependencies) http.HandlerFunc {
 	}
 }
 
-func getProducts(d *Dependencies, w http.ResponseWriter, r *http.Request) {
-	log.Println("Fetching products from database")
+func getProducts(w http.ResponseWriter, r *http.Request) {
+	log.Println("Fetching products from store")
 	user, err := getUser(r)
 	if err != nil {
 		log.Println("Unauthorized access attempt to products")
@@ -38,80 +37,42 @@ func getProducts(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("Fetching products for user ID: %d and their group", user.Id)
 
+	productStore := stores.GetProductStore()
+	groupStore := stores.GetGroupStore()
+
 	// Get all user IDs in the same group (including current user)
 	// If user is not in a group, just return their own products
-	var query string
-	var args []interface{}
+	var products []models.Product
 
 	// Try to get group members
-	rows, err := d.DB.Query(`
-		SELECT DISTINCT user_id
-		FROM groups
-		WHERE id = (SELECT id FROM groups WHERE user_id = $1 LIMIT 1)
-	`, user.Id)
+	groupMembers := groupStore.GetGroupByUserId(user.Id)
 
-	if err != nil {
-		// User might not be in a group, just query their own products
-		log.Printf("User %d is not in a group or error getting group members, fetching only their products", user.Id)
-		query = `SELECT id, name, volume, brand, default_tags, user_id FROM products WHERE user_id=$1`
-		args = []interface{}{user.Id}
+	if groupMembers == nil || len(groupMembers) == 0 {
+		// User is not in a group, fetch only their products
+		log.Printf("User %d is not in a group, fetching only their products", user.Id)
+		products = productStore.GetProductsByUserId(user.Id)
 	} else {
-		defer rows.Close()
+		// User is in a group, fetch products for all group members
+		log.Printf("User %d is in a group with %d members, fetching products for all", user.Id, len(groupMembers))
 
-		userIDs := []int64{}
-		for rows.Next() {
-			var userIDInGroup int64
-			if err := rows.Scan(&userIDInGroup); err != nil {
-				log.Printf("Failed to scan user ID: %v", err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			userIDs = append(userIDs, userIDInGroup)
+		userIDs := make([]models.UserId, len(groupMembers))
+		for i, member := range groupMembers {
+			userIDs[i] = member.UserId
 		}
 
-		if len(userIDs) == 0 {
-			// User is not in a group, fetch only their products
-			log.Printf("User %d is not in a group, fetching only their products", user.Id)
-			query = `SELECT id, name, volume, brand, default_tags, user_id FROM products WHERE user_id=$1`
-			args = []interface{}{user.Id}
-		} else {
-			// Build query with IN clause for all group members
-			log.Printf("User %d is in a group with %d members, fetching products for all", user.Id, len(userIDs))
-			query = `SELECT id, name, volume, brand, default_tags, user_id FROM products WHERE user_id = ANY($1)`
-			args = []interface{}{pq.Array(userIDs)}
-		}
+		products = productStore.GetProductsByUserIds(userIDs)
 	}
 
-	productRows, err := d.DB.Query(query, args...)
-	if err != nil {
-		log.Printf("Failed to query products: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if products == nil {
+		products = []models.Product{}
 	}
-	defer productRows.Close()
 
-	products := []models.Product{}
-	for productRows.Next() {
-		var p models.Product
-		var defaultTagsStr string
-		if err := productRows.Scan(&p.Id, &p.Name, &p.Volume, &p.Brand, &defaultTagsStr, &p.UserId); err != nil {
-			log.Printf("Failed to scan product row: %v", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		if defaultTagsStr != "" {
-			p.DefaultTags = strings.Split(defaultTagsStr, ",")
-		} else {
-			p.DefaultTags = []string{}
-		}
-		products = append(products, p)
-	}
 	log.Printf("Successfully fetched %d products for user %d", len(products), user.Id)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"products": products})
 }
 
-func createProduct(d *Dependencies, w http.ResponseWriter, r *http.Request) {
+func createProduct(w http.ResponseWriter, r *http.Request) {
 	log.Println("Creating new product")
 	var p models.Product
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
@@ -126,17 +87,17 @@ func createProduct(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.UserId = user.Id
-	if err := d.Validator.ValidateProduct(&p); err != nil {
+	if err := validators.ValidateProduct(&p); err != nil {
 		log.Printf("Product validation failed: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	defaultTagsStr := strings.Join(p.DefaultTags, ",")
+
 	log.Printf("Creating product for user ID: %d", user.Id)
-	err = d.DB.QueryRow(`INSERT INTO products (name, volume, brand, default_tags, user_id) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-		p.Name, p.Volume, p.Brand, defaultTagsStr, user.Id).Scan(&p.Id)
+	productStore := stores.GetProductStore()
+	err = productStore.CreateProduct(&p)
 	if err != nil {
-		log.Printf("Failed to insert product: %v", err)
+		log.Printf("Failed to create product: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -145,7 +106,7 @@ func createProduct(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(p)
 }
 
-func updateProduct(d *Dependencies, w http.ResponseWriter, r *http.Request) {
+func updateProduct(w http.ResponseWriter, r *http.Request) {
 	log.Println("Updating product")
 	user, err := getUser(r)
 	if err != nil {
@@ -168,33 +129,22 @@ func updateProduct(d *Dependencies, w http.ResponseWriter, r *http.Request) {
 	}
 
 	p.UserId = user.Id
-	if err := d.Validator.ValidateProduct(&p); err != nil {
+	if err := validators.ValidateProduct(&p); err != nil {
 		log.Printf("Product validation failed: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	defaultTagsStr := strings.Join(p.DefaultTags, ",")
 	log.Printf("Updating product ID: %d for user ID: %d", p.Id, user.Id)
-
-	result, err := d.DB.Exec(`UPDATE products SET name=$1, volume=$2, brand=$3, default_tags=$4 WHERE id=$5 AND user_id=$6`,
-		p.Name, p.Volume, p.Brand, defaultTagsStr, p.Id, user.Id)
+	productStore := stores.GetProductStore()
+	err = productStore.UpdateProduct(&p)
 	if err != nil {
 		log.Printf("Failed to update product: %v", err)
+		if strings.Contains(err.Error(), "not found") {
+			http.Error(w, "product not found", http.StatusNotFound)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		log.Printf("Failed to check rows affected: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if rowsAffected == 0 {
-		log.Printf("Product with ID %d not found for user %d", p.Id, user.Id)
-		http.Error(w, "product not found", http.StatusNotFound)
 		return
 	}
 
