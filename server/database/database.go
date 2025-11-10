@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"log"
+	"os"
 	"sync"
 	"time"
 	"yuki_buy_log/utils"
@@ -12,6 +13,12 @@ var db *sql.DB
 var once sync.Once
 
 func init() {
+	// Skip database initialization during tests
+	if os.Getenv("SKIP_DB_INIT") == "true" {
+		log.Println("Skipping database initialization (SKIP_DB_INIT=true)")
+		return
+	}
+
 	once.Do(func() {
 		var err error
 		log.Printf("Connecting to database with DSN: %s", utils.DatabaseURL)

@@ -32,7 +32,7 @@ func getGroupMembers(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("Fetching group members for user ID: %d", user.Id)
 
-	groupStore := getGroupStore()
+	groupStore := GetGroupStore()
 
 	// Get the group_id for the current user
 	group := groupStore.GetGroupByUserId(user.Id)
@@ -64,7 +64,7 @@ func leaveGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groupStore := getGroupStore()
+	groupStore := GetGroupStore()
 
 	// Get the group_id for the current user
 	group := groupStore.GetGroupByUserId(user.Id)

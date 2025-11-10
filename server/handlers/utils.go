@@ -24,7 +24,7 @@ func getUser(r *http.Request) (user *models.User, err error) {
 		return nil, fmt.Errorf("Invalid userId type in context")
 	}
 
-	userStore := getUserStore()
+	userStore := GetUserStore()
 	user = userStore.GetUserById(userIdTyped)
 	if user == nil {
 		return nil, fmt.Errorf("User not found")

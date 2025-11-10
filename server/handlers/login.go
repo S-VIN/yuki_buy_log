@@ -33,7 +33,7 @@ func RegisterHandler(auth Authenticator) http.HandlerFunc {
 		}
 		u.Password = string(hash)
 
-		userStore := getUserStore()
+		userStore := GetUserStore()
 		err = userStore.AddUser(&u)
 		if err != nil {
 			log.Printf("Failed to register user: %v", err)
@@ -76,7 +76,7 @@ func LoginHandler(auth Authenticator) http.HandlerFunc {
 		log.Printf("Login attempt for user: %s", credentials.Login)
 
 		// Получение пользователя из стора
-		userStore := getUserStore()
+		userStore := GetUserStore()
 		user := userStore.GetUserByLogin(credentials.Login)
 		if user == nil {
 			log.Printf("User %s not found", credentials.Login)

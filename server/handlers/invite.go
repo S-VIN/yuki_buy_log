@@ -32,7 +32,7 @@ func getIncomingInvites(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Printf("Fetching incoming invites for user ID: %d", user.Id)
-	inviteStore := getInviteStore()
+	inviteStore := GetInviteStore()
 	invites := inviteStore.GetInvitesToUser(user.Id)
 	log.Printf("Successfully fetched %d incoming invites for user %d", len(invites), user.Id)
 	w.Header().Set("Content-Type", "application/json")
@@ -40,7 +40,7 @@ func getIncomingInvites(w http.ResponseWriter, r *http.Request) {
 }
 
 func canMergeUsersToGroups(firstUserId models.UserId, secondUserId models.UserId) bool {
-	groupStore := getGroupStore()
+	groupStore := GetGroupStore()
 
 	// Check if users are already in groups
 	firstUserGroup := groupStore.GetGroupByUserId(firstUserId)
@@ -53,7 +53,7 @@ func canMergeUsersToGroups(firstUserId models.UserId, secondUserId models.UserId
 
 // // Соединяет двух пользователей в группу. Если нельзя, то возвращает ошибку
 func mergeUsersToGroups(firstUserId models.UserId, secondUserId models.UserId) error {
-	groupStore := getGroupStore()
+	groupStore := GetGroupStore()
 
 	// Check if users are already in groups
 	firstUserGroup := groupStore.GetGroupByUserId(firstUserId)
@@ -99,8 +99,8 @@ func mergeUsersToGroups(firstUserId models.UserId, secondUserId models.UserId) e
 }
 
 func sendInvite(w http.ResponseWriter, r *http.Request) {
-	userStore := getUserStore()
-	inviteStore := getInviteStore()
+	userStore := GetUserStore()
+	inviteStore := GetInviteStore()
 
 	log.Println("Sending invite")
 	var req struct {

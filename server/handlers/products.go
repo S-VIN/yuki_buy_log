@@ -36,8 +36,8 @@ func getProducts(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("Fetching products for user ID: %d and their group", user.Id)
 
-	productStore := getProductStore()
-	groupStore := getGroupStore()
+	productStore := GetProductStore()
+	groupStore := GetGroupStore()
 
 	// Get all user IDs in the same group (including current user)
 	// If user is not in a group, just return their own products
@@ -93,7 +93,7 @@ func createProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("Creating product for user ID: %d", user.Id)
-	productStore := getProductStore()
+	productStore := GetProductStore()
 	err = productStore.CreateProduct(&p)
 	if err != nil {
 		log.Printf("Failed to create product: %v", err)
@@ -135,7 +135,7 @@ func updateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("Updating product ID: %d for user ID: %d", p.Id, user.Id)
-	productStore := getProductStore()
+	productStore := GetProductStore()
 	err = productStore.UpdateProduct(&p)
 	if err != nil {
 		log.Printf("Failed to update product: %v", err)

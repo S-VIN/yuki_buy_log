@@ -37,8 +37,8 @@ func getPurchases(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Fetching purchases for user ID: %d and their group", user.Id)
 
 	// Get group store and purchase store
-	groupStore := getGroupStore()
-	purchaseStore := getPurchaseStore()
+	groupStore := GetGroupStore()
+	purchaseStore := GetPurchaseStore()
 
 	// Get all user IDs in the same group (including current user)
 	// If user is not in a group, just return their own purchases
@@ -89,7 +89,7 @@ func createPurchase(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Creating purchase for user ID: %d", user.Id)
 
 	// Get purchase store and add purchase
-	purchaseStore := getPurchaseStore()
+	purchaseStore := GetPurchaseStore()
 	err = purchaseStore.CreatePurchase(&p)
 	if err != nil {
 		log.Printf("Failed to insert purchase: %v", err)
@@ -129,7 +129,7 @@ func deletePurchase(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Deleting purchase ID: %d for user ID: %d", req.Id, user.Id)
 
 	// Get purchase store and delete purchase
-	purchaseStore := getPurchaseStore()
+	purchaseStore := GetPurchaseStore()
 	err = purchaseStore.DeletePurchase(models.PurchaseId(req.Id), user.Id)
 	if err != nil {
 		log.Printf("Failed to delete purchase: %v", err)
