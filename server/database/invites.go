@@ -99,6 +99,11 @@ func CreateInvite(fromUserId, toUserId models.UserId) (models.InviteId, error) {
 	return inviteId, err
 }
 
+func DeleteInvite(inviteId models.InviteId) error {
+	_, err := db.Exec(`DELETE FROM invites WHERE id = $1`, inviteId)
+	return err
+}
+
 func DeleteOldInvites(cutoffTime time.Time) (int64, error) {
 	result, err := db.Exec(`DELETE FROM invites WHERE created_at < $1`, cutoffTime)
 	if err != nil {

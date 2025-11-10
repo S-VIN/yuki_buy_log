@@ -80,41 +80,59 @@ func (s *InviteStore) GetInvite(fromUserId, toUserId models.UserId) *models.Invi
 	return nil
 }
 
-func (s *InviteStore) AddInvite(invite models.Invite) error {
+// CreateInvite добавляет новое приглашение
+func (s *InviteStore) CreateInvite(invite *models.Invite) error {
 	// Добавляем в БД
-	//_, err := database.CreateInvite(fromUserId, toUserId)
-	//if err != nil {
-	//	return err
-	//}
+	inviteId, err := database.CreateInvite(invite.FromUserId, invite.ToUserId)
+	if err != nil {
+		return err
+	}
+
+	// Обновляем ID в инвайте
+	invite.Id = inviteId
 
 	// Добавляем в локальный стор
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	var maxId = models.InviteId(0)
-	for _, item := range s.data {
-		if item.Id > maxId {
-			maxId = item.Id
-		}
-	}
-
-	// При добавлении нового инвайта добавляем его с Id больше на 1
-	invite.Id = maxId + 1
-	s.data = append(s.data, invite)
-
+	s.data = append(s.data, *invite)
 	return nil
 }
 
-func (s *InviteStore) DeleteInvites(fromUserId, toUserId models.UserId) error {
+// DeleteInvite удаляет приглашение по ID
+func (s *InviteStore) DeleteInvite(id models.InviteId) error {
+	// Удаляем из БД
+	err := database.DeleteInvite(id)
+	if err != nil {
+		return err
+	}
+
 	// Удаляем из локального стора
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
+	var newData []models.Invite
+	for _, invite := range s.data {
+		if invite.Id != id {
+			newData = append(newData, invite)
+		}
+	}
+	s.data = newData
+
+	return nil
+}
+
+// DeleteInviteByUsers удаляет приглашения между пользователями
+func (s *InviteStore) DeleteInviteByUsers(fromUserId, toUserId models.UserId) error {
 	// Удаляем из БД
 	err := database.DeleteInvitesBetweenUsers(fromUserId, toUserId)
 	if err != nil {
 		return err
 	}
+
+	// Удаляем из локального стора
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
 	var newData []models.Invite
 	for _, invite := range s.data {

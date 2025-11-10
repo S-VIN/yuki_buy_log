@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 	"yuki_buy_log/models"
-	"yuki_buy_log/stores"
 )
 
 func InviteHandler(auth Authenticator) http.HandlerFunc {
@@ -33,7 +32,7 @@ func getIncomingInvites(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Printf("Fetching incoming invites for user ID: %d", user.Id)
-	inviteStore := stores.GetInviteStore()
+	inviteStore := getInviteStore()
 	invites := inviteStore.GetInvitesToUser(user.Id)
 	log.Printf("Successfully fetched %d incoming invites for user %d", len(invites), user.Id)
 	w.Header().Set("Content-Type", "application/json")
@@ -41,7 +40,7 @@ func getIncomingInvites(w http.ResponseWriter, r *http.Request) {
 }
 
 func canMergeUsersToGroups(firstUserId models.UserId, secondUserId models.UserId) bool {
-	groupStore := stores.GetGroupStore()
+	groupStore := getGroupStore()
 
 	// Check if users are already in groups
 	firstUserGroup := groupStore.GetGroupByUserId(firstUserId)
@@ -54,7 +53,7 @@ func canMergeUsersToGroups(firstUserId models.UserId, secondUserId models.UserId
 
 // // Соединяет двух пользователей в группу. Если нельзя, то возвращает ошибку
 func mergeUsersToGroups(firstUserId models.UserId, secondUserId models.UserId) error {
-	groupStore := stores.GetGroupStore()
+	groupStore := getGroupStore()
 
 	// Check if users are already in groups
 	firstUserGroup := groupStore.GetGroupByUserId(firstUserId)
@@ -100,8 +99,8 @@ func mergeUsersToGroups(firstUserId models.UserId, secondUserId models.UserId) e
 }
 
 func sendInvite(w http.ResponseWriter, r *http.Request) {
-	userStore := stores.GetUserStore()
-	inviteStore := stores.GetInviteStore()
+	userStore := getUserStore()
+	inviteStore := getInviteStore()
 
 	log.Println("Sending invite")
 	var req struct {
@@ -150,7 +149,7 @@ func sendInvite(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		err = inviteStore.DeleteInvites(user.Id, targetUser.Id)
+		err = inviteStore.DeleteInviteByUsers(user.Id, targetUser.Id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -169,7 +168,7 @@ func sendInvite(w http.ResponseWriter, r *http.Request) {
 		ToLogin:    targetUser.Login,
 		CreatedAt:  time.Now(),
 	}
-	err = inviteStore.AddInvite(newInvite)
+	err = inviteStore.CreateInvite(&newInvite)
 	if err != nil {
 		log.Printf("Cannot send invite")
 		http.Error(w, "Cannot invite users", http.StatusBadRequest)

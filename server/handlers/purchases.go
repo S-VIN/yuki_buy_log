@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"yuki_buy_log/models"
-	"yuki_buy_log/stores"
 	"yuki_buy_log/validators"
 )
 
@@ -38,8 +37,8 @@ func getPurchases(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Fetching purchases for user ID: %d and their group", user.Id)
 
 	// Get group store and purchase store
-	groupStore := stores.GetGroupStore()
-	purchaseStore := stores.GetPurchaseStore()
+	groupStore := getGroupStore()
+	purchaseStore := getPurchaseStore()
 
 	// Get all user IDs in the same group (including current user)
 	// If user is not in a group, just return their own purchases
@@ -90,8 +89,8 @@ func createPurchase(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Creating purchase for user ID: %d", user.Id)
 
 	// Get purchase store and add purchase
-	purchaseStore := stores.GetPurchaseStore()
-	err = purchaseStore.AddPurchase(&p)
+	purchaseStore := getPurchaseStore()
+	err = purchaseStore.CreatePurchase(&p)
 	if err != nil {
 		log.Printf("Failed to insert purchase: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -130,7 +129,7 @@ func deletePurchase(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Deleting purchase ID: %d for user ID: %d", req.Id, user.Id)
 
 	// Get purchase store and delete purchase
-	purchaseStore := stores.GetPurchaseStore()
+	purchaseStore := getPurchaseStore()
 	err = purchaseStore.DeletePurchase(models.PurchaseId(req.Id), user.Id)
 	if err != nil {
 		log.Printf("Failed to delete purchase: %v", err)

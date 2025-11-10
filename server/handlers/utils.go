@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"yuki_buy_log/models"
-	"yuki_buy_log/stores"
 )
 
 type Authenticator interface {
@@ -25,7 +24,7 @@ func getUser(r *http.Request) (user *models.User, err error) {
 		return nil, fmt.Errorf("Invalid userId type in context")
 	}
 
-	userStore := stores.GetUserStore()
+	userStore := getUserStore()
 	user = userStore.GetUserById(userIdTyped)
 	if user == nil {
 		return nil, fmt.Errorf("User not found")

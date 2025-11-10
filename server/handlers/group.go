@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"yuki_buy_log/models"
-	"yuki_buy_log/stores"
 )
 
 func GroupHandler(auth Authenticator) http.HandlerFunc {
@@ -33,7 +32,7 @@ func getGroupMembers(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("Fetching group members for user ID: %d", user.Id)
 
-	groupStore := stores.GetGroupStore()
+	groupStore := getGroupStore()
 
 	// Get the group_id for the current user
 	group := groupStore.GetGroupByUserId(user.Id)
@@ -65,7 +64,7 @@ func leaveGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groupStore := stores.GetGroupStore()
+	groupStore := getGroupStore()
 
 	// Get the group_id for the current user
 	group := groupStore.GetGroupByUserId(user.Id)
