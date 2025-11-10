@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"golang.org/x/crypto/bcrypt"
 	"yuki_buy_log/handlers"
 	"yuki_buy_log/models"
 )
@@ -366,5 +367,119 @@ func TestProductsHandler_MethodNotAllowed(t *testing.T) {
 
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Errorf("Expected status 405, got %d", w.Code)
+	}
+}
+
+// ===================
+// LOGIN HANDLER TESTS
+// ===================
+
+// setupLoginTest - вспомогательная функция для настройки тестового окружения для login/register тестов
+func setupLoginTest() (*MockUserStore, *MockAuthenticator, func()) {
+	userStore := NewMockUserStore()
+	auth := NewMockAuthenticator()
+
+	origGetUserStore := handlers.GetUserStore
+	handlers.GetUserStore = func() handlers.UserStoreInterface { return userStore }
+
+	cleanup := func() {
+		handlers.GetUserStore = origGetUserStore
+	}
+
+	return userStore, auth, cleanup
+}
+
+// Тест: POST /register - успешная регистрация нового пользователя
+func TestRegister_Success(t *testing.T) {
+	userStore, auth, cleanup := setupLoginTest()
+	defer cleanup()
+
+	newUser := models.User{Login: "newuser", Password: "password123"}
+	body, _ := json.Marshal(newUser)
+	req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	handler := handlers.RegisterHandler(auth)
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]string
+	json.NewDecoder(w.Body).Decode(&response)
+	if response["token"] == "" {
+		t.Error("Expected token in response")
+	}
+
+	// Проверяем, что пользователь был добавлен в store
+	if len(userStore.users) != 1 {
+		t.Errorf("Expected 1 user in store, got %d", len(userStore.users))
+	}
+}
+
+// Тест: POST /login - успешный вход
+func TestLogin_Success(t *testing.T) {
+	userStore, auth, cleanup := setupLoginTest()
+	defer cleanup()
+
+	hash, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	user := models.User{Id: 1, Login: "testuser", Password: string(hash)}
+	userStore.AddUser(&user)
+
+	credentials := models.User{Login: "testuser", Password: "password123"}
+	body, _ := json.Marshal(credentials)
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	handler := handlers.LoginHandler(auth)
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+}
+
+// Тест: POST /login - пользователь не найден
+func TestLogin_UserNotFound(t *testing.T) {
+	_, auth, cleanup := setupLoginTest()
+	defer cleanup()
+
+	credentials := models.User{Login: "nonexistent", Password: "password123"}
+	body, _ := json.Marshal(credentials)
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	handler := handlers.LoginHandler(auth)
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status 401, got %d", w.Code)
+	}
+}
+
+// Тест: POST /login - неверный пароль
+func TestLogin_InvalidPassword(t *testing.T) {
+	userStore, auth, cleanup := setupLoginTest()
+	defer cleanup()
+
+	hash, _ := bcrypt.GenerateFromPassword([]byte("correctpassword"), bcrypt.DefaultCost)
+	user := models.User{Id: 1, Login: "testuser", Password: string(hash)}
+	userStore.AddUser(&user)
+
+	credentials := models.User{Login: "testuser", Password: "wrongpassword"}
+	body, _ := json.Marshal(credentials)
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	handler := handlers.LoginHandler(auth)
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status 401, got %d", w.Code)
 	}
 }
