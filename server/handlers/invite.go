@@ -137,7 +137,7 @@ func sendInvite(w http.ResponseWriter, r *http.Request) {
 
 	// Не можем объединить пользователей в группы
 	if !canMergeUsersToGroups(user.Id, targetUser.Id) {
-		log.Printf("Cannot invite: user %d in group %d, user %d in group %d", user.Id, targetUser.Id)
+		log.Printf("Cannot invite: user %d and user %d are in different groups", user.Id, targetUser.Id)
 		http.Error(w, "cannot invite users who are in different groups", http.StatusBadRequest)
 		return
 	}
