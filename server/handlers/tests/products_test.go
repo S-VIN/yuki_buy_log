@@ -4,110 +4,365 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"golang.org/x/crypto/bcrypt"
 	"yuki_buy_log/handlers"
 	"yuki_buy_log/models"
-
-	"github.com/DATA-DOG/go-sqlmock"
 )
 
-func TestProductsHandler_GET(t *testing.T) {
-	deps, mock := createTestDeps(t)
-	defer deps.DB.Close()
+// setupProductTest - вспомогательная функция для настройки тестового окружения
+func setupProductTest() (*MockProductStore, *MockGroupStore, *MockUserStore, func()) {
+	productStore := NewMockProductStore()
+	groupStore := NewMockGroupStore()
+	userStore := NewMockUserStore()
 
-	userID := int64(1)
+	// Сохраняем оригинальные фабрики
+	origGetProductStore := handlers.GetProductStore
+	origGetGroupStore := handlers.GetGroupStore
+	origGetUserStore := handlers.GetUserStore
 
-	// Mock getUser call
-	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
-		WithArgs(userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
+	// Подменяем фабрики на моки
+	handlers.GetProductStore = func() handlers.ProductStoreInterface { return productStore }
+	handlers.GetGroupStore = func() handlers.GroupStoreInterface { return groupStore }
+	handlers.GetUserStore = func() handlers.UserStoreInterface { return userStore }
 
-	// Mock group query (user not in a group)
-	mock.ExpectQuery("SELECT DISTINCT user_id FROM groups WHERE id =").
-		WithArgs(userID).
-		WillReturnRows(sqlmock.NewRows([]string{"user_id"}))
+	// Возвращаем функцию для восстановления оригинальных фабрик
+	cleanup := func() {
+		handlers.GetProductStore = origGetProductStore
+		handlers.GetGroupStore = origGetGroupStore
+		handlers.GetUserStore = origGetUserStore
+	}
 
-	// Mock database query for products
-	rows := sqlmock.NewRows([]string{"id", "name", "volume", "brand", "default_tags", "user_id"}).
-		AddRow(1, "TestProduct", "500ml", "TestBrand", "tag1,tag2", 1)
+	return productStore, groupStore, userStore, cleanup
+}
 
-	mock.ExpectQuery("SELECT id, name, volume, brand, default_tags, user_id FROM products WHERE user_id=\\$1").
-		WithArgs(userID).
-		WillReturnRows(rows)
+// Тест: GET /products - успешное получение продуктов пользователя без группы
+func TestGetProducts_UserNotInGroup_Success(t *testing.T) {
+	productStore, _, userStore, cleanup := setupProductTest()
+	defer cleanup()
 
-	handler := handlers.ProductsHandler(deps)
+	// Создаем тестового пользователя
+	user := models.User{Id: 1, Login: "testuser"}
+	userStore.AddUser(&user)
 
-	req := httptest.NewRequest("GET", "/products", nil)
-	ctx := context.WithValue(req.Context(), UserIDKey, userID)
+	// Создаем продукты для пользователя
+	productStore.CreateProduct(&models.Product{Id: 1, Name: "Product1", Volume: "100ml", Brand: "Brand1", UserId: 1})
+	productStore.CreateProduct(&models.Product{Id: 2, Name: "Product2", Volume: "200ml", Brand: "Brand2", UserId: 1})
+
+	// Создаем HTTP запрос с контекстом пользователя
+	req := httptest.NewRequest(http.MethodGet, "/products", nil)
+	ctx := context.WithValue(req.Context(), "userId", models.UserId(1))
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
+	handler := handlers.ProductsHandler(NewMockAuthenticator())
+	handler.ServeHTTP(w, req)
+
+	// Проверяем статус код
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	// Проверяем ответ
+	var response map[string][]models.Product
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	products := response["products"]
+	if len(products) != 2 {
+		t.Errorf("Expected 2 products, got %d", len(products))
+	}
+}
+
+// Тест: GET /products - успешное получение продуктов группы
+func TestGetProducts_UserInGroup_Success(t *testing.T) {
+	productStore, groupStore, userStore, cleanup := setupProductTest()
+	defer cleanup()
+
+	// Создаем пользователей
+	user1 := models.User{Id: 1, Login: "user1"}
+	user2 := models.User{Id: 2, Login: "user2"}
+	userStore.AddUser(&user1)
+	userStore.AddUser(&user2)
+
+	// Создаем группу
+	groupId, _ := groupStore.CreateNewGroup(1)
+	groupStore.AddUserToGroup(*groupId, 2)
+
+	// Создаем продукты для обоих пользователей
+	productStore.CreateProduct(&models.Product{Id: 1, Name: "Product1", Volume: "100ml", Brand: "Brand1", UserId: 1})
+	productStore.CreateProduct(&models.Product{Id: 2, Name: "Product2", Volume: "200ml", Brand: "Brand2", UserId: 2})
+
+	// Создаем HTTP запрос
+	req := httptest.NewRequest(http.MethodGet, "/products", nil)
+	ctx := context.WithValue(req.Context(), "userId", models.UserId(1))
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	handler := handlers.ProductsHandler(NewMockAuthenticator())
+	handler.ServeHTTP(w, req)
+
+	// Проверяем статус код
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	// Проверяем, что получены продукты обоих пользователей
+	var response map[string][]models.Product
+	json.NewDecoder(w.Body).Decode(&response)
+	products := response["products"]
+
+	if len(products) != 2 {
+		t.Errorf("Expected 2 products from group, got %d", len(products))
+	}
+}
+
+// Тест: GET /products - неавторизованный доступ
+func TestGetProducts_Unauthorized(t *testing.T) {
+	_, _, _, cleanup := setupProductTest()
+	defer cleanup()
+
+	// Создаем запрос без userId в контексте
+	req := httptest.NewRequest(http.MethodGet, "/products", nil)
+	w := httptest.NewRecorder()
+
+	handler := handlers.ProductsHandler(NewMockAuthenticator())
+	handler.ServeHTTP(w, req)
+
+	// Проверяем, что получили 401
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status 401, got %d", w.Code)
+	}
+}
+
+// Тест: POST /products - успешное создание продукта
+func TestCreateProduct_Success(t *testing.T) {
+	productStore, _, userStore, cleanup := setupProductTest()
+	defer cleanup()
+
+	// Создаем пользователя
+	user := models.User{Id: 1, Login: "testuser"}
+	userStore.AddUser(&user)
+
+	// Подготавливаем данные продукта
+	newProduct := models.Product{
+		Name:        "NewProduct",
+		Volume:      "500ml",
+		Brand:       "TestBrand",
+		DefaultTags: []string{"tag1"},
+	}
+
+	body, _ := json.Marshal(newProduct)
+	req := httptest.NewRequest(http.MethodPost, "/products", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), "userId", models.UserId(1))
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	handler := handlers.ProductsHandler(NewMockAuthenticator())
+	handler.ServeHTTP(w, req)
+
+	// Проверяем статус код
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	// Проверяем, что продукт был добавлен
+	var createdProduct models.Product
+	json.NewDecoder(w.Body).Decode(&createdProduct)
+
+	if createdProduct.Name != "NewProduct" {
+		t.Errorf("Expected product name 'NewProduct', got '%s'", createdProduct.Name)
+	}
+
+	if createdProduct.UserId != 1 {
+		t.Errorf("Expected userId 1, got %d", createdProduct.UserId)
+	}
+
+	// Проверяем, что продукт в store
+	if len(productStore.products) != 1 {
+		t.Errorf("Expected 1 product in store, got %d", len(productStore.products))
+	}
+}
+
+// Тест: POST /products - невалидные данные
+func TestCreateProduct_InvalidData(t *testing.T) {
+	_, _, userStore, cleanup := setupProductTest()
+	defer cleanup()
+
+	user := models.User{Id: 1, Login: "testuser"}
+	userStore.AddUser(&user)
+
+	// Продукт с невалидным именем (специальные символы)
+	invalidProduct := models.Product{
+		Name:   "Invalid@Name",
+		Volume: "500ml",
+		Brand:  "TestBrand",
+	}
+
+	body, _ := json.Marshal(invalidProduct)
+	req := httptest.NewRequest(http.MethodPost, "/products", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), "userId", models.UserId(1))
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	handler := handlers.ProductsHandler(NewMockAuthenticator())
+	handler.ServeHTTP(w, req)
+
+	// Проверяем, что получили ошибку валидации
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status 400, got %d", w.Code)
+	}
+}
+
+// Тест: POST /products - неверный JSON
+func TestCreateProduct_InvalidJSON(t *testing.T) {
+	_, _, userStore, cleanup := setupProductTest()
+	defer cleanup()
+
+	user := models.User{Id: 1, Login: "testuser"}
+	userStore.AddUser(&user)
+
+	req := httptest.NewRequest(http.MethodPost, "/products", bytes.NewBufferString("invalid json"))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), "userId", models.UserId(1))
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	handler := handlers.ProductsHandler(NewMockAuthenticator())
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status 400, got %d", w.Code)
+	}
+}
+
+// Тест: POST /products - ошибка при сохранении
+func TestCreateProduct_StoreError(t *testing.T) {
+	productStore, _, userStore, cleanup := setupProductTest()
+	defer cleanup()
+
+	user := models.User{Id: 1, Login: "testuser"}
+	userStore.AddUser(&user)
+
+	// Настраиваем мок для возврата ошибки
+	productStore.createProductFunc = func(p *models.Product) error {
+		return errors.New("database error")
+	}
+
+	newProduct := models.Product{
+		Name:   "Product",
+		Volume: "500ml",
+		Brand:  "Brand",
+	}
+
+	body, _ := json.Marshal(newProduct)
+	req := httptest.NewRequest(http.MethodPost, "/products", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), "userId", models.UserId(1))
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	handler := handlers.ProductsHandler(NewMockAuthenticator())
+	handler.ServeHTTP(w, req)
+
+	// Проверяем, что получили ошибку сервера
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status 500, got %d", w.Code)
+	}
+}
+
+// Тест: PUT /products - успешное обновление продукта
+func TestUpdateProduct_Success(t *testing.T) {
+	productStore, _, userStore, cleanup := setupProductTest()
+	defer cleanup()
+
+	user := models.User{Id: 1, Login: "testuser"}
+	userStore.AddUser(&user)
+
+	// Создаем продукт
+	productStore.CreateProduct(&models.Product{
+		Id:     1,
+		Name:   "OldName",
+		Volume: "100ml",
+		Brand:  "OldBrand",
+		UserId: 1,
+	})
+
+	// Обновляем продукт
+	updatedProduct := models.Product{
+		Id:     1,
+		Name:   "NewName",
+		Volume: "200ml",
+		Brand:  "NewBrand",
+	}
+
+	body, _ := json.Marshal(updatedProduct)
+	req := httptest.NewRequest(http.MethodPut, "/products", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), "userId", models.UserId(1))
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	handler := handlers.ProductsHandler(NewMockAuthenticator())
 	handler.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("Database expectations were not met: %v", err)
+	// Проверяем, что продукт обновлен
+	updated := productStore.GetProductById(1)
+	if updated.Name != "NewName" {
+		t.Errorf("Expected product name 'NewName', got '%s'", updated.Name)
 	}
 }
 
-func TestProductsHandler_POST(t *testing.T) {
-	deps, mock := createTestDeps(t)
-	defer deps.DB.Close()
+// Тест: PUT /products - отсутствует ID
+func TestUpdateProduct_MissingId(t *testing.T) {
+	_, _, userStore, cleanup := setupProductTest()
+	defer cleanup()
 
-	userID := int64(1)
+	user := models.User{Id: 1, Login: "testuser"}
+	userStore.AddUser(&user)
 
-	// Mock getUser call
-	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
-		WithArgs(userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
-
-	// Mock successful product insertion
-	mock.ExpectQuery("INSERT INTO products").
-		WithArgs("TestProduct", "500ml", "TestBrand", "test", 1).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-
-	handler := handlers.ProductsHandler(deps)
-
+	// Продукт без ID
 	product := models.Product{
-		Name:        "TestProduct",
-		Volume:      "500ml",
-		Brand:       "TestBrand",
-		DefaultTags: []string{"test"},
+		Name:   "Product",
+		Volume: "100ml",
+		Brand:  "Brand",
 	}
 
 	body, _ := json.Marshal(product)
-	req := httptest.NewRequest("POST", "/products", bytes.NewBuffer(body))
+	req := httptest.NewRequest(http.MethodPut, "/products", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-
-	ctx := context.WithValue(req.Context(), UserIDKey, int64(1))
+	ctx := context.WithValue(req.Context(), "userId", models.UserId(1))
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
+	handler := handlers.ProductsHandler(NewMockAuthenticator())
 	handler.ServeHTTP(w, req)
 
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", w.Code)
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("Database expectations were not met: %v", err)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status 400, got %d", w.Code)
 	}
 }
 
-func TestProductsHandler_InvalidMethod(t *testing.T) {
-	deps, _ := createTestDeps(t)
-	defer deps.DB.Close()
+// Тест: метод не поддерживается
+func TestProductsHandler_MethodNotAllowed(t *testing.T) {
+	_, _, _, cleanup := setupProductTest()
+	defer cleanup()
 
-	handler := handlers.ProductsHandler(deps)
-
-	req := httptest.NewRequest("DELETE", "/products", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/products", nil)
 	w := httptest.NewRecorder()
+
+	handler := handlers.ProductsHandler(NewMockAuthenticator())
 	handler.ServeHTTP(w, req)
 
 	if w.Code != http.StatusMethodNotAllowed {
@@ -115,15 +370,90 @@ func TestProductsHandler_InvalidMethod(t *testing.T) {
 	}
 }
 
-func TestProductsHandler_Unauthorized(t *testing.T) {
-	deps, _ := createTestDeps(t)
-	defer deps.DB.Close()
+// ===================
+// LOGIN HANDLER TESTS
+// ===================
 
-	handler := handlers.ProductsHandler(deps)
+// setupLoginTest - вспомогательная функция для настройки тестового окружения для login/register тестов
+func setupLoginTest() (*MockUserStore, *MockAuthenticator, func()) {
+	userStore := NewMockUserStore()
+	auth := NewMockAuthenticator()
 
-	// Request without user_id in context
-	req := httptest.NewRequest("GET", "/products", nil)
+	origGetUserStore := handlers.GetUserStore
+	handlers.GetUserStore = func() handlers.UserStoreInterface { return userStore }
+
+	cleanup := func() {
+		handlers.GetUserStore = origGetUserStore
+	}
+
+	return userStore, auth, cleanup
+}
+
+// Тест: POST /register - успешная регистрация нового пользователя
+func TestRegister_Success(t *testing.T) {
+	userStore, auth, cleanup := setupLoginTest()
+	defer cleanup()
+
+	newUser := models.User{Login: "newuser", Password: "password123"}
+	body, _ := json.Marshal(newUser)
+	req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
 	w := httptest.NewRecorder()
+	handler := handlers.RegisterHandler(auth)
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]string
+	json.NewDecoder(w.Body).Decode(&response)
+	if response["token"] == "" {
+		t.Error("Expected token in response")
+	}
+
+	// Проверяем, что пользователь был добавлен в store
+	if len(userStore.users) != 1 {
+		t.Errorf("Expected 1 user in store, got %d", len(userStore.users))
+	}
+}
+
+// Тест: POST /login - успешный вход
+func TestLogin_Success(t *testing.T) {
+	userStore, auth, cleanup := setupLoginTest()
+	defer cleanup()
+
+	hash, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	user := models.User{Id: 1, Login: "testuser", Password: string(hash)}
+	userStore.AddUser(&user)
+
+	credentials := models.User{Login: "testuser", Password: "password123"}
+	body, _ := json.Marshal(credentials)
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	handler := handlers.LoginHandler(auth)
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+}
+
+// Тест: POST /login - пользователь не найден
+func TestLogin_UserNotFound(t *testing.T) {
+	_, auth, cleanup := setupLoginTest()
+	defer cleanup()
+
+	credentials := models.User{Login: "nonexistent", Password: "password123"}
+	body, _ := json.Marshal(credentials)
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	handler := handlers.LoginHandler(auth)
 	handler.ServeHTTP(w, req)
 
 	if w.Code != http.StatusUnauthorized {
@@ -131,523 +461,25 @@ func TestProductsHandler_Unauthorized(t *testing.T) {
 	}
 }
 
-func TestProductsHandler_GET_WithGroup(t *testing.T) {
-	deps, mock := createTestDeps(t)
-	defer deps.DB.Close()
+// Тест: POST /login - неверный пароль
+func TestLogin_InvalidPassword(t *testing.T) {
+	userStore, auth, cleanup := setupLoginTest()
+	defer cleanup()
 
-	userID := int64(1)
+	hash, _ := bcrypt.GenerateFromPassword([]byte("correctpassword"), bcrypt.DefaultCost)
+	user := models.User{Id: 1, Login: "testuser", Password: string(hash)}
+	userStore.AddUser(&user)
 
-	// Mock getUser call
-	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
-		WithArgs(userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
-
-	// Mock group query (user is in a group with 3 members)
-	groupRows := sqlmock.NewRows([]string{"user_id"}).
-		AddRow(1).
-		AddRow(2).
-		AddRow(3)
-
-	mock.ExpectQuery("SELECT DISTINCT user_id FROM groups WHERE id =").
-		WithArgs(userID).
-		WillReturnRows(groupRows)
-
-	// Mock database query for products from all group members
-	productRows := sqlmock.NewRows([]string{"id", "name", "volume", "brand", "default_tags", "user_id"}).
-		AddRow(1, "Product1", "500ml", "Brand1", "tag1", 1).
-		AddRow(2, "Product2", "1L", "Brand2", "tag2", 2).
-		AddRow(3, "Product3", "250ml", "Brand3", "tag3", 3)
-
-	mock.ExpectQuery("SELECT id, name, volume, brand, default_tags, user_id FROM products WHERE user_id = ANY").
-		WithArgs(sqlmock.AnyArg()).
-		WillReturnRows(productRows)
-
-	handler := handlers.ProductsHandler(deps)
-
-	req := httptest.NewRequest("GET", "/products", nil)
-	ctx := context.WithValue(req.Context(), UserIDKey, userID)
-	req = req.WithContext(ctx)
-
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", w.Code)
-	}
-
-	// Parse response to verify we got products from all group members
-	var response map[string][]models.Product
-	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
-		t.Fatalf("Failed to decode response: %v", err)
-	}
-
-	products := response["products"]
-	if len(products) != 3 {
-		t.Errorf("Expected 3 products from group members, got %d", len(products))
-	}
-
-	// Verify that products have correct user_ids
-	expectedUserIDs := map[int64]bool{1: true, 2: true, 3: true}
-	for _, p := range products {
-		if !expectedUserIDs[p.UserId] {
-			t.Errorf("Unexpected user_id %d in product", p.UserId)
-		}
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("Database expectations were not met: %v", err)
-	}
-}
-
-func TestProductsHandler_PUT_Success(t *testing.T) {
-	deps, mock := createTestDeps(t)
-	defer deps.DB.Close()
-
-	userID := int64(1)
-
-	// Mock getUser call
-	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
-		WithArgs(userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
-
-	// Mock successful product update
-	result := sqlmock.NewResult(0, 1) // 1 row affected
-	mock.ExpectExec("UPDATE products SET name=\\$1, volume=\\$2, brand=\\$3, default_tags=\\$4 WHERE id=\\$5 AND user_id=\\$6").
-		WithArgs("UpdatedProduct", "1L", "UpdatedBrand", "tag1,tag2", 123, userID).
-		WillReturnResult(result)
-
-	handler := handlers.ProductsHandler(deps)
-
-	product := models.Product{
-		Id:          123,
-		Name:        "UpdatedProduct",
-		Volume:      "1L",
-		Brand:       "UpdatedBrand",
-		DefaultTags: []string{"tag1", "tag2"},
-	}
-
-	body, _ := json.Marshal(product)
-	req := httptest.NewRequest("PUT", "/products", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-
-	ctx := context.WithValue(req.Context(), UserIDKey, userID)
-	req = req.WithContext(ctx)
-
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", w.Code)
-	}
-
-	// Verify response contains updated product
-	var responseProduct models.Product
-	if err := json.NewDecoder(w.Body).Decode(&responseProduct); err != nil {
-		t.Fatalf("Failed to decode response: %v", err)
-	}
-
-	if responseProduct.Name != "UpdatedProduct" {
-		t.Errorf("Expected product name 'UpdatedProduct', got '%s'", responseProduct.Name)
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("Database expectations were not met: %v", err)
-	}
-}
-
-func TestProductsHandler_PUT_NotFound(t *testing.T) {
-	deps, mock := createTestDeps(t)
-	defer deps.DB.Close()
-
-	userID := int64(1)
-
-	// Mock getUser call
-	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
-		WithArgs(userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
-
-	// Mock update with no rows affected
-	result := sqlmock.NewResult(0, 0) // 0 rows affected
-	mock.ExpectExec("UPDATE products SET name=\\$1, volume=\\$2, brand=\\$3, default_tags=\\$4 WHERE id=\\$5 AND user_id=\\$6").
-		WithArgs("UpdatedProduct", "1L", "UpdatedBrand", "tag1", 999, userID).
-		WillReturnResult(result)
-
-	handler := handlers.ProductsHandler(deps)
-
-	product := models.Product{
-		Id:          999,
-		Name:        "UpdatedProduct",
-		Volume:      "1L",
-		Brand:       "UpdatedBrand",
-		DefaultTags: []string{"tag1"},
-	}
-
-	body, _ := json.Marshal(product)
-	req := httptest.NewRequest("PUT", "/products", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-
-	ctx := context.WithValue(req.Context(), UserIDKey, userID)
-	req = req.WithContext(ctx)
-
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusNotFound {
-		t.Errorf("Expected status 404, got %d", w.Code)
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("Database expectations were not met: %v", err)
-	}
-}
-
-func TestProductsHandler_PUT_Unauthorized(t *testing.T) {
-	deps, _ := createTestDeps(t)
-	defer deps.DB.Close()
-
-	handler := handlers.ProductsHandler(deps)
-
-	product := models.Product{
-		Id:          123,
-		Name:        "UpdatedProduct",
-		Volume:      "1L",
-		Brand:       "UpdatedBrand",
-		DefaultTags: []string{"tag1"},
-	}
-
-	body, _ := json.Marshal(product)
-	req := httptest.NewRequest("PUT", "/products", bytes.NewBuffer(body))
+	credentials := models.User{Login: "testuser", Password: "wrongpassword"}
+	body, _ := json.Marshal(credentials)
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
+	handler := handlers.LoginHandler(auth)
 	handler.ServeHTTP(w, req)
 
 	if w.Code != http.StatusUnauthorized {
 		t.Errorf("Expected status 401, got %d", w.Code)
-	}
-}
-
-func TestProductsHandler_PUT_InvalidJSON(t *testing.T) {
-	deps, mock := createTestDeps(t)
-	defer deps.DB.Close()
-
-	userID := int64(1)
-
-	// Mock getUser call
-	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
-		WithArgs(userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
-
-	handler := handlers.ProductsHandler(deps)
-
-	req := httptest.NewRequest("PUT", "/products", bytes.NewBuffer([]byte("invalid json")))
-	req.Header.Set("Content-Type", "application/json")
-
-	ctx := context.WithValue(req.Context(), UserIDKey, int64(1))
-	req = req.WithContext(ctx)
-
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("Expected status 400, got %d", w.Code)
-	}
-}
-
-func TestProductsHandler_PUT_MissingID(t *testing.T) {
-	deps, mock := createTestDeps(t)
-	defer deps.DB.Close()
-
-	userID := int64(1)
-
-	// Mock getUser call
-	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
-		WithArgs(userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
-
-	handler := handlers.ProductsHandler(deps)
-
-	product := models.Product{
-		Id:          0, // Missing/invalid ID
-		Name:        "UpdatedProduct",
-		Volume:      "1L",
-		Brand:       "UpdatedBrand",
-		DefaultTags: []string{"tag1"},
-	}
-
-	body, _ := json.Marshal(product)
-	req := httptest.NewRequest("PUT", "/products", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-
-	ctx := context.WithValue(req.Context(), UserIDKey, int64(1))
-	req = req.WithContext(ctx)
-
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("Expected status 400, got %d", w.Code)
-	}
-}
-
-func TestProductsHandler_PUT_ValidationError(t *testing.T) {
-	deps, mock := createTestDepsWithFailingValidator(t)
-	defer deps.DB.Close()
-
-	userID := int64(1)
-
-	// Mock getUser call
-	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
-		WithArgs(userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
-
-	handler := handlers.ProductsHandler(deps)
-
-	product := models.Product{
-		Id:          123,
-		Name:        "UpdatedProduct",
-		Volume:      "1L",
-		Brand:       "UpdatedBrand",
-		DefaultTags: []string{"tag1"},
-	}
-
-	body, _ := json.Marshal(product)
-	req := httptest.NewRequest("PUT", "/products", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-
-	ctx := context.WithValue(req.Context(), UserIDKey, int64(1))
-	req = req.WithContext(ctx)
-
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("Expected status 400 (validation error), got %d", w.Code)
-	}
-}
-
-func TestProductsHandler_PUT_DifferentUserProduct(t *testing.T) {
-	deps, mock := createTestDeps(t)
-	defer deps.DB.Close()
-
-	userID := int64(1)
-
-	// Mock getUser call
-	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
-		WithArgs(userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
-
-	// User 1 tries to update product owned by user 2
-	// The query includes user_id check, so no rows will be affected
-	result := sqlmock.NewResult(0, 0) // 0 rows affected
-	mock.ExpectExec("UPDATE products SET name=\\$1, volume=\\$2, brand=\\$3, default_tags=\\$4 WHERE id=\\$5 AND user_id=\\$6").
-		WithArgs("UpdatedProduct", "1L", "UpdatedBrand", "tag1", 456, userID).
-		WillReturnResult(result)
-
-	handler := handlers.ProductsHandler(deps)
-
-	product := models.Product{
-		Id:          456, // Product owned by different user
-		Name:        "UpdatedProduct",
-		Volume:      "1L",
-		Brand:       "UpdatedBrand",
-		DefaultTags: []string{"tag1"},
-	}
-
-	body, _ := json.Marshal(product)
-	req := httptest.NewRequest("PUT", "/products", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-
-	ctx := context.WithValue(req.Context(), UserIDKey, userID)
-	req = req.WithContext(ctx)
-
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusNotFound {
-		t.Errorf("Expected status 404 (product not found for this user), got %d", w.Code)
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("Database expectations were not met: %v", err)
-	}
-}
-
-func TestProductsHandler_PUT_DatabaseError(t *testing.T) {
-	deps, mock := createTestDeps(t)
-	defer deps.DB.Close()
-
-	userID := int64(1)
-
-	// Mock getUser call
-	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
-		WithArgs(userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
-
-	// Mock database error during update
-	mock.ExpectExec("UPDATE products SET name=\\$1, volume=\\$2, brand=\\$3, default_tags=\\$4 WHERE id=\\$5 AND user_id=\\$6").
-		WithArgs("UpdatedProduct", "1L", "UpdatedBrand", "tag1", 123, userID).
-		WillReturnError(sqlmock.ErrCancelled)
-
-	handler := handlers.ProductsHandler(deps)
-
-	product := models.Product{
-		Id:          123,
-		Name:        "UpdatedProduct",
-		Volume:      "1L",
-		Brand:       "UpdatedBrand",
-		DefaultTags: []string{"tag1"},
-	}
-
-	body, _ := json.Marshal(product)
-	req := httptest.NewRequest("PUT", "/products", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-
-	ctx := context.WithValue(req.Context(), UserIDKey, userID)
-	req = req.WithContext(ctx)
-
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status 500, got %d", w.Code)
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("Database expectations were not met: %v", err)
-	}
-}
-
-func TestProductsHandler_PUT_EmptyTags(t *testing.T) {
-	deps, mock := createTestDeps(t)
-	defer deps.DB.Close()
-
-	userID := int64(1)
-
-	// Mock getUser call
-	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
-		WithArgs(userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
-
-	// Mock successful product update with empty tags
-	result := sqlmock.NewResult(0, 1) // 1 row affected
-	mock.ExpectExec("UPDATE products SET name=\\$1, volume=\\$2, brand=\\$3, default_tags=\\$4 WHERE id=\\$5 AND user_id=\\$6").
-		WithArgs("UpdatedProduct", "1L", "UpdatedBrand", "", 123, userID).
-		WillReturnResult(result)
-
-	handler := handlers.ProductsHandler(deps)
-
-	product := models.Product{
-		Id:          123,
-		Name:        "UpdatedProduct",
-		Volume:      "1L",
-		Brand:       "UpdatedBrand",
-		DefaultTags: []string{}, // Empty tags
-	}
-
-	body, _ := json.Marshal(product)
-	req := httptest.NewRequest("PUT", "/products", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-
-	ctx := context.WithValue(req.Context(), UserIDKey, userID)
-	req = req.WithContext(ctx)
-
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", w.Code)
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("Database expectations were not met: %v", err)
-	}
-}
-
-func TestProductsHandler_PUT_MultipleTags(t *testing.T) {
-	deps, mock := createTestDeps(t)
-	defer deps.DB.Close()
-
-	userID := int64(1)
-
-	// Mock getUser call
-	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
-		WithArgs(userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
-
-	// Mock successful product update with multiple tags
-	result := sqlmock.NewResult(0, 1) // 1 row affected
-	mock.ExpectExec("UPDATE products SET name=\\$1, volume=\\$2, brand=\\$3, default_tags=\\$4 WHERE id=\\$5 AND user_id=\\$6").
-		WithArgs("UpdatedProduct", "1L", "UpdatedBrand", "tag1,tag2,tag3,tag4,tag5", 123, userID).
-		WillReturnResult(result)
-
-	handler := handlers.ProductsHandler(deps)
-
-	product := models.Product{
-		Id:          123,
-		Name:        "UpdatedProduct",
-		Volume:      "1L",
-		Brand:       "UpdatedBrand",
-		DefaultTags: []string{"tag1", "tag2", "tag3", "tag4", "tag5"},
-	}
-
-	body, _ := json.Marshal(product)
-	req := httptest.NewRequest("PUT", "/products", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-
-	ctx := context.WithValue(req.Context(), UserIDKey, userID)
-	req = req.WithContext(ctx)
-
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", w.Code)
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("Database expectations were not met: %v", err)
-	}
-}
-
-func TestProductsHandler_PUT_TooManyTags(t *testing.T) {
-	deps, mock := createTestDepsWithFailingValidator(t)
-	defer deps.DB.Close()
-
-	userID := int64(1)
-
-	// Mock getUser call
-	mock.ExpectQuery("SELECT id, login, password_hash FROM users WHERE id = \\$1").
-		WithArgs(userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "login", "password_hash"}).AddRow(userID, "user1", "hash1"))
-
-	handler := handlers.ProductsHandler(deps)
-
-	// Create product with 11 tags (exceeds limit of 10)
-	tags := make([]string, 11)
-	for i := 0; i < 11; i++ {
-		tags[i] = "tag"
-	}
-
-	product := models.Product{
-		Id:          123,
-		Name:        "UpdatedProduct",
-		Volume:      "1L",
-		Brand:       "UpdatedBrand",
-		DefaultTags: tags,
-	}
-
-	body, _ := json.Marshal(product)
-	req := httptest.NewRequest("PUT", "/products", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-
-	ctx := context.WithValue(req.Context(), UserIDKey, int64(1))
-	req = req.WithContext(ctx)
-
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("Expected status 400 (too many tags), got %d", w.Code)
 	}
 }

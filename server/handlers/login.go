@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
-	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
+
+	"golang.org/x/crypto/bcrypt"
 	"yuki_buy_log/models"
-	"yuki_buy_log/stores"
 )
 
 func RegisterHandler(auth Authenticator) http.HandlerFunc {
@@ -33,7 +33,7 @@ func RegisterHandler(auth Authenticator) http.HandlerFunc {
 		}
 		u.Password = string(hash)
 
-		userStore := stores.GetUserStore()
+		userStore := GetUserStore()
 		err = userStore.AddUser(&u)
 		if err != nil {
 			log.Printf("Failed to register user: %v", err)
@@ -76,7 +76,7 @@ func LoginHandler(auth Authenticator) http.HandlerFunc {
 		log.Printf("Login attempt for user: %s", credentials.Login)
 
 		// Получение пользователя из стора
-		userStore := stores.GetUserStore()
+		userStore := GetUserStore()
 		user := userStore.GetUserByLogin(credentials.Login)
 		if user == nil {
 			log.Printf("User %s not found", credentials.Login)

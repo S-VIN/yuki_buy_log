@@ -60,6 +60,27 @@ func AddPurchase(purchase *models.Purchase) error {
 	return nil
 }
 
+func UpdatePurchase(purchase *models.Purchase) error {
+	result, err := db.Exec(`UPDATE purchases SET product_id=$1, quantity=$2, price=$3, date=$4, store=$5, tags=$6, receipt_id=$7 WHERE id=$8 AND user_id=$9`,
+		purchase.ProductId, purchase.Quantity, purchase.Price, purchase.Date, purchase.Store, pq.Array(purchase.Tags), purchase.ReceiptId, purchase.Id, purchase.UserId)
+	if err != nil {
+		log.Printf("Failed to update purchase: %v", err)
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Failed to check rows affected: %v", err)
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("purchase with id %d not found for user %d", purchase.Id, purchase.UserId)
+	}
+
+	return nil
+}
+
 func DeletePurchase(purchaseId models.PurchaseId, userId models.UserId) error {
 	result, err := db.Exec(`DELETE FROM purchases WHERE id = $1 AND user_id = $2`, purchaseId, userId)
 	if err != nil {

@@ -56,10 +56,52 @@ func (s *PurchaseStore) GetPurchasesByUserIds(userIds []models.UserId) []models.
 	return purchases
 }
 
-// AddPurchase добавляет новую покупку
-func (s *PurchaseStore) AddPurchase(purchase *models.Purchase) error {
+// GetPurchaseById возвращает покупку по ID
+func (s *PurchaseStore) GetPurchaseById(id models.PurchaseId) *models.Purchase {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	if purchase, ok := s.data[id]; ok {
+		purchaseCopy := purchase
+		return &purchaseCopy
+	}
+	return nil
+}
+
+// GetPurchasesByUserId возвращает все покупки пользователя
+func (s *PurchaseStore) GetPurchasesByUserId(userId models.UserId) []models.Purchase {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	var purchases []models.Purchase
+	for _, purchase := range s.data {
+		if purchase.UserId == userId {
+			purchases = append(purchases, purchase)
+		}
+	}
+	return purchases
+}
+
+// CreatePurchase добавляет новую покупку
+func (s *PurchaseStore) CreatePurchase(purchase *models.Purchase) error {
 	// Добавляем в БД
 	err := database.AddPurchase(purchase)
+	if err != nil {
+		return err
+	}
+
+	// Обновляем локальный стор
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	s.data[purchase.Id] = *purchase
+	return nil
+}
+
+// UpdatePurchase обновляет покупку
+func (s *PurchaseStore) UpdatePurchase(purchase *models.Purchase) error {
+	// Обновляем в БД
+	err := database.UpdatePurchase(purchase)
 	if err != nil {
 		return err
 	}
