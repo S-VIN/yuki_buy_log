@@ -11,11 +11,23 @@ import (
 
 var db *sql.DB
 var once sync.Once
+var skipInit = false
 
 func init() {
-	// Skip database initialization during tests
+	// Check if we should skip database initialization (for tests)
+	// This check must be done before any imports or package-level variables are used
 	if os.Getenv("SKIP_DB_INIT") == "true" {
+		skipInit = true
 		log.Println("Skipping database initialization (SKIP_DB_INIT=true)")
+		return
+	}
+
+	InitDatabase()
+}
+
+// InitDatabase initializes the database connection
+func InitDatabase() {
+	if skipInit {
 		return
 	}
 
