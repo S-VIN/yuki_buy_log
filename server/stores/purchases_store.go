@@ -7,6 +7,7 @@ import (
 )
 
 type PurchaseStore struct {
+	db    database.Database
 	data  map[models.PurchaseId]models.Purchase
 	mutex sync.RWMutex
 }
@@ -16,9 +17,9 @@ var (
 	purchaseStoreOnce     sync.Once
 )
 
-func GetPurchaseStore() *PurchaseStore {
+func GetPurchaseStore(db database.Database) *PurchaseStore {
 	purchaseStoreOnce.Do(func() {
-		purchases, err := database.GetAllPurchases()
+		purchases, err := db.GetAllPurchases()
 		if err != nil {
 			purchases = []models.Purchase{}
 		}
@@ -30,6 +31,7 @@ func GetPurchaseStore() *PurchaseStore {
 		}
 
 		purchaseStoreInstance = &PurchaseStore{
+			db:   db,
 			data: purchaseMap,
 		}
 	})
@@ -85,7 +87,7 @@ func (s *PurchaseStore) GetPurchasesByUserId(userId models.UserId) []models.Purc
 // CreatePurchase добавляет новую покупку
 func (s *PurchaseStore) CreatePurchase(purchase *models.Purchase) error {
 	// Добавляем в БД
-	err := database.AddPurchase(purchase)
+	err := s.db.AddPurchase(purchase)
 	if err != nil {
 		return err
 	}
@@ -101,7 +103,7 @@ func (s *PurchaseStore) CreatePurchase(purchase *models.Purchase) error {
 // UpdatePurchase обновляет покупку
 func (s *PurchaseStore) UpdatePurchase(purchase *models.Purchase) error {
 	// Обновляем в БД
-	err := database.UpdatePurchase(purchase)
+	err := s.db.UpdatePurchase(purchase)
 	if err != nil {
 		return err
 	}
@@ -117,7 +119,7 @@ func (s *PurchaseStore) UpdatePurchase(purchase *models.Purchase) error {
 // DeletePurchase удаляет покупку
 func (s *PurchaseStore) DeletePurchase(purchaseId models.PurchaseId, userId models.UserId) error {
 	// Удаляем из БД
-	err := database.DeletePurchase(purchaseId, userId)
+	err := s.db.DeletePurchase(purchaseId, userId)
 	if err != nil {
 		return err
 	}

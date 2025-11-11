@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"yuki_buy_log/database"
 	"yuki_buy_log/handlers"
 	"yuki_buy_log/tasks"
 
@@ -21,6 +22,9 @@ func main() {
 
 	log.Println("Initializing authenticator...")
 	auth := NewAuthenticator([]byte("secret")) // TODO change key
+
+	log.Println("Initializing database...")
+	handlers.DB = database.NewPostgresDB()
 
 	log.Println("Setting up HTTP routes...")
 

@@ -8,6 +8,7 @@ import (
 )
 
 type InviteStore struct {
+	db    database.Database
 	data  []models.Invite
 	mutex sync.RWMutex
 }
@@ -17,13 +18,14 @@ var (
 	inviteStoreOnce     sync.Once
 )
 
-func GetInviteStore() *InviteStore {
+func GetInviteStore(db database.Database) *InviteStore {
 	inviteStoreOnce.Do(func() {
-		invites, err := database.GetAllInvites()
+		invites, err := db.GetAllInvites()
 		if err != nil {
 			invites = []models.Invite{}
 		}
 		inviteStoreInstance = &InviteStore{
+			db:   db,
 			data: invites,
 		}
 	})
@@ -83,7 +85,7 @@ func (s *InviteStore) GetInvite(fromUserId, toUserId models.UserId) *models.Invi
 // CreateInvite добавляет новое приглашение
 func (s *InviteStore) CreateInvite(invite *models.Invite) error {
 	// Добавляем в БД
-	inviteId, err := database.CreateInvite(invite.FromUserId, invite.ToUserId)
+	inviteId, err := s.db.CreateInvite(invite.FromUserId, invite.ToUserId)
 	if err != nil {
 		return err
 	}
@@ -102,7 +104,7 @@ func (s *InviteStore) CreateInvite(invite *models.Invite) error {
 // DeleteInvite удаляет приглашение по ID
 func (s *InviteStore) DeleteInvite(id models.InviteId) error {
 	// Удаляем из БД
-	err := database.DeleteInvite(id)
+	err := s.db.DeleteInvite(id)
 	if err != nil {
 		return err
 	}
@@ -125,7 +127,7 @@ func (s *InviteStore) DeleteInvite(id models.InviteId) error {
 // DeleteInviteByUsers удаляет приглашения между пользователями
 func (s *InviteStore) DeleteInviteByUsers(fromUserId, toUserId models.UserId) error {
 	// Удаляем из БД
-	err := database.DeleteInvitesBetweenUsers(fromUserId, toUserId)
+	err := s.db.DeleteInvitesBetweenUsers(fromUserId, toUserId)
 	if err != nil {
 		return err
 	}
@@ -151,7 +153,7 @@ func (s *InviteStore) DeleteOldInvites(cutoffTime time.Time) (int64, error) {
 	defer s.mutex.Unlock()
 
 	// Удаляем из БД
-	rowsAffected, err := database.DeleteOldInvites(cutoffTime)
+	rowsAffected, err := s.db.DeleteOldInvites(cutoffTime)
 	if err != nil {
 		return 0, err
 	}

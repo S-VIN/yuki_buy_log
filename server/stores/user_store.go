@@ -7,6 +7,7 @@ import (
 )
 
 type UserStore struct {
+	db    database.Database
 	data  map[models.UserId]models.User
 	mutex sync.RWMutex
 }
@@ -16,9 +17,9 @@ var (
 	userStoreOnce     sync.Once
 )
 
-func GetUserStore() *UserStore {
+func GetUserStore(db database.Database) *UserStore {
 	userStoreOnce.Do(func() {
-		users, err := database.GetAllUsers()
+		users, err := db.GetAllUsers()
 		if err != nil {
 			users = []models.User{}
 		}
@@ -30,6 +31,7 @@ func GetUserStore() *UserStore {
 		}
 
 		userStoreInstance = &UserStore{
+			db:   db,
 			data: userMap,
 		}
 	})
@@ -67,7 +69,7 @@ func (s *UserStore) GetUserByLogin(login string) *models.User {
 // AddUser добавляет нового пользователя
 func (s *UserStore) AddUser(user *models.User) error {
 	// Добавляем в БД
-	err := database.AddUser(user)
+	err := s.db.AddUser(user)
 	if err != nil {
 		return err
 	}
@@ -83,7 +85,7 @@ func (s *UserStore) AddUser(user *models.User) error {
 // UpdateUser обновляет данные пользователя
 func (s *UserStore) UpdateUser(user *models.User) error {
 	// Обновляем в БД
-	err := database.UpdateUser(user)
+	err := s.db.UpdateUser(user)
 	if err != nil {
 		return err
 	}
@@ -99,7 +101,7 @@ func (s *UserStore) UpdateUser(user *models.User) error {
 // DeleteUser удаляет пользователя
 func (s *UserStore) DeleteUser(userId models.UserId) error {
 	// Удаляем из БД
-	err := database.DeleteUser(userId)
+	err := s.db.DeleteUser(userId)
 	if err != nil {
 		return err
 	}
@@ -118,7 +120,7 @@ func (s *UserStore) GetUsersByGroupId(groupId models.GroupId) []models.User {
 	defer s.mutex.RUnlock()
 
 	// Получаем группу
-	groupStore := GetGroupStore()
+	groupStore := GetGroupStore(s.db)
 	group := groupStore.GetGroupById(groupId)
 	if group == nil {
 		return nil

@@ -7,6 +7,7 @@ import (
 )
 
 type ProductStore struct {
+	db    database.Database
 	data  map[models.ProductId]models.Product
 	mutex sync.RWMutex
 }
@@ -16,9 +17,9 @@ var (
 	productStoreOnce     sync.Once
 )
 
-func GetProductStore() *ProductStore {
+func GetProductStore(db database.Database) *ProductStore {
 	productStoreOnce.Do(func() {
-		products, err := database.GetAllProducts()
+		products, err := db.GetAllProducts()
 		if err != nil {
 			products = []models.Product{}
 		}
@@ -30,6 +31,7 @@ func GetProductStore() *ProductStore {
 		}
 
 		productStoreInstance = &ProductStore{
+			db:   db,
 			data: productMap,
 		}
 	})
@@ -86,7 +88,7 @@ func (s *ProductStore) GetProductsByUserIds(userIds []models.UserId) []models.Pr
 // CreateProduct создает новый продукт
 func (s *ProductStore) CreateProduct(product *models.Product) error {
 	// Добавляем в БД
-	err := database.CreateProduct(product)
+	err := s.db.CreateProduct(product)
 	if err != nil {
 		return err
 	}
@@ -102,7 +104,7 @@ func (s *ProductStore) CreateProduct(product *models.Product) error {
 // UpdateProduct обновляет данные продукта
 func (s *ProductStore) UpdateProduct(product *models.Product) error {
 	// Обновляем в БД
-	err := database.UpdateProduct(product)
+	err := s.db.UpdateProduct(product)
 	if err != nil {
 		return err
 	}
@@ -118,7 +120,7 @@ func (s *ProductStore) UpdateProduct(product *models.Product) error {
 // DeleteProduct удаляет продукт
 func (s *ProductStore) DeleteProduct(id models.ProductId, userId models.UserId) error {
 	// Удаляем из БД
-	err := database.DeleteProduct(id, userId)
+	err := s.db.DeleteProduct(id, userId)
 	if err != nil {
 		return err
 	}
