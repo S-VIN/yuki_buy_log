@@ -27,7 +27,7 @@ cd integration_tests
 pip install -r requirements.txt
 ```
 
-## Running the Server and Database
+## Running the Server and DatabaseManager
 
 ### Option 1: Using Docker Compose (Recommended for CI/CD)
 
@@ -44,7 +44,7 @@ pytest integration_tests/
 
 ### Option 2: Running Manually (Recommended for Development)
 
-#### Step 1: Start PostgreSQL Database
+#### Step 1: Start PostgreSQL DatabaseManager
 
 ```bash
 # Using Docker
@@ -60,7 +60,7 @@ docker run -d \
 # Make sure the database 'yuki_buy_log' exists
 ```
 
-#### Step 2: Apply Database Migrations
+#### Step 2: Apply DatabaseManager Migrations
 
 ```bash
 cd postgres
@@ -264,7 +264,7 @@ If you get "Connection refused" errors:
 2. Check the server logs for errors
 3. Verify the database is running and accessible
 
-### Database Errors
+### DatabaseManager Errors
 
 If tests fail with database errors:
 

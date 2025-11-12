@@ -19,7 +19,8 @@ var (
 
 func GetInviteStore() *InviteStore {
 	inviteStoreOnce.Do(func() {
-		invites, err := database.GetAllInvites()
+		db, _ := database.NewDatabaseManager()
+		invites, err := db.GetAllInvites()
 		if err != nil {
 			invites = []models.Invite{}
 		}
@@ -111,7 +112,8 @@ func (s *InviteStore) DeleteInvites(fromUserId, toUserId models.UserId) error {
 	defer s.mutex.Unlock()
 
 	// Удаляем из БД
-	err := database.DeleteInvitesBetweenUsers(fromUserId, toUserId)
+	db, _ := database.NewDatabaseManager()
+	err := db.DeleteInvitesBetweenUsers(fromUserId, toUserId)
 	if err != nil {
 		return err
 	}
@@ -133,7 +135,8 @@ func (s *InviteStore) DeleteOldInvites(cutoffTime time.Time) (int64, error) {
 	defer s.mutex.Unlock()
 
 	// Удаляем из БД
-	rowsAffected, err := database.DeleteOldInvites(cutoffTime)
+	db, _ := database.NewDatabaseManager()
+	rowsAffected, err := db.DeleteOldInvites(cutoffTime)
 	if err != nil {
 		return 0, err
 	}

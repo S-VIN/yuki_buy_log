@@ -55,10 +55,11 @@ func (s *GroupStore) renumberMembers(members []models.GroupMember) {
 	defer s.mutex.Unlock()
 
 	sort.Slice(members, func(i, j int) bool { return members[i].MemberNumber < members[j].MemberNumber })
+	db, _ := database.NewDatabaseManager()
 	for index := range members {
 		if index != members[index].MemberNumber {
 			members[index].MemberNumber = index
-			database.UpdateGroupMember(&members[index])
+			db.UpdateGroupMember(&members[index])
 		}
 	}
 	group := s.groupById[members[0].GroupId]
@@ -69,21 +70,28 @@ func (s *GroupStore) renumberMembers(members []models.GroupMember) {
 
 func GetGroupStore() *GroupStore {
 	groupStoreOnce.Do(func() {
-		members, err := database.GetAllGroupMembers()
+		db, _ := database.NewDatabaseManager()
+		members, err := db.GetAllGroupMembers()
 		if err != nil {
 			members = []models.GroupMember{}
 		}
 
-		groupStoreInstance = &GroupStore{}
+		groupStoreInstance = &GroupStore{
+			groupIdByUserId: make(map[models.UserId]models.GroupId),
+			groupById:       make(map[models.GroupId]models.Group),
+		}
 		for _, member := range members {
 			if value, ok := groupStoreInstance.groupById[member.GroupId]; ok {
 				value.Members = append(value.Members, member)
+				groupStoreInstance.groupById[member.GroupId] = value
 			} else {
 				value = models.Group{
 					Id:      member.GroupId,
 					Members: []models.GroupMember{member},
 				}
+				groupStoreInstance.groupById[member.GroupId] = value
 			}
+			groupStoreInstance.groupIdByUserId[member.UserId] = member.GroupId
 		}
 	})
 	return groupStoreInstance
@@ -167,14 +175,16 @@ func (s *GroupStore) CreateNewGroup(userId models.UserId) (*models.GroupId, erro
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
+	db, _ := database.NewDatabaseManager()
+
 	// Создаем группу в БД
-	groupId, err := database.CreateNewGroup(userId)
+	groupId, err := db.CreateNewGroup(userId)
 	if err != nil {
 		return nil, err
 	}
 
 	// Получаем данные о пользователе из БД для создания полного объекта GroupMember
-	members, err := database.GetGroupMembersByGroupId(groupId)
+	members, err := db.GetGroupMembersByGroupId(groupId)
 	if err != nil {
 		return &groupId, err
 	}
@@ -203,7 +213,8 @@ func (s *GroupStore) AddUserToGroup(groupId models.GroupId, userId models.UserId
 	group.Members = append(group.Members, models.GroupMember{GroupId: groupId, UserId: userId, MemberNumber: maxMemberNumber + 1})
 
 	// Добавляем в БД
-	err := database.AddUserToGroup(groupId, userId, maxMemberNumber+1)
+	db, _ := database.NewDatabaseManager()
+	err := db.AddUserToGroup(groupId, userId, maxMemberNumber+1)
 	if err != nil {
 		return err
 	}
@@ -237,7 +248,8 @@ func (s *GroupStore) DeleteUserFromGroup(userId models.UserId) error {
 	}
 
 	// Удаляем из БД
-	err := database.DeleteUserFromGroup(userId)
+	db, _ := database.NewDatabaseManager()
+	err := db.DeleteUserFromGroup(userId)
 	if err != nil {
 		return err
 	}
@@ -257,7 +269,8 @@ func (s *GroupStore) DeleteGroupById(id models.GroupId) error {
 	defer s.mutex.Unlock()
 
 	// Удаляем из БД
-	err := database.DeleteGroupMembersByGroupId(id)
+	db, _ := database.NewDatabaseManager()
+	err := db.DeleteGroupMembersByGroupId(id)
 	if err != nil {
 		return err
 	}

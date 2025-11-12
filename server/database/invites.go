@@ -18,8 +18,8 @@ func scanRowsToInvites(rows *sql.Rows) ([]models.Invite, error) {
 	return invites, nil
 }
 
-func GetIncomingInvites(userId models.UserId) ([]models.Invite, error) {
-	rows, err := db.Query(`
+func (d *DatabaseManager) GetIncomingInvites(userId models.UserId) ([]models.Invite, error) {
+	rows, err := d.db.Query(`
 		SELECT i.id, i.from_user_id, i.to_user_id, u_from.login, u_to.login, i.created_at
 		FROM invites i
 		JOIN users u_from ON i.from_user_id = u_from.id
@@ -33,9 +33,9 @@ func GetIncomingInvites(userId models.UserId) ([]models.Invite, error) {
 	return scanRowsToInvites(rows)
 }
 
-func GetInvite(fromUserId, toUserId models.UserId) (models.Invite, error) {
+func (d *DatabaseManager) GetInvite(fromUserId, toUserId models.UserId) (models.Invite, error) {
 	var invite models.Invite
-	err := db.QueryRow(`
+	err := d.db.QueryRow(`
 		SELECT i.id, i.from_user_id, i.to_user_id, u_from.login, u_to.login, i.created_at
 		FROM invites i
 		JOIN users u_from ON i.from_user_id = u_from.id
@@ -44,8 +44,8 @@ func GetInvite(fromUserId, toUserId models.UserId) (models.Invite, error) {
 	return invite, err
 }
 
-func GetInvitesFromUser(fromUserId models.InviteId) ([]models.Invite, error) {
-	rows, err := db.Query(`
+func (d *DatabaseManager) GetInvitesFromUser(fromUserId models.InviteId) ([]models.Invite, error) {
+	rows, err := d.db.Query(`
 		SELECT i.id, i.from_user_id, i.to_user_id, u_from.login, u_to.login, i.created_at
 		FROM invites i
 		JOIN users u_from ON i.from_user_id = u_from.id
@@ -59,8 +59,8 @@ func GetInvitesFromUser(fromUserId models.InviteId) ([]models.Invite, error) {
 	return scanRowsToInvites(rows)
 }
 
-func GetInvitesToUser(toUserId models.UserId) ([]models.Invite, error) {
-	rows, err := db.Query(`
+func (d *DatabaseManager) GetInvitesToUser(toUserId models.UserId) ([]models.Invite, error) {
+	rows, err := d.db.Query(`
 		SELECT i.id, i.from_user_id, i.to_user_id, u_from.login, u_to.login, i.created_at
 		FROM invites i
 		JOIN users u_from ON i.from_user_id = u_from.id
@@ -74,13 +74,13 @@ func GetInvitesToUser(toUserId models.UserId) ([]models.Invite, error) {
 	return scanRowsToInvites(rows)
 }
 
-func DeleteInvitesBetweenUsers(userId1, userId2 models.UserId) error {
-	_, err := db.Exec(`DELETE FROM invites WHERE (from_user_id = $1 AND to_user_id = $2) OR (from_user_id = $2 AND to_user_id = $1)`, userId1, userId2)
+func (d *DatabaseManager) DeleteInvitesBetweenUsers(userId1, userId2 models.UserId) error {
+	_, err := d.db.Exec(`DELETE FROM invites WHERE (from_user_id = $1 AND to_user_id = $2) OR (from_user_id = $2 AND to_user_id = $1)`, userId1, userId2)
 	return err
 }
 
-func GetAllInvites() ([]models.Invite, error) {
-	rows, err := db.Query(`
+func (d *DatabaseManager) GetAllInvites() ([]models.Invite, error) {
+	rows, err := d.db.Query(`
 		SELECT i.id, i.from_user_id, i.to_user_id, u_from.login, u_to.login, i.created_at
 		FROM invites i
 		JOIN users u_from ON i.from_user_id = u_from.id
@@ -93,14 +93,14 @@ func GetAllInvites() ([]models.Invite, error) {
 	return scanRowsToInvites(rows)
 }
 
-func CreateInvite(fromUserId, toUserId models.UserId) (models.InviteId, error) {
+func (d *DatabaseManager) CreateInvite(fromUserId, toUserId models.UserId) (models.InviteId, error) {
 	var inviteId models.InviteId
-	err := db.QueryRow(`INSERT INTO invites (from_user_id, to_user_id) VALUES ($1, $2) RETURNING id`, fromUserId, toUserId).Scan(&inviteId)
+	err := d.db.QueryRow(`INSERT INTO invites (from_user_id, to_user_id) VALUES ($1, $2) RETURNING id`, fromUserId, toUserId).Scan(&inviteId)
 	return inviteId, err
 }
 
-func DeleteOldInvites(cutoffTime time.Time) (int64, error) {
-	result, err := db.Exec(`DELETE FROM invites WHERE created_at < $1`, cutoffTime)
+func (d *DatabaseManager) DeleteOldInvites(cutoffTime time.Time) (int64, error) {
+	result, err := d.db.Exec(`DELETE FROM invites WHERE created_at < $1`, cutoffTime)
 	if err != nil {
 		return 0, err
 	}

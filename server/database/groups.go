@@ -5,9 +5,9 @@ import (
 	"yuki_buy_log/models"
 )
 
-func GetAllGroupMembers() (result []models.GroupMember, err error) {
+func (d *DatabaseManager) GetAllGroupMembers() (result []models.GroupMember, err error) {
 	// Получение всех участников всех групп
-	rows, err := db.Query(`
+	rows, err := d.db.Query(`
 		SELECT g.group_id, g.user_id, u.login, g.member_number
 		FROM group_members g
 		JOIN users u ON g.user_id = u.id
@@ -36,9 +36,9 @@ func GetAllGroupMembers() (result []models.GroupMember, err error) {
 	return result, nil
 }
 
-func GetGroupMembersByGroupId(id models.GroupId) (result []models.GroupMember, err error) {
+func (d *DatabaseManager) GetGroupMembersByGroupId(id models.GroupId) (result []models.GroupMember, err error) {
 	// Получение всех участников группы по ID группы
-	rows, err := db.Query(`
+	rows, err := d.db.Query(`
 		SELECT g.group_id, g.user_id, u.login, g.member_number
 		FROM group_members g
 		JOIN users u ON g.user_id = u.id
@@ -70,8 +70,8 @@ func GetGroupMembersByGroupId(id models.GroupId) (result []models.GroupMember, e
 	return result, nil
 }
 
-func DeleteGroupMembersByGroupId(id models.GroupId) error {
-	_, err := db.Exec(`DELETE FROM group_members WHERE group_id = $1`, id)
+func (d *DatabaseManager) DeleteGroupMembersByGroupId(id models.GroupId) error {
+	_, err := d.db.Exec(`DELETE FROM group_members WHERE group_id = $1`, id)
 	if err != nil {
 		log.Printf("Failed to delete group %d: %v", id, err)
 		return err
@@ -79,9 +79,9 @@ func DeleteGroupMembersByGroupId(id models.GroupId) error {
 	return nil
 }
 
-func DeleteUserFromGroup(userId models.UserId) (err error) {
+func (d *DatabaseManager) DeleteUserFromGroup(userId models.UserId) (err error) {
 	// Remove user from group
-	_, err = db.Exec(`DELETE FROM group_members WHERE user_id = $1`, userId)
+	_, err = d.db.Exec(`DELETE FROM group_members WHERE user_id = $1`, userId)
 	if err != nil {
 		log.Printf("Failed to remove user from group: %v", err)
 		return err
@@ -89,14 +89,14 @@ func DeleteUserFromGroup(userId models.UserId) (err error) {
 	return nil
 }
 
-func AddUserToGroup(groupId models.GroupId, userId models.UserId, memberNumber int) error {
-	_, err := db.Exec(`INSERT INTO group_members (group_id, user_id, member_number) VALUES ($1, $2, $3)`, groupId, userId, memberNumber)
+func (d *DatabaseManager) AddUserToGroup(groupId models.GroupId, userId models.UserId, memberNumber int) error {
+	_, err := d.db.Exec(`INSERT INTO group_members (group_id, user_id, member_number) VALUES ($1, $2, $3)`, groupId, userId, memberNumber)
 	return err
 }
 
 // Обновляет member number как в groupMember
-func UpdateGroupMember(groupMember *models.GroupMember) error {
-	_, err := db.Exec(`UPDATE group_members SET member_number = $1 WHERE user_id = $2`,
+func (d *DatabaseManager) UpdateGroupMember(groupMember *models.GroupMember) error {
+	_, err := d.db.Exec(`UPDATE group_members SET member_number = $1 WHERE user_id = $2`,
 		groupMember.MemberNumber, groupMember.UserId)
 	if err != nil {
 		log.Printf("Failed to update group member for user %d: %v", groupMember.UserId, err)
@@ -105,8 +105,8 @@ func UpdateGroupMember(groupMember *models.GroupMember) error {
 	return nil
 }
 
-func CreateNewGroup(userId models.UserId) (groupId models.GroupId, err error) {
-	err = db.QueryRow(`INSERT INTO group_members (group_id, user_id, member_number) VALUES (
+func (d *DatabaseManager) CreateNewGroup(userId models.UserId) (groupId models.GroupId, err error) {
+	err = d.db.QueryRow(`INSERT INTO group_members (group_id, user_id, member_number) VALUES (
 		(SELECT COALESCE(MAX(group_id), 0) + 1 FROM group_members), $1, $2) RETURNING group_id`).Scan(&groupId, &userId, 0)
 	return groupId, err
 }

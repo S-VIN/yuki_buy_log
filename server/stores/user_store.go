@@ -18,7 +18,8 @@ var (
 
 func GetUserStore() *UserStore {
 	userStoreOnce.Do(func() {
-		users, err := database.GetAllUsers()
+		db, _ := database.NewDatabaseManager()
+		users, err := db.GetAllUsers()
 		if err != nil {
 			users = []models.User{}
 		}
@@ -67,7 +68,8 @@ func (s *UserStore) GetUserByLogin(login string) *models.User {
 // AddUser добавляет нового пользователя
 func (s *UserStore) AddUser(user *models.User) error {
 	// Добавляем в БД
-	err := database.AddUser(user)
+	db, _ := database.NewDatabaseManager()
+	err := db.AddUser(user)
 	if err != nil {
 		return err
 	}
@@ -83,7 +85,8 @@ func (s *UserStore) AddUser(user *models.User) error {
 // UpdateUser обновляет данные пользователя
 func (s *UserStore) UpdateUser(user *models.User) error {
 	// Обновляем в БД
-	err := database.UpdateUser(user)
+	db, _ := database.NewDatabaseManager()
+	err := db.UpdateUser(user)
 	if err != nil {
 		return err
 	}
@@ -99,7 +102,8 @@ func (s *UserStore) UpdateUser(user *models.User) error {
 // DeleteUser удаляет пользователя
 func (s *UserStore) DeleteUser(userId models.UserId) error {
 	// Удаляем из БД
-	err := database.DeleteUser(userId)
+	db, _ := database.NewDatabaseManager()
+	err := db.DeleteUser(userId)
 	if err != nil {
 		return err
 	}

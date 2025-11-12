@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"errors"
 	"log"
 	"net/http"
@@ -23,13 +22,6 @@ func main() {
 	auth := NewAuthenticator([]byte("secret")) // TODO change key
 
 	log.Println("Setting up HTTP routes...")
-
-	db, err := sql.Open("postgres", "postgres://postgres:postgres@localhost:5432/yuki_buy_log?sslmode=disable")
-	if err != nil {
-		log.Fatalf("Failed to open database connection: %v", err)
-	}
-	// We need db for potential future use, so we keep it
-	_ = db
 
 	mux := http.NewServeMux()
 

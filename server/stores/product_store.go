@@ -18,7 +18,8 @@ var (
 
 func GetProductStore() *ProductStore {
 	productStoreOnce.Do(func() {
-		products, err := database.GetAllProducts()
+		db, _ := database.NewDatabaseManager()
+		products, err := db.GetAllProducts()
 		if err != nil {
 			products = []models.Product{}
 		}
@@ -86,7 +87,8 @@ func (s *ProductStore) GetProductsByUserIds(userIds []models.UserId) []models.Pr
 // CreateProduct создает новый продукт
 func (s *ProductStore) CreateProduct(product *models.Product) error {
 	// Добавляем в БД
-	err := database.CreateProduct(product)
+	db, _ := database.NewDatabaseManager()
+	err := db.CreateProduct(product)
 	if err != nil {
 		return err
 	}
@@ -102,7 +104,8 @@ func (s *ProductStore) CreateProduct(product *models.Product) error {
 // UpdateProduct обновляет данные продукта
 func (s *ProductStore) UpdateProduct(product *models.Product) error {
 	// Обновляем в БД
-	err := database.UpdateProduct(product)
+	db, _ := database.NewDatabaseManager()
+	err := db.UpdateProduct(product)
 	if err != nil {
 		return err
 	}
@@ -118,7 +121,8 @@ func (s *ProductStore) UpdateProduct(product *models.Product) error {
 // DeleteProduct удаляет продукт
 func (s *ProductStore) DeleteProduct(id models.ProductId, userId models.UserId) error {
 	// Удаляем из БД
-	err := database.DeleteProduct(id, userId)
+	db, _ := database.NewDatabaseManager()
+	err := db.DeleteProduct(id, userId)
 	if err != nil {
 		return err
 	}

@@ -18,7 +18,8 @@ var (
 
 func GetPurchaseStore() *PurchaseStore {
 	purchaseStoreOnce.Do(func() {
-		purchases, err := database.GetAllPurchases()
+		db, _ := database.NewDatabaseManager()
+		purchases, err := db.GetAllPurchases()
 		if err != nil {
 			purchases = []models.Purchase{}
 		}
@@ -59,7 +60,8 @@ func (s *PurchaseStore) GetPurchasesByUserIds(userIds []models.UserId) []models.
 // AddPurchase добавляет новую покупку
 func (s *PurchaseStore) AddPurchase(purchase *models.Purchase) error {
 	// Добавляем в БД
-	err := database.AddPurchase(purchase)
+	db, _ := database.NewDatabaseManager()
+	err := db.AddPurchase(purchase)
 	if err != nil {
 		return err
 	}
@@ -75,7 +77,8 @@ func (s *PurchaseStore) AddPurchase(purchase *models.Purchase) error {
 // DeletePurchase удаляет покупку
 func (s *PurchaseStore) DeletePurchase(purchaseId models.PurchaseId, userId models.UserId) error {
 	// Удаляем из БД
-	err := database.DeletePurchase(purchaseId, userId)
+	db, _ := database.NewDatabaseManager()
+	err := db.DeletePurchase(purchaseId, userId)
 	if err != nil {
 		return err
 	}

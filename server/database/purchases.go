@@ -8,8 +8,8 @@ import (
 	"github.com/lib/pq"
 )
 
-func GetAllPurchases() ([]models.Purchase, error) {
-	rows, err := db.Query(`SELECT id, product_id, quantity, price, date, store, tags, receipt_id, user_id FROM purchases`)
+func (d *DatabaseManager) GetAllPurchases() ([]models.Purchase, error) {
+	rows, err := d.db.Query(`SELECT id, product_id, quantity, price, date, store, tags, receipt_id, user_id FROM purchases`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all purchases: %w", err)
 	}
@@ -27,12 +27,12 @@ func GetAllPurchases() ([]models.Purchase, error) {
 	return purchases, nil
 }
 
-func GetPurchasesByUserIds(userIds []models.UserId) ([]models.Purchase, error) {
+func (d *DatabaseManager) GetPurchasesByUserIds(userIds []models.UserId) ([]models.Purchase, error) {
 	if len(userIds) == 0 {
 		return []models.Purchase{}, nil
 	}
 
-	rows, err := db.Query(`SELECT id, product_id, quantity, price, date, store, tags, receipt_id, user_id FROM purchases WHERE user_id = ANY($1)`, pq.Array(userIds))
+	rows, err := d.db.Query(`SELECT id, product_id, quantity, price, date, store, tags, receipt_id, user_id FROM purchases WHERE user_id = ANY($1)`, pq.Array(userIds))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get purchases for users: %w", err)
 	}
@@ -50,8 +50,8 @@ func GetPurchasesByUserIds(userIds []models.UserId) ([]models.Purchase, error) {
 	return purchases, nil
 }
 
-func AddPurchase(purchase *models.Purchase) error {
-	err := db.QueryRow(`INSERT INTO purchases (product_id, quantity, price, date, store, tags, receipt_id, user_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+func (d *DatabaseManager) AddPurchase(purchase *models.Purchase) error {
+	err := d.db.QueryRow(`INSERT INTO purchases (product_id, quantity, price, date, store, tags, receipt_id, user_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
 		purchase.ProductId, purchase.Quantity, purchase.Price, purchase.Date, purchase.Store, pq.Array(purchase.Tags), purchase.ReceiptId, purchase.UserId).Scan(&purchase.Id)
 	if err != nil {
 		log.Printf("Failed to insert purchase: %v", err)
@@ -60,8 +60,8 @@ func AddPurchase(purchase *models.Purchase) error {
 	return nil
 }
 
-func DeletePurchase(purchaseId models.PurchaseId, userId models.UserId) error {
-	result, err := db.Exec(`DELETE FROM purchases WHERE id = $1 AND user_id = $2`, purchaseId, userId)
+func (d *DatabaseManager) DeletePurchase(purchaseId models.PurchaseId, userId models.UserId) error {
+	result, err := d.db.Exec(`DELETE FROM purchases WHERE id = $1 AND user_id = $2`, purchaseId, userId)
 	if err != nil {
 		log.Printf("Failed to delete purchase: %v", err)
 		return err
