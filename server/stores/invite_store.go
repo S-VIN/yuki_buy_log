@@ -10,6 +10,7 @@ import (
 type InviteStore struct {
 	data  []models.Invite
 	mutex sync.RWMutex
+	db    database.IDataBaseManager
 }
 
 var (
@@ -17,16 +18,23 @@ var (
 	inviteStoreOnce     sync.Once
 )
 
+// NewInviteStore создает новый экземпляр InviteStore с заданным database manager
+func NewInviteStore(db database.IDataBaseManager) (*InviteStore, error) {
+	invites, err := db.GetAllInvites()
+	if err != nil {
+		invites = []models.Invite{}
+	}
+
+	return &InviteStore{
+		data: invites,
+		db:   db,
+	}, nil
+}
+
 func GetInviteStore() *InviteStore {
 	inviteStoreOnce.Do(func() {
 		db, _ := database.NewDatabaseManager()
-		invites, err := db.GetAllInvites()
-		if err != nil {
-			invites = []models.Invite{}
-		}
-		inviteStoreInstance = &InviteStore{
-			data: invites,
-		}
+		inviteStoreInstance, _ = NewInviteStore(db)
 	})
 	return inviteStoreInstance
 }
@@ -112,8 +120,7 @@ func (s *InviteStore) DeleteInvites(fromUserId, toUserId models.UserId) error {
 	defer s.mutex.Unlock()
 
 	// Удаляем из БД
-	db, _ := database.NewDatabaseManager()
-	err := db.DeleteInvitesBetweenUsers(fromUserId, toUserId)
+	err := s.db.DeleteInvitesBetweenUsers(fromUserId, toUserId)
 	if err != nil {
 		return err
 	}
@@ -135,8 +142,7 @@ func (s *InviteStore) DeleteOldInvites(cutoffTime time.Time) (int64, error) {
 	defer s.mutex.Unlock()
 
 	// Удаляем из БД
-	db, _ := database.NewDatabaseManager()
-	rowsAffected, err := db.DeleteOldInvites(cutoffTime)
+	rowsAffected, err := s.db.DeleteOldInvites(cutoffTime)
 	if err != nil {
 		return 0, err
 	}
