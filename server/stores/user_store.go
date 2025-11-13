@@ -9,6 +9,7 @@ import (
 type UserStore struct {
 	data  map[models.UserId]models.User
 	mutex sync.RWMutex
+	db    database.IDataBaseManager
 }
 
 var (
@@ -16,23 +17,29 @@ var (
 	userStoreOnce     sync.Once
 )
 
+// NewUserStore создает новый экземпляр UserStore с заданным database manager
+func NewUserStore(db database.IDataBaseManager) (*UserStore, error) {
+	users, err := db.GetAllUsers()
+	if err != nil {
+		users = []models.User{}
+	}
+
+	// Преобразуем список пользователей в map[UserId]User
+	userMap := make(map[models.UserId]models.User)
+	for _, user := range users {
+		userMap[user.Id] = user
+	}
+
+	return &UserStore{
+		data: userMap,
+		db:   db,
+	}, nil
+}
+
 func GetUserStore() *UserStore {
 	userStoreOnce.Do(func() {
 		db, _ := database.NewDatabaseManager()
-		users, err := db.GetAllUsers()
-		if err != nil {
-			users = []models.User{}
-		}
-
-		// Преобразуем список пользователей в map[UserId]User
-		userMap := make(map[models.UserId]models.User)
-		for _, user := range users {
-			userMap[user.Id] = user
-		}
-
-		userStoreInstance = &UserStore{
-			data: userMap,
-		}
+		userStoreInstance, _ = NewUserStore(db)
 	})
 	return userStoreInstance
 }
@@ -68,8 +75,7 @@ func (s *UserStore) GetUserByLogin(login string) *models.User {
 // AddUser добавляет нового пользователя
 func (s *UserStore) AddUser(user *models.User) error {
 	// Добавляем в БД
-	db, _ := database.NewDatabaseManager()
-	err := db.AddUser(user)
+	err := s.db.AddUser(user)
 	if err != nil {
 		return err
 	}
@@ -85,8 +91,7 @@ func (s *UserStore) AddUser(user *models.User) error {
 // UpdateUser обновляет данные пользователя
 func (s *UserStore) UpdateUser(user *models.User) error {
 	// Обновляем в БД
-	db, _ := database.NewDatabaseManager()
-	err := db.UpdateUser(user)
+	err := s.db.UpdateUser(user)
 	if err != nil {
 		return err
 	}
@@ -102,8 +107,7 @@ func (s *UserStore) UpdateUser(user *models.User) error {
 // DeleteUser удаляет пользователя
 func (s *UserStore) DeleteUser(userId models.UserId) error {
 	// Удаляем из БД
-	db, _ := database.NewDatabaseManager()
-	err := db.DeleteUser(userId)
+	err := s.db.DeleteUser(userId)
 	if err != nil {
 		return err
 	}
