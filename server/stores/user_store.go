@@ -17,29 +17,24 @@ var (
 	userStoreOnce     sync.Once
 )
 
-// NewUserStore создает новый экземпляр UserStore с заданным database manager
-func NewUserStore(db database.IDataBaseManager) (*UserStore, error) {
-	users, err := db.GetAllUsers()
-	if err != nil {
-		users = []models.User{}
-	}
-
-	// Преобразуем список пользователей в map[UserId]User
-	userMap := make(map[models.UserId]models.User)
-	for _, user := range users {
-		userMap[user.Id] = user
-	}
-
-	return &UserStore{
-		data: userMap,
-		db:   db,
-	}, nil
-}
-
 func GetUserStore() *UserStore {
 	userStoreOnce.Do(func() {
 		db, _ := database.NewDatabaseManager()
-		userStoreInstance, _ = NewUserStore(db)
+		users, err := db.GetAllUsers()
+		if err != nil {
+			users = []models.User{}
+		}
+
+		// Преобразуем список пользователей в map[UserId]User
+		userMap := make(map[models.UserId]models.User)
+		for _, user := range users {
+			userMap[user.Id] = user
+		}
+
+		userStoreInstance = &UserStore{
+			data: userMap,
+			db:   db,
+		}
 	})
 	return userStoreInstance
 }
