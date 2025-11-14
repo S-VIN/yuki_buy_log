@@ -6,6 +6,12 @@ import (
 	"yuki_buy_log/models"
 )
 
+type IPurchaseStore interface {
+	GetPurchasesByUserIds(userIds []models.UserId) []models.Purchase
+	AddPurchase(purchase *models.Purchase) error
+	DeletePurchase(purchaseId models.PurchaseId, userId models.UserId) error
+}
+
 type PurchaseStore struct {
 	data  map[models.PurchaseId]models.Purchase
 	mutex sync.RWMutex
@@ -16,7 +22,7 @@ var (
 	purchaseStoreOnce     sync.Once
 )
 
-func GetPurchaseStore() *PurchaseStore {
+func GetPurchaseStore() IPurchaseStore {
 	purchaseStoreOnce.Do(func() {
 		db, _ := database.NewDatabaseManager()
 		purchases, err := db.GetAllPurchases()

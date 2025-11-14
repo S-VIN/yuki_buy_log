@@ -7,6 +7,16 @@ import (
 	"yuki_buy_log/models"
 )
 
+type IInviteStore interface {
+	GetInviteById(id models.InviteId) *models.Invite
+	GetInvitesFromUser(fromUserId models.UserId) []models.Invite
+	GetInvitesToUser(toUserId models.UserId) []models.Invite
+	GetInvite(fromUserId, toUserId models.UserId) *models.Invite
+	AddInvite(invite models.Invite) error
+	DeleteInvites(fromUserId, toUserId models.UserId) error
+	DeleteOldInvites(cutoffTime time.Time) (int64, error)
+}
+
 type InviteStore struct {
 	data  []models.Invite
 	mutex sync.RWMutex
@@ -17,7 +27,7 @@ var (
 	inviteStoreOnce     sync.Once
 )
 
-func GetInviteStore() *InviteStore {
+func GetInviteStore() IInviteStore {
 	inviteStoreOnce.Do(func() {
 		db, _ := database.NewDatabaseManager()
 		invites, err := db.GetAllInvites()

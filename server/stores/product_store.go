@@ -6,6 +6,15 @@ import (
 	"yuki_buy_log/models"
 )
 
+type IProductStore interface {
+	GetProductById(id models.ProductId) *models.Product
+	GetProductsByUserId(userId models.UserId) []models.Product
+	GetProductsByUserIds(userIds []models.UserId) []models.Product
+	CreateProduct(product *models.Product) error
+	UpdateProduct(product *models.Product) error
+	DeleteProduct(id models.ProductId, userId models.UserId) error
+}
+
 type ProductStore struct {
 	data  map[models.ProductId]models.Product
 	mutex sync.RWMutex
@@ -16,7 +25,7 @@ var (
 	productStoreOnce     sync.Once
 )
 
-func GetProductStore() *ProductStore {
+func GetProductStore() IProductStore {
 	productStoreOnce.Do(func() {
 		db, _ := database.NewDatabaseManager()
 		products, err := db.GetAllProducts()

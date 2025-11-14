@@ -8,6 +8,18 @@ import (
 	"yuki_buy_log/models"
 )
 
+type IGroupStore interface {
+	GetGroupById(id models.GroupId) *models.Group
+	GetGroupIdByUserId(userId models.UserId) *models.GroupId
+	GetGroupByUserId(userId models.UserId) *models.Group
+	GetGroupUserCount(groupId models.GroupId) int
+	IsUserInGroup(userId models.UserId) bool
+	CreateNewGroup(userId models.UserId) (*models.GroupId, error)
+	AddUserToGroup(groupId models.GroupId, userId models.UserId) error
+	DeleteUserFromGroup(userId models.UserId) error
+	DeleteGroupById(id models.GroupId) error
+}
+
 type GroupStore struct {
 	groupIdByUserId map[models.UserId]models.GroupId
 	groupById       map[models.GroupId]models.Group
@@ -68,7 +80,7 @@ func (s *GroupStore) renumberMembers(members []models.GroupMember) {
 	return
 }
 
-func GetGroupStore() *GroupStore {
+func GetGroupStore() IGroupStore {
 	groupStoreOnce.Do(func() {
 		db, _ := database.NewDatabaseManager()
 		members, err := db.GetAllGroupMembers()

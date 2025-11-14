@@ -6,6 +6,16 @@ import (
 	"yuki_buy_log/models"
 )
 
+type IUserStore interface {
+	GetUserById(id models.UserId) *models.User
+	GetUserByLogin(login string) *models.User
+	AddUser(user *models.User) error
+	UpdateUser(user *models.User) error
+	DeleteUser(userId models.UserId) error
+	GetUsersByGroupId(groupId models.GroupId) []models.User
+	GetAllUsers() []models.User
+}
+
 type UserStore struct {
 	data  map[models.UserId]models.User
 	mutex sync.RWMutex
@@ -17,7 +27,7 @@ var (
 	userStoreOnce     sync.Once
 )
 
-func GetUserStore() *UserStore {
+func GetUserStore() IUserStore {
 	userStoreOnce.Do(func() {
 		db, _ := database.NewDatabaseManager()
 		users, err := db.GetAllUsers()
