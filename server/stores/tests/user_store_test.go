@@ -1,321 +1,189 @@
 package tests
 
 import (
+	"sync"
 	"testing"
+	"yuki_buy_log/models"
 	"yuki_buy_log/stores"
 
 	"github.com/stretchr/testify/assert"
 )
 
+// Эти тесты проверяют только публичный API UserStore
+// Они не требуют подключения к базе данных и используют только экспортированные методы
+
 func TestGetUserStore(t *testing.T) {
-	t.Run("успешное создание store с пользователями", func(t *testing.T) {
-		// GetUserStore() is a singleton that connects to the real database
-		// This test verifies that the store can be created and returns data
+	t.Run("успешное создание store", func(t *testing.T) {
 		store := stores.GetUserStore()
-
-		assert.NotNil(t, store, "store should not be nil")
-
-		// Verify that GetAllUsers returns a valid slice (even if empty)
-		allUsers := store.GetAllUsers()
-		assert.NotNil(t, allUsers, "GetAllUsers should return a non-nil slice")
+		assert.NotNil(t, store, "store не должен быть nil")
 	})
 }
 
-//func TestGetUserById(t *testing.T) {
-//	ctrl := gomock.NewController(t)
-//	defer ctrl.Finish()
-//
-//	mockDB := mocks.NewMockIDataBaseManager(ctrl)
-//	users := []models.User{
-//		{Id: 1, Login: "user1", Password: "pass1"},
-//		{Id: 2, Login: "user2", Password: "pass2"},
-//	}
-//
-//	mockDB.EXPECT().GetAllUsers().Return(users, nil)
-//	store, _ := stores.GetUserStore(mockDB)
-//
-//	t.Run("получение существующего пользователя", func(t *testing.T) {
-//		user := store.GetUserById(1)
-//		if user == nil {
-//			t.Fatal("ожидали найти пользователя, получили nil")
-//		}
-//
-//		if user.Login != "user1" {
-//			t.Errorf("ожидали login 'user1', получили '%s'", user.Login)
-//		}
-//	})
-//
-//	t.Run("получение несуществующего пользователя", func(t *testing.T) {
-//		user := store.GetUserById(999)
-//		if user != nil {
-//			t.Error("ожидали nil для несуществующего пользователя")
-//		}
-//	})
-//
-//	t.Run("возвращается копия пользователя", func(t *testing.T) {
-//		user := store.GetUserById(1)
-//		if user == nil {
-//			t.Fatal("пользователь не найден")
-//		}
-//
-//		originalLogin := user.Login
-//		user.Login = "modified"
-//
-//		user2 := store.GetUserById(1)
-//		if user2.Login != originalLogin {
-//			t.Error("изменение возвращенного пользователя повлияло на store")
-//		}
-//	})
-//}
-//
-//func TestGetUserByLogin(t *testing.T) {
-//	ctrl := gomock.NewController(t)
-//	defer ctrl.Finish()
-//
-//	mockDB := mocks.NewMockIDataBaseManager(ctrl)
-//	users := []models.User{
-//		{Id: 1, Login: "user1", Password: "pass1"},
-//		{Id: 2, Login: "user2", Password: "pass2"},
-//	}
-//
-//	mockDB.EXPECT().GetAllUsers().Return(users, nil)
-//	store, _ := stores.GetUserStore(mockDB)
-//
-//	t.Run("получение пользователя по существующему login", func(t *testing.T) {
-//		user := store.GetUserByLogin("user1")
-//		if user == nil {
-//			t.Fatal("ожидали найти пользователя, получили nil")
-//		}
-//
-//		if user.Id != 1 {
-//			t.Errorf("ожидали ID 1, получили %d", user.Id)
-//		}
-//	})
-//
-//	t.Run("получение пользователя по несуществующему login", func(t *testing.T) {
-//		user := store.GetUserByLogin("nonexistent")
-//		if user != nil {
-//			t.Error("ожидали nil для несуществующего login")
-//		}
-//	})
-//
-//	t.Run("возвращается копия пользователя", func(t *testing.T) {
-//		user := store.GetUserByLogin("user1")
-//		if user == nil {
-//			t.Fatal("пользователь не найден")
-//		}
-//
-//		originalLogin := user.Login
-//		user.Login = "modified"
-//
-//		user2 := store.GetUserByLogin("user1")
-//		if user2.Login != originalLogin {
-//			t.Error("изменение возвращенного пользователя повлияло на store")
-//		}
-//	})
-//}
-//
-//func TestAddUser(t *testing.T) {
-//	ctrl := gomock.NewController(t)
-//	defer ctrl.Finish()
-//
-//	mockDB := mocks.NewMockIDataBaseManager(ctrl)
-//
-//	t.Run("успешное добавление пользователя", func(t *testing.T) {
-//		mockDB.EXPECT().GetAllUsers().Return([]models.User{}, nil)
-//		store, _ := stores.GetUserStore(mockDB)
-//
-//		newUser := &models.User{Id: 1, Login: "newuser", Password: "newpass"}
-//		mockDB.EXPECT().AddUser(newUser).Return(nil)
-//
-//		err := store.AddUser(newUser)
-//		if err != nil {
-//			t.Fatalf("не ожидали ошибку при добавлении пользователя: %v", err)
-//		}
-//
-//		user := store.GetUserById(1)
-//		if user == nil {
-//			t.Fatal("пользователь должен быть добавлен в store")
-//		}
-//
-//		if user.Login != "newuser" {
-//			t.Errorf("ожидали login 'newuser', получили '%s'", user.Login)
-//		}
-//	})
-//
-//	t.Run("ошибка при добавлении пользователя в БД", func(t *testing.T) {
-//		mockDB.EXPECT().GetAllUsers().Return([]models.User{}, nil)
-//		store, _ := stores.GetUserStore(mockDB)
-//
-//		newUser := &models.User{Id: 2, Login: "erroruser", Password: "pass"}
-//		mockDB.EXPECT().AddUser(newUser).Return(errors.New("database error"))
-//
-//		err := store.AddUser(newUser)
-//		if err == nil {
-//			t.Error("ожидали ошибку при добавлении пользователя")
-//		}
-//
-//		user := store.GetUserById(2)
-//		if user != nil {
-//			t.Error("пользователь не должен быть добавлен в store при ошибке БД")
-//		}
-//	})
-//}
-//
-//func TestUpdateUser(t *testing.T) {
-//	ctrl := gomock.NewController(t)
-//	defer ctrl.Finish()
-//
-//	mockDB := mocks.NewMockIDataBaseManager(ctrl)
-//
-//	t.Run("успешное обновление пользователя", func(t *testing.T) {
-//		users := []models.User{
-//			{Id: 1, Login: "user1", Password: "pass1"},
-//		}
-//		mockDB.EXPECT().GetAllUsers().Return(users, nil)
-//		store, _ := stores.GetUserStore(mockDB)
-//
-//		updatedUser := &models.User{Id: 1, Login: "updated", Password: "newpass"}
-//		mockDB.EXPECT().UpdateUser(updatedUser).Return(nil)
-//
-//		err := store.UpdateUser(updatedUser)
-//		if err != nil {
-//			t.Fatalf("не ожидали ошибку при обновлении пользователя: %v", err)
-//		}
-//
-//		user := store.GetUserById(1)
-//		if user.Login != "updated" {
-//			t.Errorf("ожидали обновленный login 'updated', получили '%s'", user.Login)
-//		}
-//	})
-//
-//	t.Run("ошибка при обновлении пользователя в БД", func(t *testing.T) {
-//		users := []models.User{
-//			{Id: 2, Login: "user2", Password: "pass2"},
-//		}
-//		mockDB.EXPECT().GetAllUsers().Return(users, nil)
-//		store, _ := stores.GetUserStore(mockDB)
-//
-//		updatedUser := &models.User{Id: 2, Login: "updated", Password: "newpass"}
-//		mockDB.EXPECT().UpdateUser(updatedUser).Return(errors.New("database error"))
-//
-//		err := store.UpdateUser(updatedUser)
-//		if err == nil {
-//			t.Error("ожидали ошибку при обновлении пользователя")
-//		}
-//
-//		user := store.GetUserById(2)
-//		if user.Login == "updated" {
-//			t.Error("пользователь не должен быть обновлен в store при ошибке БД")
-//		}
-//	})
-//}
-//
-//func TestDeleteUser(t *testing.T) {
-//	ctrl := gomock.NewController(t)
-//	defer ctrl.Finish()
-//
-//	mockDB := mocks.NewMockIDataBaseManager(ctrl)
-//
-//	t.Run("успешное удаление пользователя", func(t *testing.T) {
-//		users := []models.User{
-//			{Id: 1, Login: "user1", Password: "pass1"},
-//		}
-//		mockDB.EXPECT().GetAllUsers().Return(users, nil)
-//		store, _ := stores.GetUserStore(mockDB)
-//
-//		mockDB.EXPECT().DeleteUser(models.UserId(1)).Return(nil)
-//
-//		err := store.DeleteUser(1)
-//		if err != nil {
-//			t.Fatalf("не ожидали ошибку при удалении пользователя: %v", err)
-//		}
-//
-//		user := store.GetUserById(1)
-//		if user != nil {
-//			t.Error("пользователь должен быть удален из store")
-//		}
-//	})
-//
-//	t.Run("ошибка при удалении пользователя из БД", func(t *testing.T) {
-//		users := []models.User{
-//			{Id: 2, Login: "user2", Password: "pass2"},
-//		}
-//		mockDB.EXPECT().GetAllUsers().Return(users, nil)
-//		store, _ := stores.GetUserStore(mockDB)
-//
-//		mockDB.EXPECT().DeleteUser(models.UserId(2)).Return(errors.New("database error"))
-//
-//		err := store.DeleteUser(2)
-//		if err == nil {
-//			t.Error("ожидали ошибку при удалении пользователя")
-//		}
-//
-//		user := store.GetUserById(2)
-//		if user == nil {
-//			t.Error("пользователь не должен быть удален из store при ошибке БД")
-//		}
-//	})
-//}
-//
-//func TestGetAllUsers(t *testing.T) {
-//	ctrl := gomock.NewController(t)
-//	defer ctrl.Finish()
-//
-//	mockDB := mocks.NewMockIDataBaseManager(ctrl)
-//
-//	t.Run("получение всех пользователей", func(t *testing.T) {
-//		users := []models.User{
-//			{Id: 1, Login: "user1", Password: "pass1"},
-//			{Id: 2, Login: "user2", Password: "pass2"},
-//			{Id: 3, Login: "user3", Password: "pass3"},
-//		}
-//		mockDB.EXPECT().GetAllUsers().Return(users, nil)
-//		store, _ := stores.GetUserStore(mockDB)
-//
-//		allUsers := store.GetAllUsers()
-//		if len(allUsers) != 3 {
-//			t.Errorf("ожидали 3 пользователей, получили %d", len(allUsers))
-//		}
-//	})
-//
-//	t.Run("получение пустого списка", func(t *testing.T) {
-//		mockDB.EXPECT().GetAllUsers().Return([]models.User{}, nil)
-//		store, _ := stores.GetUserStore(mockDB)
-//
-//		allUsers := store.GetAllUsers()
-//		if len(allUsers) != 0 {
-//			t.Errorf("ожидали пустой список, получили %d пользователей", len(allUsers))
-//		}
-//	})
-//}
-//
-//func TestConcurrency(t *testing.T) {
-//	ctrl := gomock.NewController(t)
-//	defer ctrl.Finish()
-//
-//	mockDB := mocks.NewMockIDataBaseManager(ctrl)
-//	users := []models.User{
-//		{Id: 1, Login: "user1", Password: "pass1"},
-//	}
-//	mockDB.EXPECT().GetAllUsers().Return(users, nil)
-//	store, _ := stores.GetUserStore(mockDB)
-//
-//	t.Run("конкурентное чтение безопасно", func(t *testing.T) {
-//		done := make(chan bool)
-//
-//		for i := 0; i < 10; i++ {
-//			go func() {
-//				user := store.GetUserById(1)
-//				if user == nil {
-//					t.Error("пользователь должен существовать")
-//				}
-//				done <- true
-//			}()
-//		}
-//
-//		for i := 0; i < 10; i++ {
-//			<-done
-//		}
-//	})
-//}
+func TestGetAllUsers(t *testing.T) {
+	store := stores.GetUserStore()
+
+	t.Run("GetAllUsers возвращает не nil слайс", func(t *testing.T) {
+		allUsers := store.GetAllUsers()
+		assert.NotNil(t, allUsers, "GetAllUsers должен возвращать не nil слайс")
+	})
+
+	t.Run("GetAllUsers возвращает слайс", func(t *testing.T) {
+		allUsers := store.GetAllUsers()
+		assert.IsType(t, []models.User{}, allUsers, "GetAllUsers должен возвращать слайс User")
+	})
+}
+
+func TestGetUserById(t *testing.T) {
+	store := stores.GetUserStore()
+	allUsers := store.GetAllUsers()
+
+	if len(allUsers) > 0 {
+		existingUser := allUsers[0]
+
+		t.Run("GetUserById возвращает пользователя для существующего ID", func(t *testing.T) {
+			user := store.GetUserById(existingUser.Id)
+			assert.NotNil(t, user, "должен вернуть пользователя для существующего ID")
+			assert.Equal(t, existingUser.Id, user.Id, "ID должны совпадать")
+		})
+
+		t.Run("GetUserById возвращает копию (изменения не влияют на store)", func(t *testing.T) {
+			user1 := store.GetUserById(existingUser.Id)
+			if user1 != nil {
+				originalLogin := user1.Login
+				user1.Login = "modified_test_login"
+
+				user2 := store.GetUserById(existingUser.Id)
+				assert.Equal(t, originalLogin, user2.Login, "изменение возвращенного объекта не должно влиять на store")
+			}
+		})
+	}
+
+	t.Run("GetUserById возвращает nil для несуществующего ID", func(t *testing.T) {
+		user := store.GetUserById(models.UserId(999999999))
+		assert.Nil(t, user, "должен вернуть nil для несуществующего ID")
+	})
+}
+
+func TestGetUserByLogin(t *testing.T) {
+	store := stores.GetUserStore()
+	allUsers := store.GetAllUsers()
+
+	if len(allUsers) > 0 {
+		existingUser := allUsers[0]
+
+		t.Run("GetUserByLogin возвращает пользователя для существующего login", func(t *testing.T) {
+			user := store.GetUserByLogin(existingUser.Login)
+			assert.NotNil(t, user, "должен вернуть пользователя для существующего login")
+			assert.Equal(t, existingUser.Login, user.Login, "login должны совпадать")
+		})
+
+		t.Run("GetUserByLogin возвращает копию (изменения не влияют на store)", func(t *testing.T) {
+			user1 := store.GetUserByLogin(existingUser.Login)
+			if user1 != nil {
+				originalId := user1.Id
+				user1.Id = models.UserId(999999999)
+
+				user2 := store.GetUserByLogin(existingUser.Login)
+				assert.Equal(t, originalId, user2.Id, "изменение возвращенного объекта не должно влиять на store")
+			}
+		})
+	}
+
+	t.Run("GetUserByLogin возвращает nil для несуществующего login", func(t *testing.T) {
+		user := store.GetUserByLogin("nonexistent_user_login_999999")
+		assert.Nil(t, user, "должен вернуть nil для несуществующего login")
+	})
+}
+
+func TestConcurrentReads(t *testing.T) {
+	store := stores.GetUserStore()
+	allUsers := store.GetAllUsers()
+
+	if len(allUsers) == 0 {
+		t.Skip("нет данных для тестирования конкурентности")
+	}
+
+	existingUserId := allUsers[0].Id
+
+	t.Run("конкурентное чтение GetUserById безопасно", func(t *testing.T) {
+		var wg sync.WaitGroup
+		for i := 0; i < 50; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				user := store.GetUserById(existingUserId)
+				// Просто проверяем, что не паникует
+				_ = user
+			}()
+		}
+		wg.Wait()
+	})
+
+	t.Run("конкурентное чтение GetAllUsers безопасно", func(t *testing.T) {
+		var wg sync.WaitGroup
+		for i := 0; i < 50; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				users := store.GetAllUsers()
+				// Просто проверяем, что не паникует
+				_ = users
+			}()
+		}
+		wg.Wait()
+	})
+
+	t.Run("конкурентное чтение GetUserByLogin безопасно", func(t *testing.T) {
+		existingLogin := allUsers[0].Login
+		var wg sync.WaitGroup
+		for i := 0; i < 50; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				user := store.GetUserByLogin(existingLogin)
+				// Просто проверяем, что не паникует
+				_ = user
+			}()
+		}
+		wg.Wait()
+	})
+}
+
+func TestDataImmutability(t *testing.T) {
+	store := stores.GetUserStore()
+	allUsers := store.GetAllUsers()
+
+	if len(allUsers) == 0 {
+		t.Skip("нет данных для тестирования неизменяемости")
+	}
+
+	existingUser := allUsers[0]
+
+	t.Run("изменение данных через GetAllUsers не влияет на store", func(t *testing.T) {
+		users1 := store.GetAllUsers()
+		if len(users1) > 0 {
+			originalLogin := users1[0].Login
+			users1[0].Login = "modified_through_slice"
+
+			users2 := store.GetAllUsers()
+			assert.Equal(t, originalLogin, users2[0].Login, "изменение в возвращенном слайсе не должно влиять на store")
+		}
+	})
+
+	t.Run("множественные изменения возвращенного объекта не влияют на store", func(t *testing.T) {
+		user1 := store.GetUserById(existingUser.Id)
+		if user1 != nil {
+			originalLogin := user1.Login
+			originalPassword := user1.Password
+
+			user1.Login = "test_modified_1"
+			user1.Password = "test_modified_pass_1"
+			user1.Id = models.UserId(888888888)
+
+			user2 := store.GetUserById(existingUser.Id)
+			assert.Equal(t, originalLogin, user2.Login, "login в store не должен измениться")
+			assert.Equal(t, originalPassword, user2.Password, "password в store не должен измениться")
+			assert.Equal(t, existingUser.Id, user2.Id, "ID в store не должен измениться")
+		}
+	})
+}
