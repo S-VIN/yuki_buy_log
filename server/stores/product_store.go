@@ -6,6 +6,15 @@ import (
 	"yuki_buy_log/models"
 )
 
+type IProductStore interface {
+	GetProductById(id models.ProductId) *models.Product
+	GetProductsByUserId(userId models.UserId) []models.Product
+	GetProductsByUserIds(userIds []models.UserId) []models.Product
+	CreateProduct(product *models.Product) error
+	UpdateProduct(product *models.Product) error
+	DeleteProduct(id models.ProductId, userId models.UserId) error
+}
+
 type ProductStore struct {
 	data  map[models.ProductId]models.Product
 	mutex sync.RWMutex
@@ -35,6 +44,24 @@ func GetProductStore() *ProductStore {
 		}
 	})
 	return productStoreInstance
+}
+
+// NewProductStoreWithDB создает новый ProductStore с заданным database manager (для тестов)
+func NewProductStoreWithDB(db database.IDataBaseManager) *ProductStore {
+	products, err := db.GetAllProducts()
+	if err != nil {
+		products = []models.Product{}
+	}
+
+	// Преобразуем список продуктов в map[ProductId]Product
+	productMap := make(map[models.ProductId]models.Product)
+	for _, product := range products {
+		productMap[product.Id] = product
+	}
+
+	return &ProductStore{
+		data: productMap,
+	}
 }
 
 // GetProductById возвращает продукт по ID

@@ -7,6 +7,16 @@ import (
 	"yuki_buy_log/models"
 )
 
+type IInviteStore interface {
+	GetInviteById(id models.InviteId) *models.Invite
+	GetInvitesFromUser(fromUserId models.UserId) []models.Invite
+	GetInvitesToUser(toUserId models.UserId) []models.Invite
+	GetInvite(fromUserId, toUserId models.UserId) *models.Invite
+	AddInvite(invite models.Invite) error
+	DeleteInvites(fromUserId, toUserId models.UserId) error
+	DeleteOldInvites(cutoffTime time.Time) (int64, error)
+}
+
 type InviteStore struct {
 	data  []models.Invite
 	mutex sync.RWMutex
@@ -29,6 +39,17 @@ func GetInviteStore() *InviteStore {
 		}
 	})
 	return inviteStoreInstance
+}
+
+// NewInviteStoreWithDB создает новый InviteStore с заданным database manager (для тестов)
+func NewInviteStoreWithDB(db database.IDataBaseManager) *InviteStore {
+	invites, err := db.GetAllInvites()
+	if err != nil {
+		invites = []models.Invite{}
+	}
+	return &InviteStore{
+		data: invites,
+	}
 }
 
 func (s *InviteStore) GetInviteById(id models.InviteId) *models.Invite {

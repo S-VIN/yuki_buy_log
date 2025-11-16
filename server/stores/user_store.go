@@ -6,6 +6,16 @@ import (
 	"yuki_buy_log/models"
 )
 
+type IUserStore interface {
+	GetUserById(id models.UserId) *models.User
+	GetUserByLogin(login string) *models.User
+	AddUser(user *models.User) error
+	UpdateUser(user *models.User) error
+	DeleteUser(userId models.UserId) error
+	GetUsersByGroupId(groupId models.GroupId) []models.User
+	GetAllUsers() []models.User
+}
+
 type UserStore struct {
 	data  map[models.UserId]models.User
 	mutex sync.RWMutex
@@ -37,6 +47,25 @@ func GetUserStore() *UserStore {
 		}
 	})
 	return userStoreInstance
+}
+
+// NewUserStoreWithDB создает новый UserStore с заданным database manager (для тестов)
+func NewUserStoreWithDB(db database.IDataBaseManager) *UserStore {
+	users, err := db.GetAllUsers()
+	if err != nil {
+		users = []models.User{}
+	}
+
+	// Преобразуем список пользователей в map[UserId]User
+	userMap := make(map[models.UserId]models.User)
+	for _, user := range users {
+		userMap[user.Id] = user
+	}
+
+	return &UserStore{
+		data: userMap,
+		db:   db,
+	}
 }
 
 // GetUserById возвращает пользователя по ID

@@ -6,6 +6,12 @@ import (
 	"yuki_buy_log/models"
 )
 
+type IPurchaseStore interface {
+	GetPurchasesByUserIds(userIds []models.UserId) []models.Purchase
+	AddPurchase(purchase *models.Purchase) error
+	DeletePurchase(purchaseId models.PurchaseId, userId models.UserId) error
+}
+
 type PurchaseStore struct {
 	data  map[models.PurchaseId]models.Purchase
 	mutex sync.RWMutex
@@ -35,6 +41,24 @@ func GetPurchaseStore() *PurchaseStore {
 		}
 	})
 	return purchaseStoreInstance
+}
+
+// NewPurchaseStoreWithDB создает новый PurchaseStore с заданным database manager (для тестов)
+func NewPurchaseStoreWithDB(db database.IDataBaseManager) *PurchaseStore {
+	purchases, err := db.GetAllPurchases()
+	if err != nil {
+		purchases = []models.Purchase{}
+	}
+
+	// Преобразуем список покупок в map[PurchaseId]Purchase
+	purchaseMap := make(map[models.PurchaseId]models.Purchase)
+	for _, purchase := range purchases {
+		purchaseMap[purchase.Id] = purchase
+	}
+
+	return &PurchaseStore{
+		data: purchaseMap,
+	}
 }
 
 // GetPurchasesByUserIds возвращает покупки для списка пользователей (для группы)

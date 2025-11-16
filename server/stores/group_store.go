@@ -8,6 +8,18 @@ import (
 	"yuki_buy_log/models"
 )
 
+type IGroupStore interface {
+	GetGroupById(id models.GroupId) *models.Group
+	GetGroupIdByUserId(userId models.UserId) *models.GroupId
+	GetGroupByUserId(userId models.UserId) *models.Group
+	GetGroupUserCount(groupId models.GroupId) int
+	IsUserInGroup(userId models.UserId) bool
+	CreateNewGroup(userId models.UserId) (*models.GroupId, error)
+	AddUserToGroup(groupId models.GroupId, userId models.UserId) error
+	DeleteUserFromGroup(userId models.UserId) error
+	DeleteGroupById(id models.GroupId) error
+}
+
 type GroupStore struct {
 	groupIdByUserId map[models.UserId]models.GroupId
 	groupById       map[models.GroupId]models.Group
@@ -95,6 +107,33 @@ func GetGroupStore() *GroupStore {
 		}
 	})
 	return groupStoreInstance
+}
+
+// NewGroupStoreWithDB создает новый GroupStore с заданным database manager (для тестов)
+func NewGroupStoreWithDB(db database.IDataBaseManager) *GroupStore {
+	members, err := db.GetAllGroupMembers()
+	if err != nil {
+		members = []models.GroupMember{}
+	}
+
+	store := &GroupStore{
+		groupIdByUserId: make(map[models.UserId]models.GroupId),
+		groupById:       make(map[models.GroupId]models.Group),
+	}
+	for _, member := range members {
+		if value, ok := store.groupById[member.GroupId]; ok {
+			value.Members = append(value.Members, member)
+			store.groupById[member.GroupId] = value
+		} else {
+			value = models.Group{
+				Id:      member.GroupId,
+				Members: []models.GroupMember{member},
+			}
+			store.groupById[member.GroupId] = value
+		}
+		store.groupIdByUserId[member.UserId] = member.GroupId
+	}
+	return store
 }
 
 // GetGroupById возвращает всех участников группы по ID группы
