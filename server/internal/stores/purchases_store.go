@@ -18,7 +18,7 @@ var (
 )
 
 func GetPurchaseStore() *PurchaseStore {
-	inviteStoreLock.Do(func() {
+	purchaseStoreLock.Do(func() {
 		var db, _ = database.GetDBManager()
 		purchases, err := db.GetAllPurchases()
 		if err != nil {

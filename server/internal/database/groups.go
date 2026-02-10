@@ -107,6 +107,6 @@ func (d *DatabaseManager) UpdateGroupMember(groupMember *domain.GroupMember) err
 
 func (d *DatabaseManager) CreateNewGroup(userId domain.UserId) (groupId domain.GroupId, err error) {
 	err = d.db.QueryRow(`INSERT INTO group_members (group_id, user_id, member_number) VALUES (
-		(SELECT COALESCE(MAX(group_id), 0) + 1 FROM group_members), $1, $2) RETURNING group_id`).Scan(&groupId, &userId, 0)
+		(SELECT COALESCE(MAX(group_id), 0) + 1 FROM group_members), $1, $2) RETURNING group_id`, userId, 1).Scan(&groupId)
 	return groupId, err
 }

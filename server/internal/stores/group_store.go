@@ -57,8 +57,9 @@ func (s *GroupStore) renumberMembers(members []domain.GroupMember) {
 
 	sort.Slice(members, func(i, j int) bool { return members[i].MemberNumber < members[j].MemberNumber })
 	for index := range members {
-		if index != members[index].MemberNumber {
-			members[index].MemberNumber = index
+		expectedNumber := index + 1
+		if expectedNumber != members[index].MemberNumber {
+			members[index].MemberNumber = expectedNumber
 			s.db.UpdateGroupMember(&members[index])
 		}
 	}
@@ -195,21 +196,30 @@ func (s *GroupStore) CreateNewGroup(userId domain.UserId) (*domain.GroupId, erro
 
 // AddUserToGroup добавляет пользователя в группу
 func (s *GroupStore) AddUserToGroup(groupId domain.GroupId, userId domain.UserId) error {
-	// Обновляем локальный store
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
+	// GetGroupById тоже использует Lock, поэтому её нужно вызывать до .Lock()
 	group := s.GetGroupById(groupId)
 	if group == nil {
 		return nil
 	}
+
+	// Получаем логин пользователя из UserStore
+	userStore := GetUserStore()
+	user := userStore.GetUserById(userId)
+	login := ""
+	if user != nil {
+		login = user.Login
+	}
+
+	// Обновляем локальный store
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
 	maxMemberNumber := s.getMaxMemberNumber(group.Members)
 	if maxMemberNumber >= 5 {
 		return ErrMaxMembersInGroup
 	}
 
-	group.Members = append(group.Members, domain.GroupMember{GroupId: groupId, UserId: userId, MemberNumber: maxMemberNumber + 1})
+	group.Members = append(group.Members, domain.GroupMember{GroupId: groupId, UserId: userId, Login: login, MemberNumber: maxMemberNumber + 1})
 
 	// Добавляем в БД
 	err := s.db.AddUserToGroup(groupId, userId, maxMemberNumber+1)
@@ -218,15 +228,12 @@ func (s *GroupStore) AddUserToGroup(groupId domain.GroupId, userId domain.UserId
 	}
 
 	s.groupById[groupId] = *group
+	s.groupIdByUserId[userId] = groupId
 	return nil
 }
 
 // DeleteUserFromGroup удаляет пользователя из группы
 func (s *GroupStore) DeleteUserFromGroup(userId domain.UserId) error {
-	// Обновляем локальный store
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
 	// Сначала находим группу пользователя
 	group := s.GetGroupByUserId(userId)
 	if group == nil {
@@ -235,6 +242,9 @@ func (s *GroupStore) DeleteUserFromGroup(userId domain.UserId) error {
 	if len(group.Members) == 0 {
 		return nil // Пользователь не в группе
 	}
+
+	// Обновляем локальный store
+	s.mutex.Lock()
 
 	// удаляем из внутренних структур
 	for i, member := range group.Members {
@@ -245,15 +255,24 @@ func (s *GroupStore) DeleteUserFromGroup(userId domain.UserId) error {
 		}
 	}
 
+	// Обновляем groupById с измененным списком участников
+	s.groupById[group.Id] = *group
+	// Удаляем обратный маппинг для уходящего пользователя
+	delete(s.groupIdByUserId, userId)
+
 	// Удаляем из БД
 	err := s.db.DeleteUserFromGroup(userId)
 	if err != nil {
 		return err
 	}
 
+	s.mutex.Unlock()
 	// Если остался 1 или 0 членов группы, то группа распалась - удаляем
 	if len(group.Members) < 2 {
 		s.DeleteGroupById(group.Id)
+	} else {
+		// Перенумеровываем оставшихся участников
+		s.renumberMembers(group.Members)
 	}
 
 	return nil

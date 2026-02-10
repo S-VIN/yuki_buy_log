@@ -122,8 +122,7 @@ class TestProducts:
             "name": "Tea",
             "volume": "500ml",
             "brand": "Brand1",
-            "category": "Drink",
-            "description": "Green tea",
+            "default_tags": ["drink", "tea"],
         }
         r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
         assert r.status_code == 200
@@ -157,7 +156,7 @@ class TestProducts:
             "name": "Tea",
             "volume": "500ml",
             "brand": "Brand!",  # Invalid character
-            "category": "Drink",
+            "default_tags": ["drink"],
         }
         r = requests.post(f"{BASE_URL}/products", json=product, headers=headers)
         assert r.status_code == 400
