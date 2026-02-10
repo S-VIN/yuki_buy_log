@@ -44,3 +44,4 @@ dist-ssr
 **/go-build/
 **/coverage/
 server/yuki_buy_log
+/server/bin/
