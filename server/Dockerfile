@@ -18,7 +18,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -ldflags="-s -w" \
     -trimpath \
-    -o server .
+    -o bin/server ./cmd
 
 # Final stage
 FROM alpine:3.18
@@ -32,7 +32,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
     chown -R appuser:appgroup /app
 
 # Copy binary from builder
-COPY --from=builder --chown=appuser:appgroup /app/server .
+COPY --from=builder --chown=appuser:appgroup /app/bin/server .
 
 USER appuser
 
