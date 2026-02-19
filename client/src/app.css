@@ -1,0 +1,109 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+
+  /* Semantic colors */
+  --color-bg: #f4f4f8;
+  --color-surface: #ffffff;
+  --color-text: #1a1a2e;
+  --color-text-secondary: #8d8d97;
+  --color-disabled: #c0c0c7;
+  --color-border: #e5e5e9;
+
+  /* Accent palette */
+  --color-red: #d00000;
+  --color-yellow: #ffba08;
+  --color-blue: #3f88c5;
+  --color-dark-blue: #032b43;
+  --color-green: #136f63;
+
+  /* Border radius scale */
+  --radius-xs: 4px;    /* icon buttons, micro badges */
+  --radius-sm: 6px;    /* pills, chips, small tags */
+  --radius-md: 10px;   /* inputs, selects, small cards */
+  --radius-lg: 14px;   /* large cards, modals, bottom sheets */
+  --radius-full: 999px; /* fully rounded: avatars, toggles */
+
+  /* Elevation shadows (theme-aware via color-mix) */
+  --shadow-sm:
+    0 1px 2px color-mix(in srgb, var(--color-text) 6%, transparent),
+    0 1px 4px color-mix(in srgb, var(--color-text) 4%, transparent);
+  --shadow-md:
+    0 2px 4px color-mix(in srgb, var(--color-text) 5%, transparent),
+    0 8px 20px color-mix(in srgb, var(--color-text) 8%, transparent);
+  --shadow-lg:
+    0 4px 6px color-mix(in srgb, var(--color-text) 5%, transparent),
+    0 20px 40px color-mix(in srgb, var(--color-text) 12%, transparent);
+
+  /* Transitions */
+  --transition-fast: 0.12s ease;  /* color, bg, opacity */
+  --transition-base: 0.2s ease;   /* border, shadow, transform */
+
+  /* Focus ring — always use on interactive elements */
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-blue) 14%, transparent);
+
+  /* Spacing scale (4px base) */
+  --space-1: 2px;    /* micro: icon gaps, hairlines */
+  --space-2: 4px;    /* tight: page edges, label gap */
+  --space-3: 6px;    /* compact: dropdown gap, dividers */
+  --space-4: 8px;    /* standard: internal component gaps */
+  --space-5: 12px;   /* comfortable: card padding, form gaps */
+  --space-6: 16px;   /* section spacing */
+  --space-7: 20px;   /* generous gaps */
+  --space-8: 24px;   /* large section spacing */
+
+  /* Component sizes */
+  --page-padding: var(--space-2);                  /* 4px — page outer edge */
+  --card-padding: var(--space-5);                  /* 12px — inside cards */
+  --section-gap: var(--space-5);                   /* 12px — between page sections */
+  --form-gap: var(--space-4);                      /* 8px — between form fields */
+  --label-gap: var(--space-2);                     /* 4px — between label and control */
+  --input-height: 38px;                            /* control height: inputs, buttons */
+  --input-padding: var(--space-4) var(--space-5);  /* 8px 12px */
+  --nav-height: 52px;                              /* bottom navigation bar */
+
+  /* Typography scale */
+  --text-xs:   0.725rem;  /* captions, timestamps, meta */
+  --text-sm:   0.8rem;    /* pills, secondary labels, badges */
+  --text-base: 0.875rem;  /* body text, inputs, list items */
+  --text-md:   1rem;      /* card titles, section headers */
+  --text-lg:   1.125rem;  /* page titles */
+
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+
+  /* Отключает overscroll эффект (резиновое растягивание) */
+  overscroll-behavior: none;
+  /* Запрещает pull-to-refresh жест */
+  overscroll-behavior-y: contain;
+  /* Предотвращает нежелательные touch жесты */
+  touch-action: pan-x pan-y;
+  /* Фиксирует высоту и позицию */
+  position: fixed;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}

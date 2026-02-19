@@ -19,7 +19,7 @@ services:
     ports:
       - "8080:8080"
   client:
-    build: clients
+    build: old_client
     image: ghcr.io/s-vin/yuki_buy_log:client
     depends_on:
       - server
