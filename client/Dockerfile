@@ -1,4 +1,4 @@
-FROM node:21-alpine3.20 AS builder
+FROM node:latest AS builder
 LABEL Maintainer="stepan-vinokurov"
 
 WORKDIR /app
