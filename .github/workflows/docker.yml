@@ -39,8 +39,8 @@ jobs:
               echo "dockerfile=./server/Dockerfile" >> $GITHUB_OUTPUT
               ;;
             client)
-              echo "context=./clients" >> $GITHUB_OUTPUT
-              echo "dockerfile=./clients/Dockerfile" >> $GITHUB_OUTPUT
+              echo "context=./client" >> $GITHUB_OUTPUT
+              echo "dockerfile=./client/Dockerfile" >> $GITHUB_OUTPUT
               ;;
           esac
 

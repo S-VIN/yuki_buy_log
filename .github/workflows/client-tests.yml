@@ -17,22 +17,22 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-          cache-dependency-path: clients/package-lock.json
+          cache-dependency-path: client/package-lock.json
 
       - name: Cache node_modules
         uses: actions/cache@v4
         with:
-          path: clients/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('clients/package-lock.json') }}
+          path: client/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('client/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-modules-
 
       - name: Install dependencies
-        working-directory: clients
+        working-directory: client
         run: npm ci --prefer-offline --no-audit
-      - name: Lint
-        working-directory: clients
-        run: npm run lint
+      - name: Check
+        working-directory: client
+        run: npm run check
       - name: Build
-        working-directory: clients
+        working-directory: client
         run: npm run build
