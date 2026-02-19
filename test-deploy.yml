@@ -40,7 +40,7 @@ services:
 
   client:
     build:
-      context: ./clients
+      context: ./client
       dockerfile: Dockerfile
       args:
         # API URL - server endpoint accessible from browser
