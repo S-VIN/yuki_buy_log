@@ -64,8 +64,9 @@
 <div class="select-widget">
   <div class="input-row">
     {#if value}
-      <span class="pill" style="--pill-color: {color}">{value}</span>
-      <span class="flex-spacer"></span>
+      <div class="value-area">
+        <span class="pill" style="--pill-color: {color}">{value}</span>
+      </div>
       <button
         type="button"
         class="clear-btn"
@@ -159,8 +160,11 @@
     line-height: 1.5;
   }
 
-  .flex-spacer {
+  .value-area {
     flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
   }
 
   .clear-btn {
