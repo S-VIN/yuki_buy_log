@@ -68,26 +68,28 @@
 
 <div class="tag-widget">
   <div class="input-row">
-    {#each selectedTags as tag}
-      <span class="pill">
-        {tag}
-        <button type="button" class="pill-remove" onclick={() => removeTag(tag)} aria-label="Remove {tag}">
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </button>
-      </span>
-    {/each}
-    <input
-      {...combobox.input}
-      {id}
-      placeholder={selectedTags.length === 0 ? "Add tags…" : ""}
-      enterkeyhint="done"
-      onkeydown={(e) => { handleKeydown(e); if (!e.defaultPrevented) combobox.input.onkeydown?.(e); }}
-      onfocus={() => (isFocused = true)}
-      onblur={() => (isFocused = false)}
-      class="tag-input"
-    />
+    <div class="tags-and-input">
+      {#each selectedTags as tag}
+        <span class="pill">
+          {tag}
+          <button type="button" class="pill-remove" onclick={() => removeTag(tag)} aria-label="Remove {tag}">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </span>
+      {/each}
+      <input
+        {...combobox.input}
+        {id}
+        placeholder={selectedTags.length === 0 ? "Add tags…" : ""}
+        enterkeyhint="done"
+        onkeydown={(e) => { handleKeydown(e); if (!e.defaultPrevented) combobox.input.onkeydown?.(e); }}
+        onfocus={() => (isFocused = true)}
+        onblur={() => (isFocused = false)}
+        class="tag-input"
+      />
+    </div>
     {#if selectedTags.length > 0}
       <button
         type="button"
@@ -128,9 +130,9 @@
 
   .input-row {
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
+    flex-wrap: nowrap;
     align-items: center;
+    gap: var(--space-2);
     min-height: var(--input-height);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
@@ -138,6 +140,15 @@
     background: var(--color-surface);
     transition: border-color var(--transition-base), box-shadow var(--transition-base);
     cursor: text;
+  }
+
+  .tags-and-input {
+    display: flex;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+    gap: var(--space-2);
+    align-items: center;
   }
 
   .input-row:focus-within {
