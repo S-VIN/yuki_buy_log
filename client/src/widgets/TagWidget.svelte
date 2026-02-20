@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Combobox } from "melt/builders";
-  import { Plus } from "lucide-svelte";
+  import { Plus, X } from "lucide-svelte";
 
   interface Props {
     allTags: string[];
@@ -42,7 +42,13 @@
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Enter") {
       const raw = combobox.inputValue.trim();
-      if (!raw || allTags.includes(raw)) return;
+      if (!raw) return;
+      if (selectedTags.includes(raw)) {
+        e.preventDefault();
+        combobox.inputValue = "";
+        return;
+      }
+      if (allTags.includes(raw)) return;
       e.preventDefault();
       addNewTag(raw);
     }
@@ -50,6 +56,11 @@
 
   function removeTag(tag: string) {
     selectedTags = selectedTags.filter((t) => t !== tag);
+  }
+
+  function clearAll() {
+    selectedTags = [];
+    combobox.inputValue = "";
   }
 
   let isFocused = $state(false);
@@ -77,6 +88,16 @@
       onblur={() => (isFocused = false)}
       class="tag-input"
     />
+    {#if selectedTags.length > 0}
+      <button
+        type="button"
+        class="clear-btn"
+        onclick={clearAll}
+        aria-label="Clear all tags"
+      >
+        <X size={14} />
+      </button>
+    {/if}
   </div>
 
   {#if isFocused && combobox.open && (filteredTags.length > 0 || combobox.inputValue.trim())}
@@ -160,6 +181,29 @@
   .pill-remove:hover {
     opacity: 1;
     background: color-mix(in srgb, var(--color-blue) 18%, transparent);
+  }
+
+  .clear-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-xs);
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    padding: 0;
+    opacity: 0.6;
+    transition: opacity var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+    flex-shrink: 0;
+  }
+
+  .clear-btn:hover {
+    opacity: 1;
+    background: color-mix(in srgb, var(--color-red) 10%, transparent);
+    color: var(--color-red);
   }
 
   .tag-input {

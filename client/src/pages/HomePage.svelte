@@ -1,6 +1,9 @@
 <script lang="ts">
   import CardWidget from "../widgets/CardWidget.svelte";
   import ProductWidget from "../widgets/ProductWidget.svelte";
+  import SelectWidget from "../widgets/SelectWidget.svelte";
+  import ProductSelectWidget from "../widgets/ProductSelectWidget.svelte";
+  import type { Product } from "../models/Product";
 
   const demoProduct = {
     name: "Oat Milk Barista Edition",
@@ -8,6 +11,19 @@
     brand: "Oatly",
     tags: ["dairy-free", "vegan", "coffee"],
   };
+
+  let selectedCategory = $state<string | null>(null);
+  let categoryOptions = $state(["Молочное", "Напитки", "Снеки", "Заморозка", "Бакалея"]);
+
+  let selectedBrand = $state<string | null>(null);
+  let brandOptions = $state(["Oatly", "Alpro", "ВкусВилл", "Valio"]);
+
+  let selectedProduct = $state<Product | null>(null);
+  let demoProducts = $state<Product[]>([
+    { id: "1", name: "Oat Milk Barista", volume: "1 л", brand: "Oatly", default_tags: ["vegan", "coffee"], user_id: "" },
+    { id: "2", name: "Almond Milk", volume: "750 мл", brand: "Alpro", default_tags: ["dairy-free"], user_id: "" },
+    { id: "3", name: "Whole Milk", volume: "1 л", brand: "Valio", default_tags: [], user_id: "" },
+  ]);
 </script>
 
 <div class="page">
@@ -19,6 +35,48 @@
       <ProductWidget product={demoProduct} />
     </CardWidget>
   </div>
+
+  <div class="demo-section">
+    <h3 class="demo-title">ProductSelectWidget demo</h3>
+    <div class="demo-field">
+      <label class="demo-label" for="sel-product">Product</label>
+      <ProductSelectWidget
+        id="sel-product"
+        bind:allProducts={demoProducts}
+        bind:value={selectedProduct}
+      />
+    </div>
+  </div>
+
+  <div class="demo-section">
+    <h3 class="demo-title">SelectWidget demo</h3>
+    <div class="demo-row">
+      <div class="demo-field">
+        <label class="demo-label" for="sel-category">Категория</label>
+        <SelectWidget
+          id="sel-category"
+          allOptions={categoryOptions}
+          bind:value={selectedCategory}
+          color="var(--color-blue)"
+          placeholder="Выбрать категорию…"
+        />
+      </div>
+      <div class="demo-field">
+        <label class="demo-label" for="sel-brand">Бренд</label>
+        <SelectWidget
+          id="sel-brand"
+          allOptions={brandOptions}
+          bind:value={selectedBrand}
+          color="var(--color-green)"
+          placeholder="Выбрать бренд…"
+        />
+      </div>
+    </div>
+    <p class="demo-state">
+      Категория: <strong>{selectedCategory ?? "—"}</strong> &nbsp;|&nbsp;
+      Бренд: <strong>{selectedBrand ?? "—"}</strong>
+    </p>
+  </div>
 </div>
 
 <style>
@@ -28,5 +86,38 @@
 
   .demo-section {
     margin-top: var(--space-6);
+  }
+
+  .demo-title {
+    font-size: var(--text-base);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-4);
+  }
+
+  .demo-row {
+    display: flex;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+  }
+
+  .demo-field {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .demo-label {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+  }
+
+  .demo-state {
+    margin-top: var(--space-4);
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
   }
 </style>
