@@ -47,3 +47,5 @@ server/yuki_buy_log
 /server/bin/
 
 **/__pycache__/
+
+**/.claude/
