@@ -29,7 +29,7 @@ RUN npm install -g serve@14.2.3
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
 
-EXPOSE 8000
+EXPOSE 9000
 
 # Start the server - listen on 0.0.0.0 to accept external connections
-CMD ["serve", "-s", "dist", "-l", "tcp://0.0.0.0:8000"]
+CMD ["serve", "-s", "dist", "-l", "tcp://0.0.0.0:9000"]
