@@ -24,4 +24,4 @@ services:
     depends_on:
       - server
     ports:
-      - "5173:8000"
+      - "5173:9000"
