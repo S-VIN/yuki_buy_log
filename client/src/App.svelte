@@ -67,8 +67,10 @@
   .app-shell {
     display: flex;
     flex-direction: column;
-    height: 100dvh;
-    width: 100vw;
+    /* --app-height зафиксирована при загрузке в main.ts — клавиатура
+       не вызывает пересчёт высоты для position: fixed элемента */
+    height: var(--app-height, 100%);
+    width: 100%;
     overflow: hidden;
     position: fixed;
     top: 0;
@@ -92,13 +94,13 @@
 
   .bottom-nav {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-around;
-    height: var(--nav-height);
-    min-height: var(--nav-height);
+    height: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+    min-height: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
     background: var(--color-surface);
     border-top: 1px solid var(--color-border);
-    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -111,7 +113,7 @@
     align-items: center;
     justify-content: center;
     flex: 1;
-    height: 100%;
+    height: var(--nav-height);
     cursor: pointer;
     color: var(--color-disabled);
     transition: color var(--transition-fast);

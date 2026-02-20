@@ -2,6 +2,13 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input, textarea, [contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 :root {
@@ -90,7 +97,9 @@ html, body {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%;
+  /* --app-height фиксируется в main.ts один раз при загрузке;
+     клавиатура не пересчитывает эту высоту */
+  height: var(--app-height, 100%);
   overflow: hidden;
 
   /* Отключает overscroll эффект (резиновое растягивание) */
@@ -105,5 +114,5 @@ html, body {
 
 #app {
   width: 100%;
-  height: 100%;
+  height: var(--app-height, 100%);
 }

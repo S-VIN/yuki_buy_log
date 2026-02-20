@@ -302,8 +302,7 @@
     transition: opacity var(--transition-fast), background var(--transition-fast),
       color var(--transition-fast);
     flex-shrink: 0;
-    align-self: flex-start;
-    margin-top: 2px;
+    align-self: center;
   }
 
   .clear-btn:hover {
