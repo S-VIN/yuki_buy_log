@@ -2,6 +2,24 @@ import { mount } from 'svelte'
 import './app.css'
 import App from './App.svelte'
 
+// ── Фиксируем высоту лейаута — клавиатура не должна ресайзить layout ─────────
+// Устанавливаем один раз при загрузке; обновляем только при повороте экрана,
+// чтобы открытие виртуальной клавиатуры не вызывало перестройку интерфейса.
+const setAppHeight = () => {
+  document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+};
+setAppHeight();
+
+let orientationTimer: ReturnType<typeof setTimeout>;
+const onOrientationChange = () => {
+  // Небольшая задержка — браузер завершает анимацию поворота перед замером
+  clearTimeout(orientationTimer);
+  orientationTimer = setTimeout(setAppHeight, 200);
+};
+window.addEventListener('orientationchange', onOrientationChange);
+screen.orientation?.addEventListener('change', onOrientationChange);
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ── iOS Safari: предотвращаем прокрутку страницы при открытии клавиатуры ─────
 // Сбрасываем позицию если window всё же прокрутился
 window.addEventListener('scroll', () => {

@@ -67,7 +67,9 @@
   .app-shell {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    /* --app-height зафиксирована при загрузке в main.ts — клавиатура
+       не вызывает пересчёт высоты для position: fixed элемента */
+    height: var(--app-height, 100%);
     width: 100%;
     overflow: hidden;
     position: fixed;
