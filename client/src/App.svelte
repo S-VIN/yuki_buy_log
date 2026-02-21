@@ -1,12 +1,16 @@
 <script lang="ts">
+  import { fade } from 'svelte/transition';
   import { Tabs } from 'melt/builders';
-  import { Home, Search, PlusCircle, List, User } from 'lucide-svelte';
+  import { Home, Search, PlusCircle, Package, User } from 'lucide-svelte';
   import { auth } from './lib/auth.svelte';
+  import { productStore } from './stores/products.svelte';
+  import { purchaseStore } from './stores/purchases.svelte';
+  import LoadingScreen from './lib/LoadingScreen.svelte';
   import LoginPage from './pages/LoginPage.svelte';
   import HomePage from './pages/HomePage.svelte';
   import SearchPage from './pages/SearchPage.svelte';
   import AddPage from './pages/AddPage.svelte';
-  import ListPage from './pages/ListPage.svelte';
+  import ProductListPage from './pages/ProductListPage.svelte';
   import ProfilePage from './pages/ProfilePage.svelte';
 
   type TabId = 'home' | 'search' | 'add' | 'list' | 'profile';
@@ -22,13 +26,29 @@
     { id: 'home', icon: Home },
     { id: 'search', icon: Search },
     { id: 'add', icon: PlusCircle },
-    { id: 'list', icon: List },
+    { id: 'list', icon: Package },
     { id: 'profile', icon: User },
   ] as const;
 
   export function navigateTo(tab: TabId) {
     tabs.value = tab;
   }
+
+  let isLoading = $state(auth.isAuthenticated);
+
+  $effect(() => {
+    if (auth.isAuthenticated) {
+      isLoading = true;
+      Promise.all([
+        productStore.load(),
+        purchaseStore.load()
+      ])
+        .catch(console.error)
+        .finally(() => {
+          isLoading = false;
+        });
+    }
+  });
 </script>
 
 {#if auth.isAuthenticated}
@@ -44,7 +64,7 @@
         <AddPage />
       </div>
       <div {...tabs.getContent('list')}>
-        <ListPage />
+        <ProductListPage />
       </div>
       <div {...tabs.getContent('profile')}>
         <ProfilePage />
@@ -61,6 +81,12 @@
   </div>
 {:else}
   <LoginPage />
+{/if}
+
+{#if isLoading}
+  <div transition:fade={{ duration: 280 }}>
+    <LoadingScreen />
+  </div>
 {/if}
 
 <style>

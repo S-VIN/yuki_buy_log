@@ -102,7 +102,7 @@
     {/if}
   </div>
 
-  {#if isFocused && combobox.open && (filteredTags.length > 0 || combobox.inputValue.trim())}
+  {#if isFocused && combobox.open && combobox.inputValue.trim()}
     <div class="dropdown" role="listbox" tabindex="-1" onmousedown={(e) => e.preventDefault()}>
       {#if combobox.inputValue.trim() && !allTags.includes(combobox.inputValue.trim())}
         <button type="button" class="option new-tag" onclick={() => addNewTag(combobox.inputValue)}>

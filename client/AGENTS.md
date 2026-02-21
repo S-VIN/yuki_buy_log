@@ -132,6 +132,7 @@ Use shadows to show which layer a surface belongs to — not for decoration.
   - Large cards, modals, bottom sheets, dropdowns → `var(--radius-lg)`
   - Avatars, toggles → `var(--radius-full)`
 - **Apply transitions consistently** — use `var(--transition-fast)` for color/bg/opacity, `var(--transition-base)` for border/shadow/transform. Never use ad-hoc duration values.
+- **Never show scrollbars** — this is a SPA with a native-app feel. Every scrollable element must hide its scrollbar: `scrollbar-width: none` (Firefox) and `::-webkit-scrollbar { display: none }` (Chrome/Safari). No scrollbar should ever be visible anywhere in the app.
 - **Widgets must not control their own size.** A widget does not set `width` or `height` on itself. The parent is responsible for sizing via grid, flex, or explicit dimensions.
 - **Keep padding small** — widgets target small mobile screens, use `padding: 4px` as the default inside cards/widgets.
 

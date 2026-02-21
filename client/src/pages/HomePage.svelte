@@ -6,10 +6,12 @@
   import type { Product } from "../models/Product";
 
   const demoProduct = {
+    id: "demo",
     name: "Oat Milk Barista Edition",
     volume: "1 L",
     brand: "Oatly",
-    tags: ["dairy-free", "vegan", "coffee"],
+    default_tags: ["dairy-free", "vegan", "coffee"],
+    user_id: "",
   };
 
   let selectedCategory = $state<string | null>(null);
@@ -19,11 +21,6 @@
   let brandOptions = $state(["Oatly", "Alpro", "ВкусВилл", "Valio"]);
 
   let selectedProduct = $state<Product | null>(null);
-  let demoProducts = $state<Product[]>([
-    { id: "1", name: "Oat Milk Barista", volume: "1 л", brand: "Oatly", default_tags: ["vegan", "coffee"], user_id: "" },
-    { id: "2", name: "Almond Milk", volume: "750 мл", brand: "Alpro", default_tags: ["dairy-free"], user_id: "" },
-    { id: "3", name: "Whole Milk", volume: "1 л", brand: "Valio", default_tags: [], user_id: "" },
-  ]);
 </script>
 
 <div class="page">
@@ -42,7 +39,6 @@
       <label class="demo-label" for="sel-product">Product</label>
       <ProductSelectWidget
         id="sel-product"
-        bind:allProducts={demoProducts}
         bind:value={selectedProduct}
       />
     </div>

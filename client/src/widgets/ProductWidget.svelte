@@ -1,10 +1,5 @@
 <script lang="ts">
-  interface Product {
-    name: string;
-    volume?: string;
-    brand?: string;
-    tags?: string[];
-  }
+  import type { Product } from '../models/Product';
 
   interface Props {
     product: Product;
@@ -22,7 +17,7 @@
     {#if product.brand}
       <span class="pill pill-yellow">{product.brand}</span>
     {/if}
-    {#each product.tags ?? [] as tag}
+    {#each product.default_tags ?? [] as tag}
       <span class="pill pill-blue">{tag}</span>
     {/each}
   </div>

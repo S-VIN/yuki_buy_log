@@ -1,18 +1,16 @@
-н<script lang="ts">
+<script lang="ts">
   import { Plus, X } from "lucide-svelte";
   import ProductWidget from "./ProductWidget.svelte";
-  import SelectWidget from "./SelectWidget.svelte";
-  import TagWidget from "./TagWidget.svelte";
+  import AddProductModal from "./AddProductModal.svelte";
+  import { productStore } from "../stores/products.svelte";
   import type { Product } from "../models/Product";
 
   interface Props {
-    allProducts: Product[];
     value: Product | null;
     id?: string;
   }
 
   let {
-    allProducts = $bindable([]),
     value = $bindable(null),
     id,
   }: Props = $props();
@@ -21,26 +19,12 @@
   let isFocused = $state(false);
   let showModal = $state(false);
 
-  // Volume options — static sensible defaults; new ones added via SelectWidget
-  let allVolumeOptions = $state([
-    "100 мл", "200 мл", "250 мл", "330 мл", "500 мл",
-    "750 мл", "1 л", "1.5 л", "2 л",
-  ]);
-
-  // Modal form state
-  let newName = $state("");
-  let newVolume = $state<string | null>(null);
-  let newBrand = $state<string | null>(null);
-  let newTags = $state<string[]>([]);
-  let modalBrandOptions = $state<string[]>([]);
-  let modalAllTags = $state<string[]>([]);
-
   const filteredProducts = $derived(
     inputValue.trim()
-      ? allProducts.filter((p) =>
+      ? productStore.items.filter((p) =>
           p.name.toLowerCase().includes(inputValue.toLowerCase())
         )
-      : allProducts
+      : productStore.items
   );
 
   function selectProduct(product: Product) {
@@ -55,63 +39,20 @@
   }
 
   function openModal() {
-    newName = inputValue.trim();
-    newVolume = null;
-    newBrand = null;
-    newTags = [];
-    modalBrandOptions = Array.from(
-      new Set(allProducts.map((p) => p.brand).filter((b) => b.length > 0))
-    );
-    modalAllTags = Array.from(
-      new Set(allProducts.flatMap((p) => p.default_tags))
-    );
     showModal = true;
     isFocused = false;
   }
 
-  function closeModal() {
-    showModal = false;
-  }
-
-  function confirmNewProduct() {
-    if (!newName.trim()) return;
-    const product: Product = {
-      id: crypto.randomUUID(),
-      name: newName.trim(),
-      volume: newVolume ?? "",
-      brand: newBrand ?? "",
-      default_tags: [...newTags],
-      user_id: "",
-    };
-    allProducts = [...allProducts, product];
+  function handleProductAdded(product: Product) {
     value = product;
-    closeModal();
   }
-
-  function toWidgetProduct(p: Product) {
-    return {
-      name: p.name,
-      volume: p.volume || undefined,
-      brand: p.brand || undefined,
-      tags: p.default_tags,
-    };
-  }
-
-  $effect(() => {
-    if (!showModal) return;
-    function onKeydown(e: KeyboardEvent) {
-      if (e.key === "Escape") closeModal();
-    }
-    document.addEventListener("keydown", onKeydown);
-    return () => document.removeEventListener("keydown", onKeydown);
-  });
 </script>
 
 <div class="product-select-widget">
   {#if value}
     <div class="input-row selected">
       <div class="product-preview">
-        <ProductWidget product={toWidgetProduct(value)} />
+        <ProductWidget product={value} />
       </div>
       <button
         type="button"
@@ -136,7 +77,7 @@
       />
     </div>
 
-    {#if isFocused}
+    {#if isFocused && inputValue.trim()}
       <div
         class="dropdown"
         role="listbox"
@@ -159,7 +100,7 @@
               class="option product-option"
               onclick={() => selectProduct(product)}
             >
-              <ProductWidget product={toWidgetProduct(product)} />
+              <ProductWidget product={product} />
             </button>
           {/each}
         {/if}
@@ -168,86 +109,12 @@
   {/if}
 </div>
 
-{#if showModal}
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div
-    class="modal-overlay"
-    role="dialog"
-    aria-modal="true"
-    tabindex="-1"
-    onmousedown={closeModal}
-  >
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="modal-sheet" onmousedown={(e) => e.stopPropagation()}>
-      <div class="modal-header">
-        <h3 class="modal-title">New Product</h3>
-        <button
-          type="button"
-          class="modal-close"
-          onclick={closeModal}
-          aria-label="Close"
-        >
-          <X size={18} />
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <div class="form-field">
-          <label class="form-label" for="new-product-name">Name</label>
-          <input
-            id="new-product-name"
-            type="text"
-            class="form-input"
-            placeholder="Product name…"
-            bind:value={newName}
-          />
-        </div>
-
-        <div class="form-field">
-          <label class="form-label" for="new-product-volume">Volume</label>
-          <SelectWidget
-            id="new-product-volume"
-            bind:allOptions={allVolumeOptions}
-            bind:value={newVolume}
-            color="var(--color-green)"
-            placeholder="Select volume…"
-          />
-        </div>
-
-        <div class="form-field">
-          <label class="form-label" for="new-product-brand">Brand</label>
-          <SelectWidget
-            id="new-product-brand"
-            bind:allOptions={modalBrandOptions}
-            bind:value={newBrand}
-            color="var(--color-yellow)"
-            placeholder="Select brand…"
-          />
-        </div>
-
-        <div class="form-field">
-          <label class="form-label" for="new-product-tags">Default Tags</label>
-          <TagWidget
-            id="new-product-tags"
-            bind:allTags={modalAllTags}
-            bind:selectedTags={newTags}
-          />
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button
-          type="button"
-          class="confirm-btn"
-          onclick={confirmNewProduct}
-          disabled={!newName.trim()}
-        >
-          Add Product
-        </button>
-      </div>
-    </div>
-  </div>
-{/if}
+<AddProductModal
+  open={showModal}
+  onClose={() => (showModal = false)}
+  initialName={inputValue}
+  onAdded={handleProductAdded}
+/>
 
 <style>
   .product-select-widget {
@@ -335,12 +202,17 @@
     z-index: 10;
     max-height: 280px;
     overflow-y: auto;
+    scrollbar-width: none;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     margin-top: var(--space-3);
     padding: var(--space-2);
     box-shadow: var(--shadow-md);
+  }
+
+  .dropdown::-webkit-scrollbar {
+    display: none;
   }
 
   .divider {
@@ -413,133 +285,5 @@
     font-size: var(--text-sm);
     color: var(--color-text);
     font-style: italic;
-  }
-
-  /* ── Modal overlay ─────────────────────────────────────────── */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: color-mix(in srgb, var(--color-dark-blue) 50%, transparent);
-    z-index: 100;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-  }
-
-  /* ── Modal sheet (drops from top) ──────────────────────────── */
-  .modal-sheet {
-    background: var(--color-surface);
-    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-    width: 100%;
-    box-shadow: var(--shadow-lg);
-    padding: var(--space-6);
-    padding-top: max(var(--space-6), env(safe-area-inset-top, 0px));
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-6);
-  }
-
-  .modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .modal-title {
-    font-size: var(--text-lg);
-    font-weight: 600;
-    color: var(--color-text);
-    margin: 0;
-  }
-
-  .modal-close {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: var(--radius-xs);
-    background: none;
-    border: none;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    padding: 0;
-    transition: background var(--transition-fast), color var(--transition-fast);
-  }
-
-  .modal-close:hover {
-    background: var(--color-bg);
-    color: var(--color-text);
-  }
-
-  /* ── Modal form ────────────────────────────────────────────── */
-  .modal-body {
-    display: flex;
-    flex-direction: column;
-    gap: var(--form-gap);
-  }
-
-  .form-field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--label-gap);
-  }
-
-  .form-label {
-    font-size: var(--text-sm);
-    font-weight: 500;
-    color: var(--color-text-secondary);
-  }
-
-  .form-input {
-    height: var(--input-height);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: var(--input-padding);
-    background: var(--color-surface);
-    color: var(--color-text);
-    font-size: var(--text-base);
-    font-family: inherit;
-    width: 100%;
-    box-sizing: border-box;
-    outline: none;
-    transition: border-color var(--transition-base), box-shadow var(--transition-base);
-  }
-
-  .form-input::placeholder {
-    color: var(--color-disabled);
-  }
-
-  .form-input:focus {
-    border-color: var(--color-blue);
-    box-shadow: var(--focus-ring);
-  }
-
-  /* ── Modal footer ──────────────────────────────────────────── */
-  .modal-footer {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-
-  .confirm-btn {
-    width: 100%;
-    height: var(--input-height);
-    border: none;
-    border-radius: var(--radius-md);
-    background: var(--color-blue);
-    color: #fff;
-    font-size: var(--text-base);
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    transition: opacity var(--transition-fast);
-  }
-
-  .confirm-btn:hover:not(:disabled) {
-    opacity: 0.88;
-  }
-
-  .confirm-btn:disabled {
-    opacity: 0.38;
-    cursor: not-allowed;
   }
 </style>

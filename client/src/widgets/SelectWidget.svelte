@@ -92,7 +92,7 @@
     {/if}
   </div>
 
-  {#if isFocused && !value && combobox.open && (filteredOptions.length > 0 || combobox.inputValue.trim())}
+  {#if isFocused && !value && combobox.open && combobox.inputValue.trim()}
     <div
       class="dropdown"
       role="listbox"
