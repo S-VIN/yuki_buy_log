@@ -2,13 +2,15 @@
   import { productStore } from '../stores/products.svelte';
   import SelectWidget from './SelectWidget.svelte';
   import TagWidget from './TagWidget.svelte';
-  import type { ProductId } from '../models/Product';
+  import type { Product, ProductId } from '../models/Product';
 
   interface Props {
     open: boolean;
     onClose: () => void;
     mode?: 'add' | 'edit';
     productId?: ProductId | null;
+    initialName?: string;
+    onAdded?: (product: Product) => void;
   }
 
   let {
@@ -16,6 +18,8 @@
     onClose,
     mode = 'add',
     productId = null,
+    initialName = '',
+    onAdded,
   }: Props = $props();
 
   const isEditMode = $derived(mode === 'edit');
@@ -52,7 +56,7 @@
           newTags = [];
         }
       } else {
-        newName = '';
+        newName = initialName;
         newVolume = null;
         newBrand = null;
         newTags = [];
@@ -80,12 +84,13 @@
           default_tags: [...newTags],
         });
       } else {
-        await productStore.create({
+        const created = await productStore.create({
           name: newName.trim(),
           volume: newVolume ?? '',
           brand: newBrand ?? '',
           default_tags: [...newTags],
         });
+        onAdded?.(created);
       }
       onClose();
     } catch (err) {

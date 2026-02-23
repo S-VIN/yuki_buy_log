@@ -10,16 +10,24 @@ function getAuthHeaders(): Record<string, string> {
   return headers;
 }
 
+async function handleResponse(response: Response, method: string, path: string): Promise<Response> {
+  if (response.status === 401) {
+    auth.logout();
+    throw new Error('Session expired. Please log in again.');
+  }
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || `${method} ${path} failed`);
+  }
+  return response;
+}
+
 async function doGet(path: string) {
   const response = await fetch(`${API_URL}${path}`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || `GET ${path} failed`);
-  }
-  return response.json();
+  return (await handleResponse(response, 'GET', path)).json();
 }
 
 async function doPost(path: string, data?: unknown) {
@@ -28,11 +36,7 @@ async function doPost(path: string, data?: unknown) {
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || `POST ${path} failed`);
-  }
-  return response.json();
+  return (await handleResponse(response, 'POST', path)).json();
 }
 
 async function doDelete(path: string, data?: unknown) {
@@ -41,12 +45,9 @@ async function doDelete(path: string, data?: unknown) {
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || `DELETE ${path} failed`);
-  }
-  if (response.status === 204) return true;
-  return response.json();
+  const handled = await handleResponse(response, 'DELETE', path);
+  if (handled.status === 204) return true;
+  return handled.json();
 }
 
 async function doPut(path: string, data?: unknown) {
@@ -55,11 +56,7 @@ async function doPut(path: string, data?: unknown) {
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || `PUT ${path} failed`);
-  }
-  return response.json();
+  return (await handleResponse(response, 'PUT', path)).json();
 }
 
 // Auth API (no token needed)
