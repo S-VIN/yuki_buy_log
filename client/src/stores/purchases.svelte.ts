@@ -3,9 +3,18 @@ import type { Purchase } from '../models/Purchase';
 
 let items = $state<Purchase[]>([]);
 
+const shops = $derived(
+  Array.from(new Set(items.map((p) => p.store).filter((s): s is string => !!s && s.length > 0)))
+);
+
 export const purchaseStore = {
   get items() {
     return items;
+  },
+
+  /** Unique store names from all purchases, reactive. */
+  get shops() {
+    return shops;
   },
 
   async load() {

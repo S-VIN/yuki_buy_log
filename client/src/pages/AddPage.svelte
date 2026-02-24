@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import ProductSelectWidget from '../widgets/ProductSelectWidget.svelte';
   import TagWidget from '../widgets/TagWidget.svelte';
-  import SelectWidget from '../widgets/SelectWidget.svelte';
+  import ShopWidget from '../widgets/ShopWidget.svelte';
   import PurchaseCardWidget from '../widgets/PurchaseCardWidget.svelte';
   import PriceQuantityWidget from '../widgets/PriceQuantityWidget.svelte';
   import { productStore } from '../stores/products.svelte';
@@ -21,7 +21,6 @@
   // ─── Receipt-level state ──────────────────────────────────────
   let selectedDate = $state(new Date().toISOString().slice(0, 10));
   let selectedShop = $state<string | null>(null);
-  let allShops = $state<string[]>([]);
 
   // ─── Item-level state ─────────────────────────────────────────
   let selectedProduct = $state<Product | null>(null);
@@ -132,13 +131,7 @@
           />
         </div>
         <div class="col">
-          <SelectWidget
-            id="shop-select"
-            bind:allOptions={allShops}
-            bind:value={selectedShop}
-            color="var(--color-yellow)"
-            placeholder="Shop…"
-          />
+          <ShopWidget id="shop-select" bind:value={selectedShop} />
         </div>
       </div>
 

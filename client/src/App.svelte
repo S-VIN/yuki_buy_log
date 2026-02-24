@@ -1,32 +1,30 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
   import { Tabs } from 'melt/builders';
-  import { Home, Search, PlusCircle, Package, User } from 'lucide-svelte';
+  import { ShoppingCart, Receipt, Package, User } from 'lucide-svelte';
   import { auth } from './lib/auth.svelte';
   import { productStore } from './stores/products.svelte';
   import { purchaseStore } from './stores/purchases.svelte';
   import LoadingScreen from './lib/LoadingScreen.svelte';
   import LoginPage from './pages/LoginPage.svelte';
-  import HomePage from './pages/HomePage.svelte';
-  import SearchPage from './pages/SearchPage.svelte';
   import AddPage from './pages/AddPage.svelte';
   import ListPage from './pages/ListPage.svelte';
+  import ProductListPage from './pages/ProductListPage.svelte';
   import ProfilePage from './pages/ProfilePage.svelte';
 
-  type TabId = 'home' | 'search' | 'add' | 'list' | 'profile';
+  type TabId = 'add' | 'list' | 'products' | 'profile';
 
   const tabs = new Tabs<TabId>({
-    value: 'home',
+    value: 'add',
     orientation: 'horizontal',
     selectWhenFocused: false,
     loop: true,
   });
 
   const menuItems = [
-    { id: 'home', icon: Home },
-    { id: 'search', icon: Search },
-    { id: 'add', icon: PlusCircle },
-    { id: 'list', icon: Package },
+    { id: 'add', icon: ShoppingCart },
+    { id: 'list', icon: Receipt },
+    { id: 'products', icon: Package },
     { id: 'profile', icon: User },
   ] as const;
 
@@ -54,17 +52,14 @@
 {#if auth.isAuthenticated}
   <div class="app-shell">
     <main class="content">
-      <div {...tabs.getContent('home')}>
-        <HomePage />
-      </div>
-      <div {...tabs.getContent('search')}>
-        <SearchPage />
-      </div>
       <div {...tabs.getContent('add')}>
         <AddPage />
       </div>
       <div {...tabs.getContent('list')}>
         <ListPage />
+      </div>
+      <div {...tabs.getContent('products')}>
+        <ProductListPage />
       </div>
       <div {...tabs.getContent('profile')}>
         <ProfilePage />

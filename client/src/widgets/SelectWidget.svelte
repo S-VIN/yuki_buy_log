@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from "svelte";
   import { Combobox } from "melt/builders";
   import { Plus, X } from "lucide-svelte";
 
@@ -8,6 +9,7 @@
     color?: string;
     id?: string;
     placeholder?: string;
+    icon?: Snippet;
   }
 
   let {
@@ -16,6 +18,7 @@
     color = "var(--color-blue)",
     id,
     placeholder = "Select…",
+    icon,
   }: Props = $props();
 
   function selectOption(raw: string) {
@@ -89,6 +92,18 @@
         onblur={() => (isFocused = false)}
         class="select-input"
       />
+      {#if combobox.inputValue.trim()}
+        <button
+          type="button"
+          class="clear-btn"
+          onclick={clearSelection}
+          aria-label="Clear"
+        >
+          <X size={14} />
+        </button>
+      {:else if icon}
+        <span class="input-icon">{@render icon()}</span>
+      {/if}
     {/if}
   </div>
 
@@ -203,6 +218,14 @@
 
   .select-input::placeholder {
     color: var(--color-disabled);
+  }
+
+  .input-icon {
+    display: inline-flex;
+    align-items: center;
+    color: var(--color-disabled);
+    flex-shrink: 0;
+    transition: color var(--transition-fast);
   }
 
   .dropdown {

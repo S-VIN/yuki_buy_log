@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Plus, X } from "lucide-svelte";
+  import { Plus, X, Search } from "lucide-svelte";
   import ProductWidget from "./ProductWidget.svelte";
   import AddProductModal from "./AddProductModal.svelte";
   import { productStore } from "../stores/products.svelte";
@@ -75,6 +75,18 @@
         onfocus={() => (isFocused = true)}
         onblur={() => (isFocused = false)}
       />
+      {#if inputValue.trim()}
+        <button
+          type="button"
+          class="clear-btn"
+          onclick={() => { inputValue = ''; }}
+          aria-label="Clear"
+        >
+          <X size={14} />
+        </button>
+      {:else}
+        <span class="input-icon"><Search size={14} /></span>
+      {/if}
     </div>
 
     {#if isFocused && inputValue.trim()}
@@ -192,6 +204,14 @@
 
   .select-input::placeholder {
     color: var(--color-disabled);
+  }
+
+  .input-icon {
+    display: inline-flex;
+    align-items: center;
+    color: var(--color-disabled);
+    flex-shrink: 0;
+    transition: color var(--transition-fast);
   }
 
   /* ── Dropdown ──────────────────────────────────────────────── */

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Combobox } from "melt/builders";
-  import { Plus, X } from "lucide-svelte";
+  import { Plus, X, Tags } from "lucide-svelte";
 
   interface Props {
     allTags: string[];
@@ -90,7 +90,7 @@
         class="tag-input"
       />
     </div>
-    {#if selectedTags.length > 0}
+    {#if selectedTags.length > 0 || combobox.inputValue.trim()}
       <button
         type="button"
         class="clear-btn"
@@ -99,6 +99,8 @@
       >
         <X size={14} />
       </button>
+    {:else}
+      <span class="input-icon"><Tags size={14} /></span>
     {/if}
   </div>
 
@@ -230,6 +232,14 @@
 
   .tag-input::placeholder {
     color: var(--color-disabled);
+  }
+
+  .input-icon {
+    display: inline-flex;
+    align-items: center;
+    color: var(--color-disabled);
+    flex-shrink: 0;
+    transition: color var(--transition-fast);
   }
 
   .dropdown {

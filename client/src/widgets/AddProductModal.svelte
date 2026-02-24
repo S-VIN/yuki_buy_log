@@ -1,6 +1,7 @@
 <script lang="ts">
   import { productStore } from '../stores/products.svelte';
-  import SelectWidget from './SelectWidget.svelte';
+  import VolumeWidget from './VolumeWidget.svelte';
+  import BrandWidget from './BrandWidget.svelte';
   import TagWidget from './TagWidget.svelte';
   import type { Product, ProductId } from '../models/Product';
 
@@ -24,9 +25,7 @@
 
   const isEditMode = $derived(mode === 'edit');
 
-  // Local copies so SelectWidget / TagWidget can extend them in-session
-  let localVolumeOptions = $state<string[]>([]);
-  let localBrandOptions = $state<string[]>([]);
+  // Local copies so TagWidget can extend them in-session
   let localTagOptions = $state<string[]>([]);
 
   let newName = $state('');
@@ -38,8 +37,6 @@
   $effect(() => {
     if (open) {
       isSubmitting = false;
-      localVolumeOptions = [...productStore.volumes];
-      localBrandOptions = [...productStore.brands];
       localTagOptions = [...productStore.tags];
 
       if (isEditMode && productId != null) {
@@ -130,20 +127,10 @@
 
         <div class="form-row">
           <div class="form-col">
-            <SelectWidget
-              bind:allOptions={localVolumeOptions}
-              bind:value={newVolume}
-              color="var(--color-green)"
-              placeholder="Volume…"
-            />
+            <VolumeWidget bind:value={newVolume} />
           </div>
           <div class="form-col">
-            <SelectWidget
-              bind:allOptions={localBrandOptions}
-              bind:value={newBrand}
-              color="var(--color-yellow)"
-              placeholder="Brand…"
-            />
+            <BrandWidget bind:value={newBrand} />
           </div>
         </div>
 
