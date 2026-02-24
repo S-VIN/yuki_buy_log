@@ -1,26 +1,13 @@
 <script lang="ts">
   import { auth } from '../lib/auth.svelte';
-  import {
-    fetchGroupMembers,
-    leaveGroup as apiLeaveGroup,
-    fetchInvites,
-    sendInvite,
-  } from '../lib/api';
+  import { fetchGroupMembers, leaveGroup as apiLeaveGroup } from '../lib/api';
+  import { inviteStore } from '../stores/invites.svelte';
 
   interface GroupMember {
     group_id: number;
     user_id: number;
     login: string;
     member_number: number;
-  }
-
-  interface Invite {
-    id: number;
-    from_user_id: number;
-    to_user_id: number;
-    from_login: string;
-    to_login: string;
-    created_at: string;
   }
 
   const MEMBER_COLORS = [
@@ -36,7 +23,6 @@
   }
 
   let members = $state<GroupMember[]>([]);
-  let invites = $state<Invite[]>([]);
   let inviteLogin = $state('');
   let loading = $state(false);
   let error = $state<string | null>(null);
@@ -44,12 +30,11 @@
 
   async function loadData() {
     try {
-      const [groupData, inviteData] = await Promise.all([
+      const [groupData] = await Promise.all([
         fetchGroupMembers(),
-        fetchInvites(),
+        inviteStore.load(),
       ]);
       members = groupData.members ?? [];
-      invites = inviteData.invites ?? [];
     } catch (e) {
       console.error('Failed to load profile data:', e);
     }
@@ -69,7 +54,7 @@
     loading = true;
     clearMessages();
     try {
-      const data = await sendInvite(inviteLogin.trim());
+      const data = await inviteStore.send(inviteLogin.trim());
       if (data.message === 'group created') {
         successMsg = 'Group created!';
         await loadData();
@@ -88,7 +73,7 @@
     loading = true;
     clearMessages();
     try {
-      await sendInvite(fromLogin);
+      await inviteStore.accept(fromLogin);
       successMsg = 'Invite accepted! Group created.';
       await loadData();
     } catch (e: unknown) {
@@ -137,11 +122,11 @@
       <span class="empty-group">You are not in a group</span>
     {/if}
 
-    {#if invites.length > 0}
+    {#if inviteStore.items.length > 0}
       <div class="section">
         <span class="section-title">Incoming Invites</span>
         <div class="invites-list">
-          {#each invites as invite}
+          {#each inviteStore.items as invite}
             <div class="invite-row">
               <span class="invite-label">
                 From: <span class="invite-login">{invite.from_login}</span>
