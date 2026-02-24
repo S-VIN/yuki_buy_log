@@ -17,41 +17,19 @@
 
 <div class="card">
   <div class="card-product">
-    <ProductWidget {product} />
-  </div>
-  <div class="card-footer">
-    <div class="card-info">
-      <span class="price-qty">
-        {price.toFixed(2)} × {quantity}
-        {#if quantity > 1}
-          <span class="total">= {(price * quantity).toFixed(2)}</span>
-        {/if}
-      </span>
-      {#if tags.length > 0}
-        <div class="card-tags">
-          {#each tags as tag}
-            <span class="tag-pill">{tag}</span>
-          {/each}
-        </div>
-      {/if}
-    </div>
-    <div class="card-actions">
-      <button
-        type="button"
-        class="action-btn edit-btn"
-        onclick={onEdit}
-        aria-label="Edit"
-      >
-        <Pencil size={14} />
-      </button>
-      <button
-        type="button"
-        class="action-btn delete-btn"
-        onclick={onDelete}
-        aria-label="Delete"
-      >
-        <Trash2 size={14} />
-      </button>
+    <div style="display: flex; flex-direction: row; justify-content: space-between;">
+
+      <ProductWidget {product} needTags={true} />
+
+      <div style="display: flex; flex-direction: row;">
+        <button type="button" class="action-btn edit-btn" onclick={onEdit} aria-label="Edit">
+          <Pencil size={14} />
+        </button>
+        <button type="button" class="action-btn delete-btn" onclick={onDelete} aria-label="Delete">
+          <Trash2 size={14} />
+        </button>
+      </div>
+
     </div>
   </div>
 </div>
@@ -66,56 +44,6 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-  }
-
-  .card-footer {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-3);
-  }
-
-  .card-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-
-  .price-qty {
-    font-size: var(--text-sm);
-    color: var(--color-text-secondary);
-    font-weight: 500;
-  }
-
-  .total {
-    color: var(--color-text);
-    font-weight: 600;
-  }
-
-  .card-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-  }
-
-  .tag-pill {
-    display: inline-flex;
-    align-items: center;
-    background: color-mix(in srgb, var(--color-blue) 10%, transparent);
-    color: var(--color-blue);
-    border: 1px solid color-mix(in srgb, var(--color-blue) 28%, transparent);
-    border-radius: var(--radius-sm);
-    padding: 2px 8px;
-    font-size: var(--text-xs);
-    font-weight: 600;
-    white-space: nowrap;
-  }
-
-  .card-actions {
-    display: flex;
-    gap: var(--space-2);
-    flex-shrink: 0;
   }
 
   .action-btn {

@@ -75,10 +75,9 @@
     {:else}
       <div class="product-list">
         {#each filteredProducts as product (product.id)}
-          <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
-          <div class="product-item" onclick={() => openEdit(product.id)}>
-            <ProductWidget {product} />
-          </div>
+          <button type="button" class="product-item" onclick={() => openEdit(product.id)}>
+            <ProductWidget {product} needTags={true} />
+          </button>
         {/each}
       </div>
     {/if}
@@ -220,6 +219,11 @@
   }
 
   .product-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    color: inherit;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);

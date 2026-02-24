@@ -3,9 +3,10 @@
 
   interface Props {
     product: Product;
+    needTags: boolean;
   }
 
-  let { product }: Props = $props();
+  let { product, needTags }: Props = $props();
 </script>
 
 <div class="product-widget">
@@ -17,9 +18,13 @@
     {#if product.brand}
       <span class="pill pill-yellow">{product.brand}</span>
     {/if}
-    {#each product.default_tags ?? [] as tag}
-      <span class="pill pill-blue">{tag}</span>
-    {/each}
+
+    {#if needTags}
+      {#each product.default_tags ?? [] as tag}
+        <span class="pill pill-blue">{tag}</span>
+      {/each}
+    {/if}
+
   </div>
 </div>
 
