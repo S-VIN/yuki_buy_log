@@ -4,6 +4,7 @@
   import TagWidget from '../widgets/TagWidget.svelte';
   import SelectWidget from '../widgets/SelectWidget.svelte';
   import PurchaseCardWidget from '../widgets/PurchaseCardWidget.svelte';
+  import PriceQuantityWidget from '../widgets/PriceQuantityWidget.svelte';
   import { productStore } from '../stores/products.svelte';
   import { purchaseStore } from '../stores/purchases.svelte';
   import type { Product } from '../models/Product';
@@ -141,32 +142,12 @@
         </div>
       </div>
 
-      <div class="two-col">
-        <div class="col">
-          <input
-            id="price-input"
-            type="number"
-            inputmode="decimal"
-            min="0"
-            step="0.01"
-            class="native-input"
-            placeholder="Price"
-            bind:value={price}
-          />
-        </div>
-        <div class="col">
-          <input
-            id="qty-input"
-            type="number"
-            inputmode="numeric"
-            min="1"
-            step="1"
-            class="native-input"
-            placeholder="Qty"
-            bind:value={quantity}
-          />
-        </div>
-      </div>
+      <PriceQuantityWidget
+        bind:price
+        bind:quantity
+        priceId="price-input"
+        qtyId="qty-input"
+      />
 
       <ProductSelectWidget id="product-select" bind:value={selectedProduct} />
 
@@ -270,17 +251,6 @@
 
   .native-input::placeholder {
     color: var(--color-disabled);
-  }
-
-  .native-input[type='number']::-webkit-inner-spin-button,
-  .native-input[type='number']::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
-  .native-input[type='number'] {
-    -moz-appearance: textfield;
-    appearance: textfield;
   }
 
   /* ─── Action buttons ─────────────────────────────────────────── */
