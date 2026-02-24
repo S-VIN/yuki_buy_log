@@ -10,7 +10,7 @@
   import HomePage from './pages/HomePage.svelte';
   import SearchPage from './pages/SearchPage.svelte';
   import AddPage from './pages/AddPage.svelte';
-  import ProductListPage from './pages/ProductListPage.svelte';
+  import ListPage from './pages/ListPage.svelte';
   import ProfilePage from './pages/ProfilePage.svelte';
 
   type TabId = 'home' | 'search' | 'add' | 'list' | 'profile';
@@ -64,7 +64,7 @@
         <AddPage />
       </div>
       <div {...tabs.getContent('list')}>
-        <ProductListPage />
+        <ListPage />
       </div>
       <div {...tabs.getContent('profile')}>
         <ProfilePage />
