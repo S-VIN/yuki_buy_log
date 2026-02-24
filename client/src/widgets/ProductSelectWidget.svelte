@@ -52,7 +52,7 @@
   {#if value}
     <div class="input-row selected">
       <div class="product-preview">
-        <ProductWidget product={value} />
+        <ProductWidget product={value} needTags={false} />
       </div>
       <button
         type="button"
@@ -112,7 +112,7 @@
               class="option product-option"
               onclick={() => selectProduct(product)}
             >
-              <ProductWidget product={product} />
+              <ProductWidget product={product} needTags={false} />
             </button>
           {/each}
         {/if}
