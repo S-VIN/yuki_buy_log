@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Search, X, Plus } from 'lucide-svelte';
   import { productStore } from '../stores/products.svelte';
-  import ProductWidget from '../widgets/ProductWidget.svelte';
+  import ProductFullWidget from '../widgets/ProductFullWidget.svelte';
   import AddProductModal from '../widgets/AddProductModal.svelte';
   import type { ProductId } from '../models/Product';
 
@@ -76,7 +76,7 @@
       <div class="product-list">
         {#each filteredProducts as product (product.id)}
           <button type="button" class="product-item" onclick={() => openEdit(product.id)}>
-            <ProductWidget {product} needTags={true} />
+            <ProductFullWidget {product} needTags={true} />
           </button>
         {/each}
       </div>

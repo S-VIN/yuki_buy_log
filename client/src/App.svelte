@@ -1,6 +1,5 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
-  import { Tabs } from 'melt/builders';
   import { ShoppingCart, Receipt, Package, User } from 'lucide-svelte';
   import { auth } from './lib/auth.svelte';
   import { productStore } from './stores/products.svelte';
@@ -14,12 +13,7 @@
 
   type TabId = 'add' | 'list' | 'products' | 'profile';
 
-  const tabs = new Tabs<TabId>({
-    value: 'add',
-    orientation: 'horizontal',
-    selectWhenFocused: false,
-    loop: true,
-  });
+  let activeTab = $state<TabId>('add');
 
   const menuItems = [
     { id: 'add', icon: ShoppingCart },
@@ -29,7 +23,7 @@
   ] as const;
 
   export function navigateTo(tab: TabId) {
-    tabs.value = tab;
+    activeTab = tab;
   }
 
   let isLoading = $state(auth.isAuthenticated);
@@ -52,23 +46,29 @@
 {#if auth.isAuthenticated}
   <div class="app-shell">
     <main class="content">
-      <div {...tabs.getContent('add')}>
+      <div class="tab-panel" hidden={activeTab !== 'add'}>
         <AddPage />
       </div>
-      <div {...tabs.getContent('list')}>
+      <div class="tab-panel" hidden={activeTab !== 'list'}>
         <ListPage />
       </div>
-      <div {...tabs.getContent('products')}>
+      <div class="tab-panel" hidden={activeTab !== 'products'}>
         <ProductListPage />
       </div>
-      <div {...tabs.getContent('profile')}>
+      <div class="tab-panel" hidden={activeTab !== 'profile'}>
         <ProfilePage />
       </div>
     </main>
 
-    <nav class="bottom-nav" {...tabs.triggerList}>
+    <nav class="bottom-nav">
       {#each menuItems as item}
-        <button class="nav-item" {...tabs.getTrigger(item.id)}>
+        <button
+          class="nav-item"
+          role="tab"
+          aria-selected={activeTab === item.id}
+          data-active={activeTab === item.id || undefined}
+          onclick={() => (activeTab = item.id)}
+        >
           <item.icon size={24} strokeWidth={1.5} />
         </button>
       {/each}
@@ -105,7 +105,7 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  .content > [data-melt-tabs-content] {
+  .content > .tab-panel {
     height: 100%;
   }
 

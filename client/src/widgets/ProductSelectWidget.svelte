@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Plus, X, Search } from "lucide-svelte";
-  import ProductWidget from "./ProductWidget.svelte";
+  import ProductOneLineWidget from "./ProductOneLineWidget.svelte";
   import AddProductModal from "./AddProductModal.svelte";
   import { productStore } from "../stores/products.svelte";
   import type { Product } from "../models/Product";
@@ -52,7 +52,7 @@
   {#if value}
     <div class="input-row selected">
       <div class="product-preview">
-        <ProductWidget product={value} needTags={false} />
+        <ProductOneLineWidget product={value}/>
       </div>
       <button
         type="button"
@@ -112,7 +112,7 @@
               class="option product-option"
               onclick={() => selectProduct(product)}
             >
-              <ProductWidget product={product} needTags={false} />
+              <ProductOneLineWidget product={product}/>
             </button>
           {/each}
         {/if}

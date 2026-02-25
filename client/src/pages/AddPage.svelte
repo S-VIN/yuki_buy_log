@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import ProductSelectWidget from '../widgets/ProductSelectWidget.svelte';
-  import TagWidget from '../widgets/TagWidget.svelte';
+  import TagSelectWidget from '../widgets/TagSelectWidget.svelte';
   import ShopWidget from '../widgets/ShopWidget.svelte';
   import PurchaseCardWidget from '../widgets/PurchaseCardWidget.svelte';
   import PriceQuantityWidget from '../widgets/PriceQuantityWidget.svelte';
@@ -144,7 +144,7 @@
 
       <ProductSelectWidget id="product-select" bind:value={selectedProduct} />
 
-      <TagWidget id="tags-input" bind:allTags bind:selectedTags />
+      <TagSelectWidget id="tags-input" bind:allTags bind:selectedTags />
 
       <div class="actions-row">
         <button

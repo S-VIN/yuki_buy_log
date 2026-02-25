@@ -1,48 +1,34 @@
 <script lang="ts">
-  import type { Snippet } from "svelte";
-  import { Plus, X } from "lucide-svelte";
-  import TagWidget from "./TagWidget.svelte";
+  import { Plus, X, Tags } from "lucide-svelte";
 
   interface Props {
-    allOptions: string[];
-    value: string | null;
-    color?: string;
+    allTags: string[];
+    selectedTags: string[];
     id?: string;
-    placeholder?: string;
-    icon?: Snippet;
   }
 
-  let {
-    allOptions = $bindable(),
-    value = $bindable(null),
-    color = "--color-blue",
-    id,
-    placeholder = "Select…",
-    icon,
-  }: Props = $props();
+  let { allTags = $bindable(), selectedTags = $bindable(), id }: Props = $props();
 
   let inputValue = $state('');
   let isFocused = $state(false);
 
-  function selectOption(raw: string) {
-    const opt = raw.trim();
-    if (!opt) return;
-    if (!allOptions.includes(opt)) {
-      allOptions = [...allOptions, opt];
+  function addTag(raw: string) {
+    const tag = raw.trim();
+    if (!tag) return;
+    if (!allTags.includes(tag)) {
+      allTags = [...allTags, tag];
     }
-    value = opt;
-    inputValue = "";
-    isFocused = false;
-  }
-
-  function clearSelection() {
-    value = null;
+    if (!selectedTags.includes(tag)) {
+      selectedTags = [...selectedTags, tag];
+    }
     inputValue = "";
   }
 
-  const filteredOptions = $derived(
-    allOptions.filter((o) =>
-      o.toLowerCase().includes(inputValue.toLowerCase())
+  const filteredTags = $derived(
+    allTags.filter(
+      (t) =>
+        !selectedTags.includes(t) &&
+        t.toLowerCase().includes(inputValue.toLowerCase())
     )
   );
 
@@ -51,75 +37,73 @@
       const raw = inputValue.trim();
       if (!raw) return;
       e.preventDefault();
-      selectOption(raw);
+      addTag(raw);
     }
+  }
+
+  function removeTag(tag: string) {
+    selectedTags = selectedTags.filter((t) => t !== tag);
+  }
+
+  function clearAll() {
+    selectedTags = [];
+    inputValue = "";
   }
 </script>
 
-<div class="select-widget">
+<div class="tag-widget">
   <div class="input-row">
-    {#if value}
-      <div class="value-area">
-        <TagWidget color={color} text={value}/>
-      </div>
-      <button
-        type="button"
-        class="clear-btn"
-        onclick={clearSelection}
-        aria-label="Clear selection"
-      >
-        <X size={14} />
-      </button>
-    {:else}
+    <div class="tags-and-input">
+      {#each selectedTags as tag}
+        <span class="pill">
+          {tag}
+          <button type="button" class="pill-remove" onclick={() => removeTag(tag)} aria-label="Remove {tag}">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </span>
+      {/each}
       <input
         {id}
         bind:value={inputValue}
-        {placeholder}
+        placeholder={selectedTags.length === 0 ? "Add tags…" : ""}
         enterkeyhint="done"
         onkeydown={handleKeydown}
         onfocus={() => (isFocused = true)}
         onblur={() => (isFocused = false)}
-        class="select-input"
+        class="tag-input"
       />
-      {#if inputValue.trim()}
-        <button
-          type="button"
-          class="clear-btn"
-          onclick={clearSelection}
-          aria-label="Clear"
-        >
-          <X size={14} />
-        </button>
-      {:else if icon}
-        <span class="input-icon">{@render icon()}</span>
-      {/if}
+    </div>
+    {#if selectedTags.length > 0 || inputValue.trim()}
+      <button
+        type="button"
+        class="clear-btn"
+        onclick={clearAll}
+        aria-label="Clear all tags"
+      >
+        <X size={14} />
+      </button>
+    {:else}
+      <span class="input-icon"><Tags size={14} /></span>
     {/if}
   </div>
 
-  {#if isFocused && !value && inputValue.trim()}
-    <div
-      class="dropdown"
-      role="listbox"
-      tabindex="-1"
-      onmousedown={(e) => e.preventDefault()}
-    >
-      {#if inputValue.trim() && !allOptions.includes(inputValue.trim())}
-        <button
-          type="button"
-          class="option new-option"
-          onclick={() => selectOption(inputValue)}
-        >
-          <span class="new-option-icon"><Plus size={12} /></span>
-          <span class="new-option-label">Create</span>
-          <TagWidget color={color} text={inputValue.trim()}/>
+  {#if isFocused && inputValue.trim()}
+    <div class="dropdown" role="listbox" tabindex="-1" onmousedown={(e) => e.preventDefault()}>
+      {#if inputValue.trim() && !allTags.includes(inputValue.trim())}
+        <button type="button" class="option new-tag" onclick={() => addTag(inputValue)}>
+          <span class="new-tag-icon"><Plus size={12} /></span>
+          <span class="new-tag-label">Create</span>
+          <span class="pill">{inputValue.trim()}</span>
         </button>
-        {#if filteredOptions.length > 0}
+        {#if filteredTags.length > 0}
           <div class="divider"></div>
         {/if}
       {/if}
-      {#each filteredOptions as option}
-        <button type="button" class="option" onclick={() => selectOption(option)}>
-          {option}
+      {#each filteredTags as tag}
+        <button type="button" class="option" onclick={() => addTag(tag)}>
+          {tag}
         </button>
       {/each}
     </div>
@@ -127,12 +111,13 @@
 </div>
 
 <style>
-  .select-widget {
+  .tag-widget {
     position: relative;
   }
 
   .input-row {
     display: flex;
+    flex-wrap: nowrap;
     align-items: center;
     gap: var(--space-2);
     min-height: var(--input-height);
@@ -144,16 +129,56 @@
     cursor: text;
   }
 
+  .tags-and-input {
+    display: flex;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+    gap: var(--space-2);
+    align-items: center;
+  }
+
   .input-row:focus-within {
     border-color: var(--color-blue);
     box-shadow: var(--focus-ring);
   }
 
-  .value-area {
-    flex: 1;
-    min-width: 0;
-    display: flex;
+  .pill {
+    display: inline-flex;
     align-items: center;
+    gap: 4px;
+    background: color-mix(in srgb, var(--color-blue) 10%, transparent);
+    color: var(--color-blue);
+    border: 1px solid color-mix(in srgb, var(--color-blue) 28%, transparent);
+    border-radius: var(--radius-sm);
+    padding: 2px 5px 2px 8px;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    line-height: 1.5;
+  }
+
+  .pill-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--radius-xs);
+    background: none;
+    border: none;
+    color: var(--color-blue);
+    cursor: pointer;
+    padding: 0;
+    opacity: 0.5;
+    transition: opacity var(--transition-fast), background var(--transition-fast);
+    flex-shrink: 0;
+  }
+
+  .pill-remove:hover {
+    opacity: 1;
+    background: color-mix(in srgb, var(--color-blue) 18%, transparent);
   }
 
   .clear-btn {
@@ -179,7 +204,7 @@
     color: var(--color-red);
   }
 
-  .select-input {
+  .tag-input {
     flex: 1;
     min-width: 60px;
     border: none;
@@ -190,7 +215,7 @@
     padding: var(--space-1) 0;
   }
 
-  .select-input::placeholder {
+  .tag-input::placeholder {
     color: var(--color-disabled);
   }
 
@@ -244,7 +269,7 @@
     background: var(--color-bg);
   }
 
-  .option.new-option {
+  .option.new-tag {
     gap: 6px;
     color: var(--color-text-secondary);
     background: none;
@@ -256,7 +281,7 @@
     font-size: var(--text-base);
   }
 
-  .new-option-icon {
+  .new-tag-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -268,21 +293,25 @@
     flex-shrink: 0;
   }
 
-  .new-option-label {
+  .new-tag-label {
     font-size: var(--text-sm);
     font-weight: 500;
     color: var(--color-text-secondary);
   }
 
-  .option.new-option:hover,
-  .option.new-option:focus {
+  .option.new-tag .pill {
+    padding: 1px 8px;
+  }
+
+  .option.new-tag:hover,
+  .option.new-tag:focus {
     background: var(--color-bg);
     color: var(--color-text);
     outline: none;
   }
 
-  .option.new-option:hover .new-option-label,
-  .option.new-option:focus .new-option-label {
+  .option.new-tag:hover .new-tag-label,
+  .option.new-tag:focus .new-tag-label {
     color: var(--color-text);
   }
 </style>

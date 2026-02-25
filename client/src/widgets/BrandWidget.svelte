@@ -31,7 +31,7 @@
   {placeholder}
   bind:allOptions
   bind:value
-  color="var(--color-yellow)"
+  color="--color-yellow"
 >
   {#snippet icon()}
     <Tag size={14} />

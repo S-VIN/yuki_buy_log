@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Trash2, Pencil } from 'lucide-svelte';
-  import ProductWidget from './ProductWidget.svelte';
+  import ProductFullWidget from './ProductFullWidget.svelte';
   import type { Product } from '../models/Product';
 
   interface Props {
@@ -19,7 +19,14 @@
   <div class="card-product">
     <div style="display: flex; flex-direction: row; justify-content: space-between;">
 
-      <ProductWidget {product} needTags={true} />
+      <ProductFullWidget {product} needTags={false} />
+      {#if tags.length > 0}
+        <div class="tags-row">
+          {#each tags as tag}
+            <span class="pill">{tag}</span>
+          {/each}
+        </div>
+      {/if}
 
       <div style="display: flex; flex-direction: row;">
         <button type="button" class="action-btn edit-btn" onclick={onEdit} aria-label="Edit">

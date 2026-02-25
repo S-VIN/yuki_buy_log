@@ -2,7 +2,7 @@
   import { productStore } from '../stores/products.svelte';
   import VolumeWidget from './VolumeWidget.svelte';
   import BrandWidget from './BrandWidget.svelte';
-  import TagWidget from './TagWidget.svelte';
+  import TagSelectWidget from './TagSelectWidget.svelte';
   import type { Product, ProductId } from '../models/Product';
 
   interface Props {
@@ -25,7 +25,7 @@
 
   const isEditMode = $derived(mode === 'edit');
 
-  // Local copies so TagWidget can extend them in-session
+  // Local copies so TagSelectWidget can extend them in-session
   let localTagOptions = $state<string[]>([]);
 
   let newName = $state('');
@@ -134,7 +134,7 @@
           </div>
         </div>
 
-        <TagWidget
+        <TagSelectWidget
           bind:allTags={localTagOptions}
           bind:selectedTags={newTags}
         />

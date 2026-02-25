@@ -31,7 +31,7 @@
   {placeholder}
   bind:allOptions
   bind:value
-  color="var(--color-green)"
+  color="--color-green"
 >
   {#snippet icon()}
     <Package size={14} />
