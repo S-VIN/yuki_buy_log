@@ -1,7 +1,8 @@
 <script lang="ts">
   import { Trash2, Pencil } from 'lucide-svelte';
-  import ProductFullWidget from './ProductFullWidget.svelte';
   import type { Product } from '../models/Product';
+  import ProductOneLineWidget from "./ProductOneLineWidget.svelte";
+  import TagWidget from "./TagWidget.svelte";
 
   interface Props {
     product: Product;
@@ -17,18 +18,11 @@
 
 <div class="card">
   <div class="card-product">
-    <div style="display: flex; flex-direction: row; justify-content: space-between;">
 
-      <ProductFullWidget {product} needTags={false} />
-      {#if tags.length > 0}
-        <div class="tags-row">
-          {#each tags as tag}
-            <span class="pill">{tag}</span>
-          {/each}
-        </div>
-      {/if}
+    <div class="card-row">
+      <ProductOneLineWidget {product}/>
 
-      <div style="display: flex; flex-direction: row;">
+      <div class="actions-row">
         <button type="button" class="action-btn edit-btn" onclick={onEdit} aria-label="Edit">
           <Pencil size={14} />
         </button>
@@ -36,8 +30,18 @@
           <Trash2 size={14} />
         </button>
       </div>
-
     </div>
+
+    <div class="card-row">
+      <div class="tags-row">
+        {#each tags as tag (tag)}
+          <TagWidget text={tag} color="--color-blue"/>
+        {/each}
+      </div>
+
+      <span class="price-label">{price} x {quantity} = {price * quantity}₽</span>
+    </div>
+
   </div>
 </div>
 
@@ -51,6 +55,43 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
+  }
+
+  .card-product {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .card-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .actions-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-1);
+    flex-shrink: 0;
+  }
+
+  .tags-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .price-label {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .action-btn {
