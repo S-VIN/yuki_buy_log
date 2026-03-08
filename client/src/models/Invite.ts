@@ -1,5 +1,5 @@
-export type InviteId = number;
-export type UserId = number;
+export type InviteId = bigint;
+export type UserId = bigint;
 
 export interface Invite {
   id: InviteId;
@@ -7,5 +7,5 @@ export interface Invite {
   to_user_id: UserId;
   from_login: string;
   to_login: string;
-  created_at: string;
+  created_at: Date;
 }

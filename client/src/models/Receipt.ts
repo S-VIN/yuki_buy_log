@@ -1,10 +1,12 @@
+import type {UserId} from "./Invite";
+
 export type ReceiptId = number;
 
 export interface Receipt {
   id: ReceiptId;
-  date: string;
+  date: Date;
   store: string;
-  common_tags: string[];
-  purchase_ids: string[];
+  purchase_ids: bigint[];
   total: number;
+  userId: UserId;
 }

@@ -5,6 +5,7 @@
   import { productStore } from './stores/products.svelte';
   import { purchaseStore } from './stores/purchases.svelte';
   import LoadingScreen from './lib/LoadingScreen.svelte';
+  import ToastContainer from './lib/ToastContainer.svelte';
   import LoginPage from './pages/LoginPage.svelte';
   import AddPage from './pages/AddPage.svelte';
   import ListPage from './pages/ListPage.svelte';
@@ -77,6 +78,8 @@
 {:else}
   <LoginPage />
 {/if}
+
+<ToastContainer />
 
 {#if isLoading}
   <div transition:fade={{ duration: 280 }}>

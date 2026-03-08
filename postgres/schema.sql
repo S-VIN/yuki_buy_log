@@ -17,7 +17,7 @@ CREATE TABLE products (
     name VARCHAR(30) NOT NULL,
     volume VARCHAR(10) NOT NULL,
     brand VARCHAR(30) NOT NULL,
-    default_tags VARCHAR(250) NOT NULL,
+    default_tags TEXT[] NOT NULL,
     user_id INTEGER REFERENCES users(id)
 );
 
@@ -28,7 +28,7 @@ CREATE TABLE purchases (
     price INTEGER NOT NULL,
     date DATE NOT NULL,
     store VARCHAR(30) NOT NULL,
-    tags TEXT[],
+    tags TEXT[] NOT NULL,
     receipt_id INTEGER,
     user_id INTEGER REFERENCES users(id)
 );

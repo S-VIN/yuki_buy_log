@@ -1,4 +1,8 @@
 import { auth } from './auth.svelte';
+import { toastStore } from './toast.svelte';
+import type { Product } from '../models/Product';
+import type { Purchase, PurchaseId } from '../models/Purchase';
+import type { Invite } from '../models/Invite';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -13,11 +17,15 @@ function getAuthHeaders(): Record<string, string> {
 async function handleResponse(response: Response, method: string, path: string): Promise<Response> {
   if (response.status === 401) {
     auth.logout();
-    throw new Error('Session expired. Please log in again.');
+    const msg = 'Session expired. Please log in again.';
+    toastStore.showError(msg);
+    throw new Error(msg);
   }
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(error || `${method} ${path} failed`);
+    const msg = error || `${method} ${path} failed`;
+    toastStore.showError(msg);
+    throw new Error(msg);
   }
   return response;
 }
@@ -87,17 +95,17 @@ export const fetchGroupMembers = () => doGet('/group');
 export const leaveGroup = () => doDelete('/group', {});
 
 // Invite API
-export const fetchInvites = () => doGet('/invite');
-export const sendInvite = (login: string) => doPost('/invite', { login });
+export const fetchInvites = (): Promise<{ invites: Invite[] }> => doGet('/invite');
+export const sendInvite = (login: string): Promise<{ message: string }> => doPost('/invite', { login });
 
 // Product API
-export const fetchProducts = () => doGet('/products');
-export const createProduct = (product: unknown) => doPost('/products', product);
-export const updateProduct = (product: unknown) => doPut('/products', product);
+export const fetchProducts = (): Promise<{ products: Product[] }> => doGet('/products');
+export const createProduct = (product: Omit<Product, 'id' | 'user_id'>): Promise<Product> => doPost('/products', product);
+export const updateProduct = (product: Product): Promise<Product> => doPut('/products', product);
 
 // Purchase API
-export const fetchPurchases = () => doGet('/purchases');
-export const createPurchase = (purchase: unknown) => doPost('/purchases', purchase);
-export const deletePurchase = (purchaseId: string) => doDelete('/purchases', { id: purchaseId });
+export const fetchPurchases = (): Promise<{ purchases: Purchase[] }> => doGet('/purchases');
+export const createPurchase = (purchase: Omit<Purchase, 'id'>): Promise<Purchase> => doPost('/purchases', purchase);
+export const deletePurchase = (purchaseId: PurchaseId) => doDelete('/purchases', { id: purchaseId.toString() });
 
 export default API_URL;

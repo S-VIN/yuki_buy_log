@@ -19,16 +19,20 @@ export const purchaseStore = {
 
   async load() {
     const data = await fetchPurchases();
-    items = ((data as { purchases: Purchase[] }).purchases ?? []) as Purchase[];
+    items = ((data as { purchases: Purchase[] }).purchases ?? []).map((p) => ({
+      ...p,
+      date: new Date(p.date as unknown as string),
+    }));
   },
 
   async create(purchase: Omit<Purchase, 'id'>) {
     const created = (await createPurchase(purchase)) as Purchase;
-    items = [...items, created];
-    return created;
+    const withDate = { ...created, date: new Date(created.date as unknown as string) };
+    items = [...items, withDate];
+    return withDate;
   },
 
-  async delete(id: string) {
+  async delete(id: bigint) {
     await deletePurchase(id);
     items = items.filter((p) => p.id !== id);
   },

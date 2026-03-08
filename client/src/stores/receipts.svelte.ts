@@ -18,27 +18,42 @@ const items = $derived.by((): Receipt[] => {
   for (const [rid, ps] of receiptMap) {
     const first = ps[0];
 
-    // Common tags: tags present in every purchase of this receipt
-    const common_tags = first.tags.filter((t) => ps.every((p) => p.tags.includes(t)));
-
-    // Total: sum of price × quantity for all purchases
     const total = ps.reduce((sum, p) => sum + p.price * (p.quantity ?? 1), 0);
 
     receipts.push({
       id: rid,
       date: first.date,
       store: first.store ?? '',
-      common_tags,
       purchase_ids: ps.map((p) => p.id),
       total,
+      userId: first.user_id!,
     });
   }
 
   return receipts;
 });
 
+const groupedByDate = $derived.by(() => {
+  const sorted = [...items].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  const groups: { date: Date; total: number; receipts: Receipt[] }[] = [];
+  for (const receipt of sorted) {
+    const last = groups.at(-1);
+    if (last && last.date.toDateString() === receipt.date.toDateString()) {
+      last.receipts.push(receipt);
+      last.total += receipt.total;
+    } else {
+      groups.push({ date: receipt.date, total: receipt.total, receipts: [receipt] });
+    }
+  }
+  return groups;
+});
+
 export const receiptStore = {
   get items() {
     return items;
+  },
+  get groupedByDate() {
+    return groupedByDate;
   },
 };
