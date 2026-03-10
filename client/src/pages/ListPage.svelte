@@ -2,7 +2,6 @@
   import { receiptStore } from '../stores/receipts.svelte';
   import { purchaseStore } from '../stores/purchases.svelte';
   import { productStore } from '../stores/products.svelte';
-  import { editReceiptState } from '../lib/editReceiptState.svelte';
   import { navigation } from '../lib/navigation.svelte';
   import ReceiptCardWidget from '../widgets/ReceiptCardWidget.svelte';
   import ChecksHeaderWidget from "../widgets/ChecksHeaderWidget.svelte";
@@ -31,13 +30,11 @@
       await purchaseStore.delete(purchase.id);
     }
 
-    editReceiptState.set({
+    navigation.go('add', {
       date: receipt.date.toISOString().slice(0, 10),
       shop: receipt.store || null,
       items,
     });
-
-    navigation.go('add');
   }
 </script>
 

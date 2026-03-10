@@ -7,7 +7,7 @@
   import LoadingScreen from './lib/LoadingScreen.svelte';
   import ToastContainer from './lib/ToastContainer.svelte';
   import { navigation } from './lib/navigation.svelte';
-  import { editReceiptState } from './lib/editReceiptState.svelte';
+  import type { ReceiptEdit } from './lib/receiptTypes';
   import LoginPage from './pages/LoginPage.svelte';
   import AddPage from './pages/AddPage.svelte';
   import ListPage from './pages/ListPage.svelte';
@@ -17,7 +17,16 @@
   type TabId = 'add' | 'list' | 'products' | 'profile';
 
   let activeTab = $state<TabId>('add');
-  navigation.register((tab) => { activeTab = tab; });
+  let addPageData = $state<ReceiptEdit | null>(null);
+  let addPageKey = $state(0);
+
+  navigation.register((tab, data) => {
+    activeTab = tab as TabId;
+    if (tab === 'add' && data) {
+      addPageData = data as ReceiptEdit;
+      addPageKey++;
+    }
+  });
 
   const menuItems = [
     { id: 'add', icon: ShoppingCart },
@@ -51,8 +60,8 @@
   <div class="app-shell">
     <main class="content">
       <div class="tab-panel" hidden={activeTab !== 'add'}>
-        {#key editReceiptState.version}
-          <AddPage />
+        {#key addPageKey}
+          <AddPage initialData={addPageData} />
         {/key}
       </div>
       <div class="tab-panel" hidden={activeTab !== 'list'}>

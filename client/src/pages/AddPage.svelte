@@ -7,21 +7,17 @@
   import PriceQuantityWidget from '../widgets/PriceQuantityWidget.svelte';
   import { productStore } from '../stores/products.svelte';
   import { purchaseStore } from '../stores/purchases.svelte';
-  import { editReceiptState } from '../lib/editReceiptState.svelte';
   import type { Product } from '../models/Product';
   import type { Purchase } from '../models/Purchase';
+  import type { PendingReceiptItem, ReceiptEdit } from '../lib/receiptTypes';
 
-  interface PendingPurchase {
-    uuid: string;
-    product: Product;
-    price: number;
-    quantity: number;
-    tags: string[];
-  }
+  type PendingPurchase = PendingReceiptItem;
+
+  const { initialData = null }: { initialData?: ReceiptEdit | null } = $props();
 
   // ─── Receipt-level state ──────────────────────────────────────
-  let selectedDate = $state(new Date().toISOString().slice(0, 10));
-  let selectedShop = $state<string | null>(null);
+  let selectedDate = $state(initialData?.date ?? new Date().toISOString().slice(0, 10));
+  let selectedShop = $state<string | null>(initialData?.shop ?? null);
 
   // ─── Item-level state ─────────────────────────────────────────
   let selectedProduct = $state<Product | null>(null);
@@ -52,18 +48,7 @@
   });
 
   // ─── Check cache ──────────────────────────────────────────────
-  let pendingPurchases = $state<PendingPurchase[]>([]);
-
-  // ─── Pre-fill from edit state (when editing existing receipt) ─
-  {
-    const edit = editReceiptState.data;
-    if (edit) {
-      selectedDate = edit.date;
-      selectedShop = edit.shop;
-      pendingPurchases = edit.items;
-      editReceiptState.clear();
-    }
-  }
+  let pendingPurchases = $state<PendingPurchase[]>(initialData?.items ?? []);
 
   const canAdd = $derived(!!selectedProduct && !!price && parseFloat(price) > 0);
   const canClose = $derived(pendingPurchases.length > 0);
