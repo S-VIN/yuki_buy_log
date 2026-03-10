@@ -6,6 +6,8 @@
   import { purchaseStore } from './stores/purchases.svelte';
   import LoadingScreen from './lib/LoadingScreen.svelte';
   import ToastContainer from './lib/ToastContainer.svelte';
+  import { navigation } from './lib/navigation.svelte';
+  import type { Purchase } from './models/Purchase';
   import LoginPage from './pages/LoginPage.svelte';
   import AddPage from './pages/AddPage.svelte';
   import ListPage from './pages/ListPage.svelte';
@@ -15,6 +17,14 @@
   type TabId = 'add' | 'list' | 'products' | 'profile';
 
   let activeTab = $state<TabId>('add');
+  let addPageData = $state<Purchase[]>([]);
+
+  navigation.register((tab, data) => {
+    activeTab = tab as TabId;
+    if (tab === 'add' && data) {
+      addPageData = data as Purchase[];
+    }
+  });
 
   const menuItems = [
     { id: 'add', icon: ShoppingCart },
@@ -48,7 +58,9 @@
   <div class="app-shell">
     <main class="content">
       <div class="tab-panel" hidden={activeTab !== 'add'}>
-        <AddPage />
+        {#key addPageData}
+          <AddPage initialPurchases={addPageData} />
+        {/key}
       </div>
       <div class="tab-panel" hidden={activeTab !== 'list'}>
         <ListPage />

@@ -18,9 +18,11 @@
     tags: string[];
   }
 
+  const { initialPurchases = [] }: { initialPurchases?: Purchase[] } = $props();
+
   // ─── Receipt-level state ──────────────────────────────────────
-  let selectedDate = $state(new Date().toISOString().slice(0, 10));
-  let selectedShop = $state<string | null>(null);
+  let selectedDate = $state(initialPurchases[0]?.date.toISOString().slice(0, 10) ?? new Date().toISOString().slice(0, 10));
+  let selectedShop = $state<string | null>(initialPurchases[0]?.store ?? null);
 
   // ─── Item-level state ─────────────────────────────────────────
   let selectedProduct = $state<Product | null>(null);
@@ -51,7 +53,21 @@
   });
 
   // ─── Check cache ──────────────────────────────────────────────
-  let pendingPurchases = $state<PendingPurchase[]>([]);
+  let pendingPurchases = $state<PendingPurchase[]>(
+    initialPurchases
+      .map((p) => {
+        const product = productStore.items.find((pr) => pr.id === p.product_id);
+        if (!product) return null;
+        return {
+          uuid: crypto.randomUUID(),
+          product,
+          price: p.price,
+          quantity: p.quantity ?? 1,
+          tags: [...p.tags],
+        };
+      })
+      .filter((x): x is PendingPurchase => x !== null)
+  );
 
   const canAdd = $derived(!!selectedProduct && !!price && parseFloat(price) > 0);
   const canClose = $derived(pendingPurchases.length > 0);
