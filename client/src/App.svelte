@@ -6,6 +6,7 @@
   import { purchaseStore } from './stores/purchases.svelte';
   import LoadingScreen from './lib/LoadingScreen.svelte';
   import ToastContainer from './lib/ToastContainer.svelte';
+  import { navigation } from './lib/navigation.svelte';
   import LoginPage from './pages/LoginPage.svelte';
   import AddPage from './pages/AddPage.svelte';
   import ListPage from './pages/ListPage.svelte';
@@ -15,6 +16,7 @@
   type TabId = 'add' | 'list' | 'products' | 'profile';
 
   let activeTab = $state<TabId>('add');
+  navigation.register((tab) => { activeTab = tab; });
 
   const menuItems = [
     { id: 'add', icon: ShoppingCart },

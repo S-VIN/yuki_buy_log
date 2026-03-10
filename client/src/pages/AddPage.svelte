@@ -7,6 +7,7 @@
   import PriceQuantityWidget from '../widgets/PriceQuantityWidget.svelte';
   import { productStore } from '../stores/products.svelte';
   import { purchaseStore } from '../stores/purchases.svelte';
+  import { editReceiptState } from '../lib/editReceiptState.svelte';
   import type { Product } from '../models/Product';
   import type { Purchase } from '../models/Purchase';
 
@@ -52,6 +53,17 @@
 
   // ─── Check cache ──────────────────────────────────────────────
   let pendingPurchases = $state<PendingPurchase[]>([]);
+
+  // ─── Pre-fill from edit state (when editing existing receipt) ─
+  $effect(() => {
+    const edit = editReceiptState.data;
+    if (edit) {
+      selectedDate = edit.date;
+      selectedShop = edit.shop;
+      pendingPurchases = edit.items;
+      editReceiptState.clear();
+    }
+  });
 
   const canAdd = $derived(!!selectedProduct && !!price && parseFloat(price) > 0);
   const canClose = $derived(pendingPurchases.length > 0);

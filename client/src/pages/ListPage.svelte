@@ -1,7 +1,44 @@
 <script lang="ts">
   import { receiptStore } from '../stores/receipts.svelte';
+  import { purchaseStore } from '../stores/purchases.svelte';
+  import { productStore } from '../stores/products.svelte';
+  import { editReceiptState } from '../lib/editReceiptState.svelte';
+  import { navigation } from '../lib/navigation.svelte';
   import ReceiptCardWidget from '../widgets/ReceiptCardWidget.svelte';
   import ChecksHeaderWidget from "../widgets/ChecksHeaderWidget.svelte";
+
+  async function handleReceiptClick(receiptId: number) {
+    const receipt = receiptStore.items.find((r) => r.id === receiptId);
+    if (!receipt) return;
+
+    const purchases = purchaseStore.items.filter((p) => receipt.purchase_ids.includes(p.id));
+
+    const items = purchases
+      .map((p) => {
+        const product = productStore.items.find((pr) => pr.id === p.product_id);
+        if (!product) return null;
+        return {
+          uuid: crypto.randomUUID(),
+          product,
+          price: p.price,
+          quantity: p.quantity ?? 1,
+          tags: [...p.tags],
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
+
+    for (const purchase of purchases) {
+      await purchaseStore.delete(purchase.id);
+    }
+
+    editReceiptState.set({
+      date: receipt.date.toISOString().slice(0, 10),
+      shop: receipt.store || null,
+      items,
+    });
+
+    navigation.go('add');
+  }
 </script>
 
 <div class="page">
@@ -12,7 +49,7 @@
       {#each receiptStore.groupedByDate as group (group.date.toDateString())}
         <ChecksHeaderWidget date={group.date} total={group.total} />
         {#each group.receipts as receipt (receipt.id)}
-          <ReceiptCardWidget {receipt} />
+          <ReceiptCardWidget {receipt} onclick={() => handleReceiptClick(receipt.id)} />
         {/each}
       {/each}
     </div>
