@@ -9,15 +9,20 @@
   import { purchaseStore } from '../stores/purchases.svelte';
   import type { Product } from '../models/Product';
   import type { Purchase } from '../models/Purchase';
-  import type { PendingReceiptItem, ReceiptEdit } from '../lib/receiptTypes';
 
-  type PendingPurchase = PendingReceiptItem;
+  interface PendingPurchase {
+    uuid: string;
+    product: Product;
+    price: number;
+    quantity: number;
+    tags: string[];
+  }
 
-  const { initialData = null }: { initialData?: ReceiptEdit | null } = $props();
+  const { initialPurchases = [] }: { initialPurchases?: Purchase[] } = $props();
 
   // ─── Receipt-level state ──────────────────────────────────────
-  let selectedDate = $state(initialData?.date ?? new Date().toISOString().slice(0, 10));
-  let selectedShop = $state<string | null>(initialData?.shop ?? null);
+  let selectedDate = $state(new Date().toISOString().slice(0, 10));
+  let selectedShop = $state<string | null>(null);
 
   // ─── Item-level state ─────────────────────────────────────────
   let selectedProduct = $state<Product | null>(null);
@@ -48,7 +53,28 @@
   });
 
   // ─── Check cache ──────────────────────────────────────────────
-  let pendingPurchases = $state<PendingPurchase[]>(initialData?.items ?? []);
+  let pendingPurchases = $state<PendingPurchase[]>([]);
+
+  $effect(() => {
+    const purchases = initialPurchases;
+    if (!purchases || purchases.length === 0) return;
+    const first = purchases[0];
+    selectedDate = first.date.toISOString().slice(0, 10);
+    selectedShop = first.store ?? null;
+    pendingPurchases = purchases
+      .map((p) => {
+        const product = productStore.items.find((pr) => pr.id === p.product_id);
+        if (!product) return null;
+        return {
+          uuid: crypto.randomUUID(),
+          product,
+          price: p.price,
+          quantity: p.quantity ?? 1,
+          tags: [...p.tags],
+        };
+      })
+      .filter((x): x is PendingPurchase => x !== null);
+  });
 
   const canAdd = $derived(!!selectedProduct && !!price && parseFloat(price) > 0);
   const canClose = $derived(pendingPurchases.length > 0);

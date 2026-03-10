@@ -1,7 +1,6 @@
 <script lang="ts">
   import { receiptStore } from '../stores/receipts.svelte';
   import { purchaseStore } from '../stores/purchases.svelte';
-  import { productStore } from '../stores/products.svelte';
   import { navigation } from '../lib/navigation.svelte';
   import ReceiptCardWidget from '../widgets/ReceiptCardWidget.svelte';
   import ChecksHeaderWidget from "../widgets/ChecksHeaderWidget.svelte";
@@ -12,29 +11,11 @@
 
     const purchases = purchaseStore.items.filter((p) => receipt.purchase_ids.includes(p.id));
 
-    const items = purchases
-      .map((p) => {
-        const product = productStore.items.find((pr) => pr.id === p.product_id);
-        if (!product) return null;
-        return {
-          uuid: crypto.randomUUID(),
-          product,
-          price: p.price,
-          quantity: p.quantity ?? 1,
-          tags: [...p.tags],
-        };
-      })
-      .filter((x): x is NonNullable<typeof x> => x !== null);
-
     for (const purchase of purchases) {
       await purchaseStore.delete(purchase.id);
     }
 
-    navigation.go('add', {
-      date: receipt.date.toISOString().slice(0, 10),
-      shop: receipt.store || null,
-      items,
-    });
+    navigation.go('add', purchases);
   }
 </script>
 
