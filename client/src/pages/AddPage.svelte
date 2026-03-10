@@ -55,7 +55,7 @@
   let pendingPurchases = $state<PendingPurchase[]>([]);
 
   // ─── Pre-fill from edit state (when editing existing receipt) ─
-  $effect(() => {
+  {
     const edit = editReceiptState.data;
     if (edit) {
       selectedDate = edit.date;
@@ -63,7 +63,7 @@
       pendingPurchases = edit.items;
       editReceiptState.clear();
     }
-  });
+  }
 
   const canAdd = $derived(!!selectedProduct && !!price && parseFloat(price) > 0);
   const canClose = $derived(pendingPurchases.length > 0);

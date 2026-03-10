@@ -7,6 +7,7 @@
   import LoadingScreen from './lib/LoadingScreen.svelte';
   import ToastContainer from './lib/ToastContainer.svelte';
   import { navigation } from './lib/navigation.svelte';
+  import { editReceiptState } from './lib/editReceiptState.svelte';
   import LoginPage from './pages/LoginPage.svelte';
   import AddPage from './pages/AddPage.svelte';
   import ListPage from './pages/ListPage.svelte';
@@ -50,7 +51,9 @@
   <div class="app-shell">
     <main class="content">
       <div class="tab-panel" hidden={activeTab !== 'add'}>
-        <AddPage />
+        {#key editReceiptState.version}
+          <AddPage />
+        {/key}
       </div>
       <div class="tab-panel" hidden={activeTab !== 'list'}>
         <ListPage />
