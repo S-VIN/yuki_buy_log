@@ -58,7 +58,9 @@
   <div class="app-shell">
     <main class="content">
       <div class="tab-panel" hidden={activeTab !== 'add'}>
-        <AddPage initialPurchases={addPageData} />
+        {#key addPageData}
+          <AddPage initialPurchases={addPageData} />
+        {/key}
       </div>
       <div class="tab-panel" hidden={activeTab !== 'list'}>
         <ListPage />
